@@ -1,0 +1,68 @@
+{
+  "_args": [
+    [
+      {
+        "raw": "/private/var/folders/yc/qws8qx4n65d13181gwm4m_vh0000gn/T/d-118028-69301-k81ums.qk1fvcmcxr/package.tgz",
+        "scope": null,
+        "escapedName": null,
+        "name": null,
+        "rawSpec": "/private/var/folders/yc/qws8qx4n65d13181gwm4m_vh0000gn/T/d-118028-69301-k81ums.qk1fvcmcxr/package.tgz",
+        "spec": "/private/var/folders/yc/qws8qx4n65d13181gwm4m_vh0000gn/T/d-118028-69301-k81ums.qk1fvcmcxr/package.tgz",
+        "type": "local"
+      },
+      "/private/var/folders/yc/qws8qx4n65d13181gwm4m_vh0000gn/T/apm-install-dir-118028-69301-wxbpyw.s4rtzz1tt9"
+    ]
+  ],
+  "_from": "../d-118028-69301-k81ums.qk1fvcmcxr/package.tgz",
+  "_id": "emmet-jsx-css-modules@1.0.0",
+  "_inCache": true,
+  "_location": "/emmet-jsx-css-modules",
+  "_phantomChildren": {},
+  "_requested": {
+    "raw": "/private/var/folders/yc/qws8qx4n65d13181gwm4m_vh0000gn/T/d-118028-69301-k81ums.qk1fvcmcxr/package.tgz",
+    "scope": null,
+    "escapedName": null,
+    "name": null,
+    "rawSpec": "/private/var/folders/yc/qws8qx4n65d13181gwm4m_vh0000gn/T/d-118028-69301-k81ums.qk1fvcmcxr/package.tgz",
+    "spec": "/private/var/folders/yc/qws8qx4n65d13181gwm4m_vh0000gn/T/d-118028-69301-k81ums.qk1fvcmcxr/package.tgz",
+    "type": "local"
+  },
+  "_requiredBy": [
+    "#USER"
+  ],
+  "_resolved": "file:../d-118028-69301-k81ums.qk1fvcmcxr/package.tgz",
+  "_shasum": "81e1f216aa95fe892a582c72627e0425b2b504bb",
+  "_shrinkwrap": null,
+  "_spec": "/private/var/folders/yc/qws8qx4n65d13181gwm4m_vh0000gn/T/d-118028-69301-k81ums.qk1fvcmcxr/package.tgz",
+  "_where": "/private/var/folders/yc/qws8qx4n65d13181gwm4m_vh0000gn/T/apm-install-dir-118028-69301-wxbpyw.s4rtzz1tt9",
+  "author": {
+    "name": "Jason L Perry",
+    "email": "jasper@ambethia.com"
+  },
+  "bugs": {
+    "url": "https://github.com/ambethia/emmet-jsx-css-modules/issues"
+  },
+  "dependencies": {},
+  "description": "Extends Emmet's JSX expansions to use CSS modules.",
+  "devDependencies": {},
+  "engines": {
+    "atom": ">=1.0.0 <2.0.0"
+  },
+  "homepage": "https://github.com/ambethia/emmet-jsx-css-modules#readme",
+  "keywords": [
+    "emmet",
+    "jsx",
+    "css-modules"
+  ],
+  "license": "MIT",
+  "main": "./lib/emmet-jsx-css-modules",
+  "name": "emmet-jsx-css-modules",
+  "optionalDependencies": {},
+  "readme": "# emmet-jsx-css-modules package\n\nAtom package to extend Emmet's JSX expansions to use CSS modules.\n\nFor example: `.foo` will now expand to `<div className={style.foo}></div>` instead of `<div className=\"foo\"></div>`.\n\n## TODO\n\n- [x] Allow the `style` variable name to be customized via Atom's preferences.\n",
+  "readmeFilename": "README.md",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ambethia/emmet-jsx-css-modules.git"
+  },
+  "version": "1.0.0"
+}

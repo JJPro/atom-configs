@@ -1,0 +1,90 @@
+# Your snippets
+#
+# Atom snippets allow you to enter a simple prefix in the editor and hit tab to
+# expand the prefix into a larger code block with templated values.
+#
+# You can create a new snippet in this file by typing "snip" and then hitting
+# tab.
+#
+# An example CoffeeScript snippet to expand log to console.log:
+#
+# '.source.coffee':
+#   'Console log':
+#     'prefix': 'log'
+#     'body': 'console.log $1'
+#
+# Each scope (e.g. '.source.coffee' above) can only be declared once.
+#
+# This file uses CoffeeScript Object Notation (CSON).
+# If you are unfamiliar with CSON, you can read more about it in the
+# Atom Flight Manual:
+# http://flight-manual.atom.io/using-atom/sections/basic-customization/#_cson
+
+'.text.tex.latex':
+  'Math Format':
+    'prefix': '$'
+    'body': '$$1$$2'
+
+  'Set Minus':
+    'prefix': 'setminus'
+    'body': '\\\\setminus{$1}'
+
+  'val() function':
+    'prefix': 'val'
+    'body': '\\\\val{$1}'
+
+  'ell in math':
+    'prefix': 'l'
+    'body': '\\\\ell'
+
+  'union operator':
+    'prefix': 'union'
+    'body': '\\\\cup $1'
+  'set operator':
+    'prefix': 'set'
+    'body': '\\\\{$1\\\\}'
+  'not in set or not belong to operator':
+    'prefix': 'not in'
+    'body': '\\\\not\\\\in'
+  'not in set or not belong to operator2':
+    'prefix': 'doesn\' belong to'
+    'body': '\\\\not\\\\in'
+  'belong to operator':
+    'prefix': 'belong'
+    'body': '\\\\in'
+  'in set operator':
+    'prefix': 'in'
+    'body': '\\\\in'
+  'mod operator':
+    'prefix': 'mod'
+    'body': '\\\\%'
+  'not equal operator':
+    'prefix': 'noteq'
+    'body': '\\\\neq'
+  'empty set':
+    'prefix': 'emptyset'
+    'body': '\\\\emptyset'
+  'step ':
+    'prefix': '>'
+    'body': '\\\\step '
+  'cap ':
+    'prefix': 'cap'
+    'body': '\\\\capac($1)$2'
+  'sum':
+    'prefix': 'sum'
+    'body': '\\\\sum_{$1}^{$2} $3'
+  'weight':
+    'prefix': 'weight'
+    'body': '\\\\weight{$1}$2'
+
+
+'.source.elixir':
+  'Checkmark':
+    'prefix': 'ckmk'
+    'body': '✓'
+  'IO.puts':
+    'prefix': 'puts'
+    'body': 'IO.puts $1'
+  'IO.inspect':
+    'prefix': 'inspect'
+    'body': 'IO.inspect($1)$2'

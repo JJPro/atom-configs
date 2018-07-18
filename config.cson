@@ -1,0 +1,40 @@
+"*":
+  "atom-autocomplete-php": {}
+  core:
+    customFileTypes:
+      "source.ini": [
+        ".buckconfig"
+        ".hgrc"
+        ".flowconfig"
+      ]
+      "source.json": [
+        "BUCK.autodeps"
+      ]
+      "source.python": [
+        "BUCK"
+      ]
+    disabledPackages: [
+      "emmet-jsx-css-modules"
+      "emmet-jsx-props"
+      "vim-mode-plus"
+      "latex"
+      "nuclide"
+      "latextools"
+      "linter-sass-lint"
+    ]
+    telemetryConsent: "no"
+  editor:
+    softWrap: true
+  "exception-reporting":
+    userId: "fa06bac5-9996-41d4-b1f4-b9e4c614e537"
+  "latex-plus":
+    texBin: "/Library/TeX/texbin/"
+  "linter-ui-default": {}
+  "markdown-preview":
+    useGitHubStyle: true
+  nuclide:
+    "nuclide-home":
+      showHome: false
+  "tree-view": {}
+  welcome:
+    showOnStartup: false
