@@ -164,6 +164,7 @@ class Activation {
     return {
       getBuildTarget: () => this._taskRunner.getBuildTarget(),
       setBuildTarget: buildTarget => this._taskRunner.setBuildTarget(buildTarget),
+      setDeploymentTarget: preferredNames => this._taskRunner.setDeploymentTarget(preferredNames),
       onDidCompleteTask: callback => {
         return new (_UniversalDisposable().default)(this._taskRunner.getCompletedTasks().subscribe(callback));
       }

@@ -29,6 +29,7 @@ function _simpleTextBuffer() {
  *
  *  strict-local
  * @format
+ * @emails oncall+nuclide
  */
 const testPath = 'myPath';
 describe('Diagnostics', () => {

@@ -65,6 +65,9 @@ class PythonDebugAdapter {
     this.excludedOptions = new Set(['args', 'console', 'diagnosticLogging', 'externalConsole', 'noDebug', 'outputCapture', 'program', 'restart', 'trace', 'verboseDiagnosticLogging']);
     this.extensions = new Set(['.py']);
     this.customArguments = new Map();
+    this.muteOutputCategories = new Set(['telemetry', 'stderr']);
+    this.asyncStopThread = null;
+    this.supportsCodeBlocks = false;
     this._includedOptions = new Set(['address', 'port']);
   }
 

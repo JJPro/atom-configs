@@ -20,16 +20,6 @@ function _track() {
   return data;
 }
 
-function _waits_for() {
-  const data = _interopRequireDefault(require("../../../jest/waits_for"));
-
-  _waits_for = function () {
-    return data;
-  };
-
-  return data;
-}
-
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 /**
@@ -41,6 +31,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  *
  * 
  * @format
+ * @emails oncall+nuclide
  */
 jest.unmock("../../../modules/nuclide-commons/analytics");
 jest.mock("../lib/track", () => {

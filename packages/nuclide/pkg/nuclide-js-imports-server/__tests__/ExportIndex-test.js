@@ -19,6 +19,7 @@ function _ExportIndex() {
  *
  *  strict-local
  * @format
+ * @emails oncall+nuclide
  */
 describe('ExportIndex', () => {
   it('should filter by prefix', () => {

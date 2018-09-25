@@ -19,6 +19,7 @@ function _AutocompleteHelpers() {
  *
  *  strict-local
  * @format
+ * @emails oncall+nuclide
  */
 const {
   getCompletionBodyInline,

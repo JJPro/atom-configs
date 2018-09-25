@@ -42,16 +42,6 @@ function _ZipFileSystem() {
   return data;
 }
 
-function _CompositeFileSystem() {
-  const data = require("../lib/CompositeFileSystem");
-
-  _CompositeFileSystem = function () {
-    return data;
-  };
-
-  return data;
-}
-
 function _nuclideUri() {
   const data = _interopRequireDefault(require("../../../modules/nuclide-commons/nuclideUri"));
 
@@ -73,6 +63,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  *
  *  strict-local
  * @format
+ * @emails oncall+nuclide
  */
 const fixtures = _nuclideUri().default.join(__dirname, '../__mocks__/fixtures');
 
@@ -163,73 +154,6 @@ describe('ZipFS dir.jar', () => {
   const jar = new (_admZip().default)(fixture('dir.jar'));
   const zipFs = new (_ZipFileSystem().ZipFileSystem)(jar, new _fs.default.Stats(), new _fs.default.Stats());
   checkRoot(zipFs, 'dir', 'dir', false, _nuclideUri().default.join);
-});
-describe('CompositeFS dir.zip$dir', () => {
-  const compositeFs = new (_CompositeFileSystem().CompositeFileSystem)(new (_FsFileSystem().FsFileSystem)());
-  const dir = fixture('dir.zip', 'dir');
-  checkRoot(compositeFs, dir, dir, false, _nuclideUri().default.join);
-});
-describe('CompositeFS dir.jar$dir', () => {
-  const compositeFs = new (_CompositeFileSystem().CompositeFileSystem)(new (_FsFileSystem().FsFileSystem)());
-  const dir = fixture('dir.jar', 'dir');
-  checkRoot(compositeFs, dir, dir, false, _nuclideUri().default.join);
-});
-describe('CompositeFS dirRoot.zip', () => {
-  const compositeFs = new (_CompositeFileSystem().CompositeFileSystem)(new (_FsFileSystem().FsFileSystem)());
-  const dir = fixture('dirRoot.zip');
-  checkRoot(compositeFs, dir, dir, false, _nuclideUri().default.archiveJoin);
-});
-describe('CompositeFS dirRoot.jar', () => {
-  const compositeFs = new (_CompositeFileSystem().CompositeFileSystem)(new (_FsFileSystem().FsFileSystem)());
-  const dir = fixture('dirRoot.jar');
-  checkRoot(compositeFs, dir, dir, false, _nuclideUri().default.archiveJoin);
-});
-describe('CompositeFS nonexist.jar', () => {
-  const compositeFs = new (_CompositeFileSystem().CompositeFileSystem)(new (_FsFileSystem().FsFileSystem)());
-  describe('nonexist.jar', () => {
-    const dir = fixture('nonexist.jar');
-    it('does not exist', async () => {
-      await (async () => {
-        expect((await compositeFs.exists(dir))).toBe(false);
-      })();
-    });
-    describe('!no.txt', () => {
-      const notxt = _nuclideUri().default.archiveJoin(dir, 'no.txt');
-
-      it('does not exist', async () => {
-        await (async () => {
-          expect((await compositeFs.exists(notxt))).toBe(false);
-        })();
-      });
-    });
-    describe('!no/no.txt', () => {
-      const notxt = _nuclideUri().default.archiveJoin(dir, 'no/no.txt');
-
-      it('does not exist', async () => {
-        await (async () => {
-          expect((await compositeFs.exists(notxt))).toBe(false);
-        })();
-      });
-    });
-  });
-});
-describe('ComposeFS nonfile.zip', () => {
-  const compositeFs = new (_CompositeFileSystem().CompositeFileSystem)(new (_FsFileSystem().FsFileSystem)());
-  const nonfile = fixture('nonfile.zip');
-  describe('EmptyFile', () => {
-    const empty = _nuclideUri().default.join(nonfile, 'EmptyFile');
-
-    it('exists', async () => {
-      await (async () => {
-        expect((await compositeFs.exists(empty))).toBe(true);
-      })();
-    });
-  });
-  it('contains EmptyFile', async () => {
-    await (async () => {
-      expect((await compositeFs.findNearestFile('EmptyFile', nonfile))).toBe(nonfile);
-    })();
-  });
 });
 
 function checkRoot(checkFs, linkRootPath, realRootPath, checkLinks, rootJoin) {
@@ -331,23 +255,17 @@ function checkRoot(checkFs, linkRootPath, realRootPath, checkLinks, rootJoin) {
   function checkExistingPath(path) {
     describe(path, () => {
       it('exists', async () => {
-        await (async () => {
-          expect((await checkFs.exists(path))).toBeTruthy();
-        })();
+        expect((await checkFs.exists(path))).toBeTruthy();
       });
       it('can be found', async () => {
-        await (async () => {
-          const dir = _nuclideUri().default.dirname(path);
+        const dir = _nuclideUri().default.dirname(path);
 
-          const base = _nuclideUri().default.basename(path);
+        const base = _nuclideUri().default.basename(path);
 
-          expect((await checkFs.findNearestFile(base, dir))).toEqual(dir);
-        })();
+        expect((await checkFs.findNearestFile(base, dir))).toEqual(dir);
       });
       it('is not NFS', async () => {
-        await (async () => {
-          expect((await checkFs.isNfs(path))).toBe(false);
-        })();
+        expect((await checkFs.isNfs(path))).toBe(false);
       });
     });
   }
@@ -355,9 +273,7 @@ function checkRoot(checkFs, linkRootPath, realRootPath, checkLinks, rootJoin) {
   function checkNonExistingPath(path) {
     describe(path, () => {
       it('does not exist', async () => {
-        await (async () => {
-          expect((await checkFs.exists(path))).toBe(false);
-        })();
+        expect((await checkFs.exists(path))).toBe(false);
       });
     });
   }
@@ -384,9 +300,7 @@ function checkRoot(checkFs, linkRootPath, realRootPath, checkLinks, rootJoin) {
   function checkStatValues(get, expected, options = {}) {
     let actual;
     beforeEach(async () => {
-      await (async () => {
-        actual = await get();
-      })();
+      actual = await get();
     }); // Symlinks' mode on Linux is always ignored
 
     if (options.checkLinksMode !== false) {
@@ -416,9 +330,7 @@ function checkRoot(checkFs, linkRootPath, realRootPath, checkLinks, rootJoin) {
     describe('readdir', () => {
       let actual;
       beforeEach(async () => {
-        await (async () => {
-          actual = await checkFs.readdir(path);
-        })();
+        actual = await checkFs.readdir(path);
       });
       it('has expected names', () => {
         expect(names(actual)).toEqual(names(expected));
@@ -429,9 +341,7 @@ function checkRoot(checkFs, linkRootPath, realRootPath, checkLinks, rootJoin) {
   function checkRealPath(path, expected) {
     describe('realpath', () => {
       it('has expected value', async () => {
-        await (async () => {
-          expect((await checkFs.realpath(path))).toEqual(expected);
-        })();
+        expect((await checkFs.realpath(path))).toEqual(expected);
       });
     });
   }
@@ -446,9 +356,7 @@ function checkRoot(checkFs, linkRootPath, realRootPath, checkLinks, rootJoin) {
   function checkText(path, contents) {
     describe(path, () => {
       it('has expected contents', async () => {
-        await (async () => {
-          expect((await checkFs.readFile(path)).toString()).toEqual(contents);
-        })();
+        expect((await checkFs.readFile(path)).toString()).toEqual(contents);
       });
     });
   }

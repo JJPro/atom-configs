@@ -147,6 +147,16 @@ function _SettingsModal() {
   return data;
 }
 
+function _DiagnosticsTableNux() {
+  const data = _interopRequireDefault(require("./DiagnosticsTableNux"));
+
+  _DiagnosticsTableNux = function () {
+    return data;
+  };
+
+  return data;
+}
+
 function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) { var desc = Object.defineProperty && Object.getOwnPropertyDescriptor ? Object.getOwnPropertyDescriptor(obj, key) : {}; if (desc.get || desc.set) { Object.defineProperty(newObj, key, desc); } else { newObj[key] = obj[key]; } } } } newObj.default = obj; return newObj; } }
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
@@ -223,6 +233,7 @@ class DiagnosticsView extends React.Component {
     const {
       diagnostics,
       showDirectoryColumn,
+      showNuxContent,
       showTraces
     } = this.props;
     const groups = ['errors', 'warnings', 'info'];
@@ -281,7 +292,9 @@ class DiagnosticsView extends React.Component {
       icon: "gear",
       size: _Button().ButtonSizes.SMALL,
       onClick: this._showSettings
-    }))), React.createElement("div", {
+    }))), showNuxContent ? React.createElement(_DiagnosticsTableNux().default, {
+      onDismiss: this.props.onDismissNux
+    }) : null, React.createElement("div", {
       className: "atom-ide-filterable",
       ref: el => this._diagnosticsTableWrapperEl = el,
       style: {

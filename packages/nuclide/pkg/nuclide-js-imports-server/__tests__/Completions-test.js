@@ -39,6 +39,7 @@ function _AutoImportsManager() {
  *
  *  strict-local
  * @format
+ * @emails oncall+nuclide
  */
 describe('getImportInformation', () => {
   it('Should correctly parse value imports', () => {

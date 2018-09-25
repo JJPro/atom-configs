@@ -22,6 +22,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  *
  *  strict-local
  * @format
+ * @emails oncall+nuclide
  */
 describe('Model', () => {
   it('setStates state when setState is called', () => {
@@ -45,22 +46,20 @@ describe('Model', () => {
     expect(model.state.other).toBe(true);
   });
   it('can be converted to an observable', async () => {
-    await (async () => {
-      const model = new (_Model().default)({
-        count: 0,
-        other: true
-      });
-      const states = model.toObservable().take(2).toArray().toPromise();
-      model.setState({
-        count: 5
-      });
-      expect((await states)).toEqual([{
-        count: 0,
-        other: true
-      }, {
-        count: 5,
-        other: true
-      }]);
-    })();
+    const model = new (_Model().default)({
+      count: 0,
+      other: true
+    });
+    const states = model.toObservable().take(2).toArray().toPromise();
+    model.setState({
+      count: 5
+    });
+    expect((await states)).toEqual([{
+      count: 0,
+      other: true
+    }, {
+      count: 5,
+      other: true
+    }]);
   });
 });

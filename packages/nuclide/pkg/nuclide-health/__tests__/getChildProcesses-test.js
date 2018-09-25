@@ -45,6 +45,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  *
  *  strict-local
  * @format
+ * @emails oncall+nuclide
  */
 function fakePsEntry(pid, ppid, command, isDescendant, ...children) {
   const pcpu = 1;
@@ -102,17 +103,13 @@ function checkQueryPs(mockPid, data, summary) {
       setProcessPid(originalPid);
     });
     it('parses', async () => {
-      await (async () => {
-        const expected = new Map(data.map(entry => [entry.ps.pid, entry.ps]));
-        const actual = await (0, _getChildProcesses().queryPs)('command').toPromise();
-        expect(actual).toEqual(expected);
-      })();
+      const expected = new Map(data.map(entry => [entry.ps.pid, entry.ps]));
+      const actual = await (0, _getChildProcesses().queryPs)('command').toPromise();
+      expect(actual).toEqual(expected);
     });
     it('summarizes', async () => {
-      await (async () => {
-        const actual = await (0, _getChildProcesses().queryPs)('command').map(_getChildProcesses().childProcessSummary).toPromise();
-        expect(actual).toEqual(summary);
-      })();
+      const actual = await (0, _getChildProcesses().queryPs)('command').map(_getChildProcesses().childProcessSummary).toPromise();
+      expect(actual).toEqual(summary);
     });
     it('converts to tree', async () => {
       await (async () => {

@@ -22,6 +22,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  *
  *  strict
  * @format
+ * @emails oncall+nuclide
  */
 describe('highlightText', () => {
   it('returns no ranges for no interpolated text', () => {

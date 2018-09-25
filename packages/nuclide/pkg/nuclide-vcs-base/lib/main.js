@@ -203,11 +203,11 @@ const FileChangeStatusToIcon = Object.freeze({
 });
 exports.FileChangeStatusToIcon = FileChangeStatusToIcon;
 const FileChangeStatusToTextColor = Object.freeze({
-  [FileChangeStatus.ADDED]: 'text-success',
-  [FileChangeStatus.MODIFIED]: 'text-warning',
-  [FileChangeStatus.MISSING]: 'text-error',
-  [FileChangeStatus.REMOVED]: 'text-error',
-  [FileChangeStatus.UNTRACKED]: 'text-error',
+  [FileChangeStatus.ADDED]: 'status-added',
+  [FileChangeStatus.MODIFIED]: 'status-modified',
+  [FileChangeStatus.MISSING]: 'status-renamed',
+  [FileChangeStatus.REMOVED]: 'status-removed',
+  [FileChangeStatus.UNTRACKED]: 'status-ignored',
   [FileChangeStatus.BOTH_CHANGED]: 'text-warning',
   [FileChangeStatus.CHANGE_DELETE]: 'text-warning'
 });
@@ -246,8 +246,8 @@ function observeStatusChanges(repository) {
   return (0, _event().observableFromSubscribeFunction)(repository.onDidChangeStatuses.bind(repository)).startWith(null).map(() => getDirtyFileChanges(repository));
 }
 
-function forgetPath(nodePath) {
-  return hgActionToPath(nodePath, 'forget', 'Forgot', async hgRepository => {
+function forgetPath(repository, nodePath) {
+  return hgActionToPath(repository, nodePath, 'forget', 'Forgot', async hgRepository => {
     // flowlint-next-line sketchy-null-string:off
     if (!nodePath) {
       throw new Error("Invariant violation: \"nodePath\"");
@@ -260,8 +260,8 @@ function forgetPath(nodePath) {
   });
 }
 
-function addPath(nodePath) {
-  return hgActionToPath(nodePath, 'add', 'Added', async hgRepository => {
+function addPath(repository, nodePath) {
+  return hgActionToPath(repository, nodePath, 'add', 'Added', async hgRepository => {
     // flowlint-next-line sketchy-null-string:off
     if (!nodePath) {
       throw new Error("Invariant violation: \"nodePath\"");
@@ -274,8 +274,8 @@ function addPath(nodePath) {
   });
 }
 
-function revertPath(nodePath, toRevision) {
-  return hgActionToPath(nodePath, 'revert', 'Reverted', async hgRepository => {
+function revertPath(repository, nodePath, toRevision) {
+  return hgActionToPath(repository, nodePath, 'revert', 'Reverted', async hgRepository => {
     // flowlint-next-line sketchy-null-string:off
     if (!nodePath) {
       throw new Error("Invariant violation: \"nodePath\"");
@@ -288,7 +288,7 @@ function revertPath(nodePath, toRevision) {
   });
 }
 
-function confirmAndRevertPath(path, toRevision) {
+function confirmAndRevertPath(repository, path, toRevision) {
   const result = atom.confirm({
     message: `Are you sure you want to revert${path == null ? '' : ` "${path}"`}?`,
     buttons: ['Revert', 'Cancel']
@@ -299,17 +299,15 @@ function confirmAndRevertPath(path, toRevision) {
   }
 
   if (result === 0) {
-    revertPath(path, toRevision);
+    revertPath(repository, path, toRevision);
   }
 }
 
-async function hgActionToPath(nodePath, actionName, actionDoneMessage, action) {
+async function hgActionToPath(repository, nodePath, actionName, actionDoneMessage, action) {
   if (nodePath == null || nodePath.length === 0) {
     atom.notifications.addError(`Cannot ${actionName} an empty path!`);
     return;
   }
-
-  const repository = repositoryForPath(nodePath);
 
   if (repository == null || repository.getType() !== 'hg') {
     atom.notifications.addError(`Cannot ${actionName} a non-mercurial repository path`);
@@ -399,7 +397,11 @@ function getMultiRootFileChanges(fileChanges, rootPaths) {
   return changedRoots;
 }
 
-async function confirmAndDeletePath(nuclideFilePath) {
+async function confirmAndDeletePath(repository, nuclideFilePath) {
+  if (repository == null || repository.getType() !== 'hg') {
+    return false;
+  }
+
   const result = atom.confirm({
     message: 'Are you sure you want to delete the following item?',
     detailedMessage: `You are deleting: \n ${_nuclideUri().default.getPath(nuclideFilePath)}`,
@@ -411,23 +413,17 @@ async function confirmAndDeletePath(nuclideFilePath) {
   }
 
   if (result === 0) {
-    return deleteFile(nuclideFilePath);
+    return deleteFile(repository, nuclideFilePath);
   }
 
   return false;
 }
 
-async function deleteFile(nuclideFilePath) {
+async function deleteFile(repository, nuclideFilePath) {
   const fsService = (0, _nuclideRemoteConnection().getFileSystemServiceByNuclideUri)(nuclideFilePath);
 
   try {
     await fsService.unlink(nuclideFilePath);
-    const repository = repositoryForPath(nuclideFilePath);
-
-    if (repository == null || repository.getType() !== 'hg') {
-      return false;
-    }
-
     await repository.remove([nuclideFilePath], true);
   } catch (error) {
     atom.notifications.addError('Failed to delete file', {

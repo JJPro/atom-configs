@@ -29,6 +29,7 @@ function _location() {
  *
  *  strict-local
  * @format
+ * @emails oncall+nuclide
  */
 const builtin2 = {
   type: 'builtin'

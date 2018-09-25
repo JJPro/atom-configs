@@ -30,8 +30,6 @@ function _promise() {
   return data;
 }
 
-var _RxMin = require("rxjs/bundles/Rx.min.js");
-
 function _watchFileCreationAndDeletion() {
   const data = require("../lib/watchFileCreationAndDeletion");
 
@@ -53,6 +51,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  *
  *  strict-local
  * @format
+ * @emails oncall+nuclide
  */
 describe('watchFileCreationAndDeletion', () => {
   describe('getFilesInstantaneousExistance', () => {
@@ -86,18 +85,19 @@ describe('watchFileCreationAndDeletion', () => {
             return fileCPromise;
         }
 
-        throw `unknown file ${filename} had existance checked`;
+        throw new Error(`unknown file ${filename} had existance checked`);
       });
       const files = [fileA, fileB, fileC];
-      const existanceObservable = (0, _watchFileCreationAndDeletion().getFilesInstantaneousExistance)(repoPath, files);
-      await (async () => {
-        resolveFileB(false);
-        await (0, _promise().nextTick)();
-        resolveFileA(true);
-        resolveFileC(false);
-        const existanceResult = await existanceObservable.toPromise();
-        expect(existanceResult).toEqual(new Map([[fileA, true], [fileB, false], [fileC, false]]));
-      })();
+      const existanceObservable = (0, _watchFileCreationAndDeletion().getFilesInstantaneousExistance)(repoPath, files); // $FlowFixMe
+
+      resolveFileB(false);
+      await (0, _promise().nextTick)(); // $FlowFixMe
+
+      resolveFileA(true); // $FlowFixMe
+
+      resolveFileC(false);
+      const existanceResult = await existanceObservable.toPromise();
+      expect(existanceResult).toEqual(new Map([[fileA, true], [fileB, false], [fileC, false]]));
       existsSpy.mockReset();
     });
   });

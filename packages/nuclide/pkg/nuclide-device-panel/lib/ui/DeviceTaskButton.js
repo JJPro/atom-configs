@@ -41,7 +41,7 @@ function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj;
  */
 class DeviceTaskButton extends React.Component {
   render() {
-    const options = this.props.actions;
+    const options = this.props.tasks;
 
     if (options.length === 0) {
       return React.createElement("span", null);
@@ -56,11 +56,11 @@ class DeviceTaskButton extends React.Component {
         isFlat: true,
         options: options.map(option => ({
           value: option,
-          label: option.name
+          label: option.getName()
         })),
         placeholder: placeholder,
         size: "xs",
-        onChange: action => action != null && action.callback(this.props.device)
+        onChange: task => task != null && task.start()
       }));
     }
   }

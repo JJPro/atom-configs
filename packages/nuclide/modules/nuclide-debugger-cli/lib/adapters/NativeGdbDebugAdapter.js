@@ -65,6 +65,9 @@ class NativeGdbDebugAdapter {
     this.excludedOptions = new Set(['arguments', 'debuggerRoot', 'diagnosticLogging', 'stopOnAttach', 'program']);
     this.extensions = new Set();
     this.customArguments = new Map();
+    this.muteOutputCategories = new Set('log');
+    this.asyncStopThread = null;
+    this.supportsCodeBlocks = false;
     this._includedOptions = new Set();
   }
 

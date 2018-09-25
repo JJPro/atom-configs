@@ -95,7 +95,13 @@ class AutoGenLaunchAttachProvider extends _DebuggerLaunchAttachProvider().defaul
         if (defaultConfig != null) {
           launchOrAttachConfig.properties = launchOrAttachConfig.properties.map(p => Object.assign({}, p, {
             defaultValue: defaultConfig[p.name] == null ? p.defaultValue : defaultConfig[p.name]
-          }));
+          })); // Pass the ignore flag from the properites to the LaunchOrAttachConfigBase
+
+          if (defaultConfig.ignorePreviousParams !== undefined) {
+            launchOrAttachConfig.ignorePreviousParams = Boolean(defaultConfig.ignorePreviousParams);
+          } else {
+            launchOrAttachConfig.ignorePreviousParams = false;
+          }
         }
 
         return React.createElement(_AutoGenLaunchAttachUiComponent().default, {

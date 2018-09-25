@@ -31,6 +31,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  *
  *  strict-local
  * @format
+ * @emails oncall+nuclide
  */
 describe('PromiseQueue', () => {
   it('Run three async operations serially and make sure they do not overlap', async () => {

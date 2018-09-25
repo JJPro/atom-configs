@@ -53,6 +53,11 @@ const RECORD_PROPERTIES_TO_COMPARE = ['text', 'level', 'format', 'scopeName', 's
 function shouldAccumulateRecordCount(recordA, recordB) {
   if (String(recordA.sourceId).toLowerCase().includes('debugger') || String(recordB.sourceId).toLowerCase().includes('debugger')) {
     return false;
+  } // Never merge incomplete records.
+
+
+  if (recordA.incomplete || recordB.incomplete) {
+    return false;
   }
 
   const areRelevantPropertiesEqual = RECORD_PROPERTIES_TO_COMPARE.every(prop => recordA[prop] === recordB[prop]); // if data exists, we should not accumulate this into the previous record
@@ -71,29 +76,89 @@ function accumulateState(state, action) {
         const {
           record
         } = action.payload;
-        let nextRecords = state.records; // check if the message is exactly the same as the previous one, if so
-        // we add a count to it.
+        let {
+          records,
+          incompleteRecords
+        } = state;
 
-        const lastRecord = nextRecords.last();
-
-        if (lastRecord != null && shouldAccumulateRecordCount(lastRecord, record)) {
-          // Update the last record. Don't use `splice()` because that's O(n)
-          const updatedRecord = Object.assign({}, lastRecord, {
-            repeatCount: lastRecord.repeatCount + 1,
-            timestamp: record.timestamp
-          });
-          nextRecords = nextRecords.pop().push(updatedRecord);
+        if (record.incomplete) {
+          incompleteRecords = incompleteRecords.push(record);
         } else {
-          nextRecords = nextRecords.push(record);
-        }
+          // check if the message is exactly the same as the previous one, if so
+          // we add a count to it.
+          const lastRecord = records.last();
 
-        if (nextRecords.size > state.maxMessageCount) {
-          // We could only have gone over by one.
-          nextRecords = nextRecords.shift();
+          if (lastRecord != null && shouldAccumulateRecordCount(lastRecord, record)) {
+            // Update the last record. Don't use `splice()` because that's O(n)
+            const updatedRecord = Object.assign({}, lastRecord, {
+              repeatCount: lastRecord.repeatCount + 1,
+              timestamp: record.timestamp
+            });
+            records = records.pop().push(updatedRecord);
+          } else {
+            records = records.push(record);
+          }
+
+          if (records.size > state.maxMessageCount) {
+            // We could only have gone over by one.
+            records = records.shift();
+          }
         }
 
         return Object.assign({}, state, {
-          records: nextRecords
+          records,
+          incompleteRecords
+        });
+      }
+
+    case Actions().RECORD_UPDATED:
+      {
+        let {
+          records,
+          incompleteRecords
+        } = state;
+        const {
+          messageId,
+          appendText,
+          overrideLevel,
+          setComplete
+        } = action.payload;
+        let found = false;
+
+        for (let i = 0; i < incompleteRecords.size; i++) {
+          const record = incompleteRecords.get(i);
+
+          if (record != null && record.messageId === messageId) {
+            // Create a replacement message object with the new properties.
+            const newRecord = Object.assign({}, record, {
+              text: appendText != null ? record.text + appendText : record.text,
+              level: overrideLevel != null ? overrideLevel : record.level,
+              incomplete: !setComplete
+            });
+
+            if (setComplete) {
+              incompleteRecords = incompleteRecords.remove(i);
+              records = records.push(newRecord);
+
+              if (records.size > state.maxMessageCount) {
+                records = records.shift();
+              }
+            } else {
+              incompleteRecords = incompleteRecords.set(i, newRecord);
+            }
+
+            found = true;
+            break;
+          }
+        }
+
+        if (!found) {
+          throw new Error(`Expected incomplete console message with id ${messageId} not found`);
+        }
+
+        return Object.assign({}, state, {
+          records,
+          incompleteRecords
         });
       }
 
@@ -128,7 +193,8 @@ function accumulateState(state, action) {
     case Actions().CLEAR_RECORDS:
       {
         return Object.assign({}, state, {
-          records: (0, _immutable().List)()
+          records: (0, _immutable().List)(),
+          incompleteRecords: (0, _immutable().List)()
         });
       }
 

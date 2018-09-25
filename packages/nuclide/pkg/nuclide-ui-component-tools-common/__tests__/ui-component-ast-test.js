@@ -11,7 +11,7 @@ function _uiComponentAst() {
 }
 
 function _common() {
-  const data = require("../__mocks__/common");
+  const data = require("../__fixtures__/common");
 
   _common = function () {
     return data;
@@ -29,6 +29,7 @@ function _common() {
  *
  *  strict-local
  * @format
+ * @emails oncall+nuclide
  */
 describe('ui-component-ast', () => {
   it('parses a React component module', () => {
@@ -103,7 +104,7 @@ describe('formatLeadingComment', () => {
     expect((0, _uiComponentAst().formatLeadingComment)('Hello')).toBe('Hello');
   });
   it('strips asterisks', () => {
-    expect((0, _uiComponentAst().formatLeadingComment)(` * Hello!`)).toBe('Hello!');
+    expect((0, _uiComponentAst().formatLeadingComment)(' * Hello!')).toBe('Hello!');
   });
   it('removes trailing blank lines', () => {
     expect((0, _uiComponentAst().formatLeadingComment)(`

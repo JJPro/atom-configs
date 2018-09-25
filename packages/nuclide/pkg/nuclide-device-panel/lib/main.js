@@ -169,6 +169,10 @@ class Activation {
     this._store.dispatch(Actions().setDeviceTypes(Array.from((0, _providers().getProviders)().deviceList).map(p => p.getType()).sort((a, b) => a.localeCompare(b))));
   }
 
+  _refreshDevices() {
+    this._store.dispatch(Actions().setDevices(this._store.getState().devices));
+  }
+
   _createProviderRegistration(providers, onDispose) {
     return provider => {
       if (!(activation != null)) {
@@ -201,10 +205,9 @@ class Activation {
       registerListProvider: this._createProviderRegistration(providers.deviceList, () => this._refreshDeviceTypes()),
       registerInfoProvider: this._createProviderRegistration(providers.deviceInfo),
       registerProcessesProvider: this._createProviderRegistration(providers.deviceProcesses),
-      registerTaskProvider: this._createProviderRegistration(providers.deviceTask),
+      registerDeviceTaskProvider: this._createProviderRegistration(providers.deviceTask, () => this._refreshDevices()),
       registerProcessTaskProvider: this._createProviderRegistration(providers.processTask),
       registerDeviceTypeTaskProvider: this._createProviderRegistration(providers.deviceTypeTask, () => this._refreshDeviceTypes()),
-      registerDeviceActionProvider: this._createProviderRegistration(providers.deviceAction),
       registerAppInfoProvider: this._createProviderRegistration(providers.appInfo),
       registerDeviceTypeComponentProvider: this._createProviderRegistration(providers.deviceTypeComponent)
     };

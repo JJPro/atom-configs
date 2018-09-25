@@ -202,7 +202,7 @@ current location in the ouput. Otherwise, listing will begin at the given line n
         sep = '=>';
       }
 
-      this._console.outputLine(`${(0, _Format().default)(String(lineNumber), maxLength)}${sep}   ${sourceLine}`);
+      this._console.outputLine(`${(0, _Format().default)(String(lineNumber), maxLength)}${sep}   ${this._untabifyLine(sourceLine)}`);
 
       lineNumber++;
     }
@@ -213,6 +213,27 @@ current location in the ouput. Otherwise, listing will begin at the given line n
 
   _sourceIsEmpty() {
     return this._source.path == null && (this._source.sourceReference == null || this._source.sourceReference === 0);
+  } // the console itself does tab expansion, but it won't be right because
+  // source code is formatted as if the lines start in column 1, which they
+  // won't when we write them because of the line number prefix area.
+
+
+  _untabifyLine(line) {
+    const pieces = line.split('\t');
+
+    if (pieces.length === 0) {
+      return '';
+    }
+
+    let lineOut = pieces[0];
+
+    for (let i = 1; i < pieces.length; i++) {
+      const piece = pieces[i];
+      const spaces = 8 - lineOut.length % 8;
+      lineOut += ' '.repeat(spaces) + piece;
+    }
+
+    return lineOut;
   }
 
 }

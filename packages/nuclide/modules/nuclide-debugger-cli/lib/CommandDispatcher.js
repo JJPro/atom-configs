@@ -99,18 +99,36 @@ class CommandDispatcher {
 
     if (alias != null) {
       return `${alias} ${tokens.splice(1).join(' ')}`;
+    } // punctuation aliases are things like '=' for print ala hphpd
+    // we have to be careful here since we want '=$x' to work to
+    // print the value of x
+    //
+    // Find the longest punctuation alias match
+
+
+    let puncMatch = null;
+
+    for (const key of this._aliases.keys()) {
+      if (key.match(/^[^a-zA-Z0-9]+$/)) {
+        if (puncMatch != null && key.length < puncMatch.length) {
+          continue;
+        }
+
+        if (tokens[0].startsWith(key)) {
+          puncMatch = key;
+        }
+      }
     }
 
-    const match = tokens[0].match(/^([^a-zA-Z0-9]+)(.*)$/);
+    if (puncMatch != null) {
+      const puncAlias = this._aliases.get(puncMatch);
 
-    if (match != null) {
-      const [, prefix, tail] = match;
-
-      const puncAlias = this._aliases.get(prefix);
-
-      if (puncAlias != null) {
-        return `${puncAlias} ${tail} ${tokens.splice(1).join(' ')}`;
+      if (!(puncAlias != null)) {
+        throw new Error("Invariant violation: \"puncAlias != null\"");
       }
+
+      const tok0 = tokens[0].substr(puncMatch.length);
+      return `${puncAlias} ${tok0} ${tokens.splice(1).join(' ')}`;
     }
 
     return null;

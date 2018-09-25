@@ -22,8 +22,18 @@ function _fbWatchman() {
   return data;
 }
 
+function _promise() {
+  const data = require("../../nuclide-commons/promise");
+
+  _promise = function () {
+    return data;
+  };
+
+  return data;
+}
+
 function _WatchmanClient() {
-  const data = _interopRequireDefault(require("../lib/WatchmanClient"));
+  const data = _interopRequireWildcard(require("../lib/WatchmanClient"));
 
   _WatchmanClient = function () {
     return data;
@@ -52,6 +62,8 @@ function _waits_for() {
   return data;
 }
 
+function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) { var desc = Object.defineProperty && Object.getOwnPropertyDescriptor ? Object.getOwnPropertyDescriptor(obj, key) : {}; if (desc.get || desc.set) { Object.defineProperty(newObj, key, desc); } else { newObj[key] = obj[key]; } } } } newObj.default = obj; return newObj; } }
+
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 /**
@@ -64,6 +76,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  *
  * 
  * @format
+ * @emails oncall+nuclide
  */
 jest.setTimeout(15000);
 const FILE_MODE = 33188;
@@ -200,5 +213,65 @@ describe.skip('WatchmanClient test suite', () => {
       expect(watchRoot).toBe(dirRealPath);
       expect(relativePath).toBe('nested');
     });
+  });
+});
+describe('WatchmanClient', () => {
+  it('delays reconnecting with exponential backoff', async () => {
+    jest.useFakeTimers();
+    const functionsMap = {};
+    const mockWatchmanClient = {
+      on: (name, func) => {
+        functionsMap[name] = func;
+      },
+      emit: (name, ...values) => {
+        functionsMap[name](...values);
+      },
+      removeAllListeners: jest.fn(),
+      end: jest.fn(),
+      command: (args, callback) => callback(false, 'my response')
+    };
+    jest.spyOn(_fbWatchman().default, 'Client').mockImplementation(() => {
+      return Promise.resolve(mockWatchmanClient);
+    });
+    const client = new (_WatchmanClient().default)();
+    const reconnectSpy = jest.spyOn(client, '_reconnectClient');
+    jest.advanceTimersByTime(500); // wait for debouncing
+
+    expect(reconnectSpy.mock.calls.length).toBe(0);
+    await client.watchDirectoryRecursive('someDir', 'mySubscriptionName');
+    jest.spyOn(client, '_reconnectClient').mockImplementationOnce(async () => {
+      return Promise.reject(new Error('test failure'));
+    }).mockImplementationOnce(async () => {
+      return Promise.reject(new Error('test failure 2'));
+    });
+
+    const reconnectDelay = _WatchmanClient().DEFAULT_WATCHMAN_RECONNECT_DELAY_MS;
+
+    expect(client._reconnectDelayMs).toBe(reconnectDelay); // mock disconnecting twice, expect exponential backoff
+
+    mockWatchmanClient.emit('end');
+    jest.advanceTimersByTime(500);
+    await (0, _promise().nextTick)();
+    expect(reconnectSpy.mock.calls.length).toBe(1);
+    jest.advanceTimersByTime(100);
+    await (0, _promise().nextTick)();
+    expect(client._reconnectDelayMs).toBe(2 * reconnectDelay);
+    mockWatchmanClient.emit('end');
+    jest.advanceTimersByTime(500);
+    await (0, _promise().nextTick)();
+    expect(reconnectSpy.mock.calls.length).toBe(2);
+    jest.advanceTimersByTime(100);
+    await (0, _promise().nextTick)();
+    expect(client._reconnectDelayMs).toBe(4 * reconnectDelay); // now succeed, expect reconnect delay to be reset
+
+    mockWatchmanClient.emit('end');
+    jest.advanceTimersByTime(1000);
+    await (0, _promise().nextTick)();
+    expect(reconnectSpy.mock.calls.length).toBe(3);
+    jest.useRealTimers(); // for some reason, jest mock clocks stop working here
+
+    await sleep(3000);
+    await (0, _promise().nextTick)();
+    expect(client._reconnectDelayMs).toBe(reconnectDelay);
   });
 });

@@ -108,9 +108,9 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 class Activation {
   constructor() {
     this._allLinterAdapters = new Set();
-    const messageRangeTracker = new (_MessageRangeTracker().default)();
-    this._store = (0, _createStore().default)(messageRangeTracker);
-    this._disposables = new (_UniversalDisposable().default)(messageRangeTracker, () => {
+    this._messageRangeTracker = new (_MessageRangeTracker().default)();
+    this._store = (0, _createStore().default)(this._messageRangeTracker);
+    this._disposables = new (_UniversalDisposable().default)(this._messageRangeTracker, () => {
       this._allLinterAdapters.forEach(adapter => adapter.dispose());
 
       this._allLinterAdapters.clear();
@@ -126,7 +126,7 @@ class Activation {
 
 
   provideDiagnosticUpdates() {
-    return new (_DiagnosticUpdater().default)(this._store);
+    return new (_DiagnosticUpdater().default)(this._store, this._messageRangeTracker);
   }
 
   provideIndie() {

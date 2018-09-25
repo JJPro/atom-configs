@@ -29,7 +29,16 @@ function _DebuggerInterface() {
 class RunCommand {
   constructor(debug) {
     this.name = 'run';
-    this.helpText = 'Start execution of the target.';
+    this.helpText = 'Start or restart execution of the target.';
+    this.detailedHelpText = `
+run
+
+If the target has been loaded but not yet executed, begins execution.
+
+If the target is already running, reloads the target to start executing from
+the start of the program again, and stops at the debugger prompt to allow
+breakpoints to be set.
+  `;
     this._debugger = debug;
   }
 

@@ -6,6 +6,9 @@ Object.defineProperty(exports, "__esModule", {
 exports.startTunnelingAdb = startTunnelingAdb;
 exports.stopTunnelingAdb = stopTunnelingAdb;
 exports.isAdbTunneled = isAdbTunneled;
+exports.VERSION_MISMATCH_ERROR = exports.MISSING_ADB_ERROR = void 0;
+
+var _electron = require("electron");
 
 function _log4js() {
   const data = require("log4js");
@@ -82,6 +85,28 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  *  strict-local
  * @format
  */
+
+/* eslint
+ no-console: 0,
+*/
+let passesGK = async _ => false;
+
+try {
+  const fbPassesGK = // eslint-disable-next-line nuclide-internal/modules-dependencies
+  require("../../../pkg/commons-node/passesGK");
+
+  passesGK = fbPassesGK.default;
+} catch (e) {}
+
+const MISSING_ADB_ERROR = 'MissingAdbError';
+exports.MISSING_ADB_ERROR = MISSING_ADB_ERROR;
+const VERSION_MISMATCH_ERROR = 'VersionMismatchError'; // 1. Starts adb tunneling immediately (does not care if you subscribe)
+// 2. Tunneling stays turned on even after you unsubscribe (to prevent too much on/off toggling)
+// 3. Sends a value when everything is ready (if already active, it sends 'ready' immediately)
+// 4. Guarantees that tunneling is active as long as the observable is not complete (or errored)
+
+exports.VERSION_MISMATCH_ERROR = VERSION_MISMATCH_ERROR;
+
 function startTunnelingAdb(uri, options = {}) {
   if (!_nuclideUri().default.isRemote(uri)) {
     return _RxMin.Observable.of('ready').concat(_RxMin.Observable.never());
@@ -98,24 +123,75 @@ function startTunnelingAdb(uri, options = {}) {
     const localAdbService = (0, _utils().getAdbServiceByNuclideUri)('');
 
     const observable = _RxMin.Observable.defer(async () => {
-      const [adbVersion, localAdbVersion] = await Promise.all([adbService.getVersion(), localAdbService.getVersion()]);
+      try {
+        const [adbVersion, localAdbVersion] = await Promise.all([adbService.getVersion().catch(e => {
+          e.host = serviceUri;
+          throw e;
+        }), localAdbService.getVersion().catch(e => {
+          e.host = '';
+          throw e;
+        })]);
 
-      if (adbVersion !== localAdbVersion) {
-        throw new Error(`Your remote adb version differs from the local one: ${adbVersion} (remote) != ${localAdbVersion} (local).\n\n${options.adbMismatchErrorMessage || ''}`);
+        if (adbVersion !== localAdbVersion) {
+          const versionMismatchError = new Error(`Your remote adb version differs from the local one: ${adbVersion} (remote) != ${localAdbVersion} (local)`);
+          versionMismatchError.name = VERSION_MISMATCH_ERROR;
+          throw versionMismatchError;
+        }
+      } catch (e) {
+        if (e.code === 'ENOENT' && e.host != null) {
+          const missingAdbError = new Error(`'adb' not found in ${e.host === '' ? 'local' : 'remote'} $PATH.`);
+          missingAdbError.name = MISSING_ADB_ERROR;
+          throw missingAdbError;
+        } else {
+          throw e;
+        }
       }
 
       return adbService.checkMuxStatus();
-    }).switchMap(useAdbmux => useAdbmux ? checkInToAdbmux(serviceUri) : openTunnelsManually(serviceUri)).catch(e => {
-      (0, _log4js().getLogger)('nuclide-adb').error(e);
-      (0, _analytics().track)('nuclide-adb:tunneling:error', {
-        host: uri,
-        error: e
-      });
-      throw e;
-    }).publishReplay(1);
+    }).switchMap(useAdbmux => useAdbmux ? checkInToAdbmux(serviceUri) : openTunnelsManually(serviceUri)).publishReplay(1);
 
     let adbmuxPort;
-    const subscription = observable.subscribe(port => adbmuxPort = port).add(() => {
+    const subscription = observable.subscribe({
+      next: port => adbmuxPort = port,
+      error: e => {
+        (0, _log4js().getLogger)('nuclide-adb:tunneling').error(e);
+        (0, _analytics().track)('nuclide-adb:tunneling:error', {
+          host: uri,
+          error: e
+        });
+        let detail;
+        const buttons = [];
+
+        if (e.name === MISSING_ADB_ERROR) {
+          // We shouldn't be prompting the user with error message for not
+          // having adb installed.
+          // TODO: log to the nuclide console. console.log in the meanwhile.
+          console.log(e);
+        } else {
+          if (e.name === VERSION_MISMATCH_ERROR) {
+            detail = e.message;
+            const {
+              adbUpgradeLink
+            } = options;
+
+            if (e.name === VERSION_MISMATCH_ERROR && adbUpgradeLink != null) {
+              buttons.push({
+                text: 'View upgrade instructions',
+                onDidClick: () => _electron.shell.openExternal(adbUpgradeLink)
+              });
+            }
+          } else {
+            detail = "Your local devices won't be available on this host." + (e.name != null && e.name !== 'Error' ? `\n \n${e.name}` : '');
+          }
+
+          atom.notifications.addError('Failed to tunnel Android devices', {
+            dismissable: true,
+            detail,
+            buttons
+          });
+        }
+      }
+    }).add(() => {
       if (adbmuxPort != null) {
         adbService.checkOutMuxPort(adbmuxPort);
         adbmuxPort = null;
@@ -150,7 +226,7 @@ const changes = new _RxMin.Subject();
 
 function checkInToAdbmux(host) {
   return _RxMin.Observable.defer(async () => {
-    const service = await (0, _consumeFirstProvider().default)('nuclide.ssh-tunnel');
+    const [service, avoidPrecreatingExopackageTunnel] = await Promise.all([(0, _consumeFirstProvider().default)('nuclide.ssh-tunnel'), passesGK('nuclide_adb_exopackage_tunnel')]);
 
     if (!service) {
       throw new Error("Invariant violation: \"service\"");
@@ -159,36 +235,46 @@ function checkInToAdbmux(host) {
     const port = await service.getAvailableServerPort(host);
     return {
       service,
-      port
+      port,
+      avoidPrecreatingExopackageTunnel
     };
   }).switchMap(({
     service,
-    port
-  }) => service.openTunnels([{
-    description: 'adbmux',
-    from: {
-      host,
-      port,
-      family: 4
-    },
-    to: {
-      host: 'localhost',
-      port: 5037,
-      family: 4
+    port,
+    avoidPrecreatingExopackageTunnel
+  }) => {
+    const tunnels = [{
+      description: 'adbmux',
+      from: {
+        host,
+        port,
+        family: 4
+      },
+      to: {
+        host: 'localhost',
+        port: 5037,
+        family: 4
+      }
+    }];
+
+    if (!avoidPrecreatingExopackageTunnel) {
+      tunnels.push({
+        description: 'exopackage',
+        from: {
+          host,
+          port: 2829,
+          family: 4
+        },
+        to: {
+          host: 'localhost',
+          port: 2829,
+          family: 4
+        }
+      });
     }
-  }, {
-    description: 'exopackage',
-    from: {
-      host,
-      port: 2829,
-      family: 4
-    },
-    to: {
-      host: 'localhost',
-      port: 2829,
-      family: 4
-    }
-  }]).mapTo(port)).switchMap(async port => {
+
+    return service.openTunnels(tunnels).mapTo(port);
+  }).switchMap(async port => {
     const service = (0, _utils().getAdbServiceByNuclideUri)(host);
     await service.checkInMuxPort(port);
     return port;

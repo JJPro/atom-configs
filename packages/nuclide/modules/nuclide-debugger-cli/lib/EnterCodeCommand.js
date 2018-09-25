@@ -42,7 +42,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  */
 class EnterCode {
   constructor(console, debug) {
-    this.name = 'code';
+    this.name = 'kode';
     this.helpText = 'Enter a multi-line code fragment for evaluation.';
     this._pendingText = '';
     this._subscription = null;
@@ -51,6 +51,12 @@ class EnterCode {
   }
 
   async execute() {
+    if (!this._debugger.supportsCodeBlocks()) {
+      this._console.outputLine('This debug adapter does not support interpreted code.');
+
+      return;
+    }
+
     this._console.output("Enter code, end with a single dot '.'. Use ctrl+c to abort.\n");
 
     this._pendingText = '';

@@ -11,10 +11,10 @@ exports.getRequiredPropsFromAst = getRequiredPropsFromAst;
 exports.getRequiredProps = getRequiredProps;
 exports.getLeadingCommentForComponent = getLeadingCommentForComponent;
 
-function _babylon() {
-  const data = require("babylon");
+function _parser() {
+  const data = require("@babel/parser");
 
-  _babylon = function () {
+  _parser = function () {
     return data;
   };
 
@@ -67,13 +67,29 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 // flowlint-next-line untyped-import:off
 const babelParserOptions = _AutoImportsManager().babylonOptions;
 
+function matchesExtension(parts, extension) {
+  if (parts.length !== extension.length + 1) {
+    return false;
+  } // Start at 1 to skip the basename, parts should be the entire filename.
+
+
+  for (let i = 1; i < parts.length; i++) {
+    if (parts[i] !== extension[i - 1]) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
 function getComponentNameFromUri(uri) {
   const basename = _nuclideUri().default.basename(uri);
 
   const parts = basename.split('.');
 
-  if (!(parts.length === 3 && parts[1] === 'react' && parts[2] === 'js')) {
-    // This must be exactly ComponentName.react.js.
+  if (!matchesExtension(parts, ['react', 'js']) && !matchesExtension(parts, ['experimental', 'react', 'js'])) {
+    // This must be exactly ComponentName.react.js or
+    // ComponentName.experimental.react.js.
     // We don't want to index ComponentName.example.react.js and clobber over
     // the ComponentName definition.
     return null;
@@ -90,7 +106,7 @@ function getComponentNameFromUri(uri) {
 
 function parseCode(code) {
   try {
-    return (0, _babylon().parse)(code, babelParserOptions);
+    return (0, _parser().parse)(code, babelParserOptions);
   } catch (_error) {
     // This will be a common error when parse fails on this string of code.
     // Logging this would likely be far more noise than signal.

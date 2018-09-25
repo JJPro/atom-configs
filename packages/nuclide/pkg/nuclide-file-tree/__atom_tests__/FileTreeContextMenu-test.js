@@ -30,10 +30,10 @@ function _waits_for() {
   return data;
 }
 
-function _FileTreeStore() {
-  const data = _interopRequireDefault(require("../lib/FileTreeStore"));
+function _createStore() {
+  const data = _interopRequireDefault(require("../lib/redux/createStore"));
 
-  _FileTreeStore = function () {
+  _createStore = function () {
     return data;
   };
 
@@ -51,11 +51,13 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  *
  *  strict-local
  * @format
+ * @emails oncall+nuclide
  */
 describe('FileTreeContextMenu', () => {
   let menu;
   beforeEach(async () => {
-    menu = new (_FileTreeContextMenu().default)(new (_FileTreeStore().default)());
+    const store = (0, _createStore().default)();
+    menu = new (_FileTreeContextMenu().default)(store);
     await (0, _waits_for().default)(() => fileTreeItemsOrNull() != null);
   });
   afterEach(() => {

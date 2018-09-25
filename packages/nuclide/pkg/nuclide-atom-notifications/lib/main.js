@@ -10,16 +10,6 @@ function _UniversalDisposable() {
   return data;
 }
 
-function _marked() {
-  const data = _interopRequireDefault(require("marked"));
-
-  _marked = function () {
-    return data;
-  };
-
-  return data;
-}
-
 function _createPackage() {
   const data = _interopRequireDefault(require("../../../modules/nuclide-commons-atom/createPackage"));
 
@@ -30,10 +20,10 @@ function _createPackage() {
   return data;
 }
 
-function _dompurify() {
-  const data = _interopRequireDefault(require("dompurify"));
+function _sanitizeHtml() {
+  const data = _interopRequireDefault(require("../../../modules/nuclide-commons/sanitizeHtml"));
 
-  _dompurify = function () {
+  _sanitizeHtml = function () {
     return data;
   };
 
@@ -52,11 +42,11 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  * 
  * @format
  */
-const domPurify = (0, _dompurify().default)();
-
 class Activation {
   constructor() {
-    this._disposables = new (_UniversalDisposable().default)();
+    this._disposables = new (_UniversalDisposable().default)(); // This adds spaces after <p> elements, so if you do something like
+    // <p>Hello.</p><p>Bye</p>
+    // it will become "Hello. Bye." instead of "Hello.Bye."
   }
 
   consumeConsoleService(createConsole) {
@@ -66,7 +56,7 @@ class Activation {
     });
     const notificationDisposable = atom.notifications.onDidAddNotification(notification => {
       consoleApi.append({
-        text: stripFormatting(notification.getMessage()),
+        text: (0, _sanitizeHtml().default)(notification.getMessage()),
         level: getLevel(notification.getType())
       });
     });
@@ -100,16 +90,6 @@ function getLevel(atomNotificationType) {
     default:
       return 'log';
   }
-}
-/**
- * Markdown and HTML can be used with Atom notifications, but not in the console.
- */
-
-
-function stripFormatting(raw) {
-  return domPurify.sanitize((0, _marked().default)(raw), {
-    ALLOWED_TAGS: []
-  });
 }
 
 (0, _createPackage().default)(module.exports, Activation);

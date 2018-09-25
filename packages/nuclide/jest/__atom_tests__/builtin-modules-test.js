@@ -9,6 +9,7 @@
  *
  *  strict-local
  * @format
+ * @emails oncall+nuclide
  */
 test('pass', () => {
   const atom = require('atom');

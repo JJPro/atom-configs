@@ -278,7 +278,8 @@ class Activation {
   async _debugPidWithLLDB(pid, buckRoot) {
     const config = (0, _utils().getNativeVSPAttachProcessConfig)(_nuclideDebuggerCommon().VsAdapterTypes.NATIVE_LLDB, buckRoot, {
       pid,
-      sourcePath: _nuclideUri().default.getPath(buckRoot)
+      sourcePath: _nuclideUri().default.getPath(buckRoot),
+      debuggerRoot: _nuclideUri().default.getPath(buckRoot)
     });
     const debuggerService = await (0, _debugger().getDebuggerService)();
     debuggerService.startVspDebugging(config);

@@ -31,6 +31,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  *
  * 
  * @format
+ * @emails oncall+nuclide
  */
 jest.unmock("../../../modules/nuclide-commons/analytics");
 describe('getSuggestions', () => {

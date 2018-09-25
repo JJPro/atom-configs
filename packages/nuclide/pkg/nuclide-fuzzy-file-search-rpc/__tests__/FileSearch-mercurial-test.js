@@ -22,16 +22,6 @@ function _process() {
   return data;
 }
 
-function _testHelpers() {
-  const data = require("../../../modules/nuclide-commons/test-helpers");
-
-  _testHelpers = function () {
-    return data;
-  };
-
-  return data;
-}
-
 function _a_file_search_should() {
   const data = require("../__mocks__/a_file_search_should");
 
@@ -53,6 +43,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  *
  * 
  * @format
+ * @emails oncall+nuclide
  */
 jest.setTimeout(30000);
 

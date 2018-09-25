@@ -100,6 +100,10 @@ async function getProcessTree() {
 }
 
 async function getBuckRootFromUri(uri) {
+  if (!_nuclideUri().default.isAbsolute(uri)) {
+    return null;
+  }
+
   let path = uri;
 
   while (true) {

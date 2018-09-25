@@ -44,8 +44,8 @@ describe('QuickOpenHelpers', () => {
     getPath: () => TEST_DIR
   };
   beforeEach(() => {
-    // eslint-disable-next-line nuclide-internal/no-cross-atom-imports
-    jest.spyOn(require("../../nuclide-hack/lib/config"), 'getConfig').mockReturnValue({
+    jest // eslint-disable-next-line nuclide-internal/no-cross-atom-imports
+    .spyOn(require("../../nuclide-hack/lib/config"), 'getConfig').mockReturnValue({
       hhClientPath: 'hh_client',
       logLevel: 'OFF'
     });
@@ -79,17 +79,15 @@ describe('QuickOpenHelpers', () => {
     jest.spyOn(hackService(), 'isFileInHackProject').mockReturnValue(false);
   });
   it('it activates for valid directories', async () => {
-    await (async () => {
-      const {
-        isEligibleForDirectory
-      } = _QuickOpenHelpers().default;
+    const {
+      isEligibleForDirectory
+    } = _QuickOpenHelpers().default;
 
-      if (!isEligibleForDirectory) {
-        throw new Error("Invariant violation: \"isEligibleForDirectory\"");
-      }
+    if (!isEligibleForDirectory) {
+      throw new Error("Invariant violation: \"isEligibleForDirectory\"");
+    }
 
-      expect((await isEligibleForDirectory(mockDirectory))).toBe(true);
-    })();
+    expect((await isEligibleForDirectory(mockDirectory))).toBe(true);
   });
   it('is able to return and render tag results', async () => {
     await (async () => {

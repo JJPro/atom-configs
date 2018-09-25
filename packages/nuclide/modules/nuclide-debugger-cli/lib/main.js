@@ -140,10 +140,12 @@ function buildLogger() {
   return _log4js().default.getLogger('default');
 }
 
-const _help = ['fbdbg [options] [program [program-arguments]]', '  The debugger may be launched in either "launch" or "attach" mode. "launch"', '  starts a local program; "attach" attaches to an already running program', '  which may be remote. There are options which are specific to the mode and', '  type of program being debugged; to see them, specify the --type and mode', '  options along with --help.', '', '--help:', '  Show this help.', '--attach:', '  Attach the debugger to a running process.', '--preset:', '  Load default arguments for a session type preset', '--type python|node:', '  Specify the type of program to debug. Required with --attach', '', '[program]: If not attaching, the program to launch. Normally the type of', '           program can be inferred from the file extension.', ''];
+const _help = ['fbdbg [options] [program [program-arguments]]', '  The debugger may be launched in either "launch" or "attach" mode. "launch"', '  starts a local program; "attach" attaches to an already running program', '  which may be remote. There are options which are specific to the mode and', '  type of program being debugged; to see them, specify the --type and mode', '  options along with --help.', '', '--help:', '  Show this help.', '--attach:', '  Attach the debugger to a running process.', '--preset:', '  Load default arguments for a session type preset', '--type debugger-type:', '  Specify the type of program to debug. Required with --attach', '--plain:', '  Do not use cursor control sequences or terminal raw mode (for example,', '  if running in a shell that does not well support them such as emacs)', '', '[program]: If not attaching, the program to launch. Normally the type of', '           program can be inferred from the file extension.', ''];
 
 function showHelp(configFile, contextSensitiveHelp) {
   process.stdout.write(_help.join('\n') + '\n');
+  const types = new (_DebuggerAdapterFactory().default)().allAdapterKeys();
+  process.stdout.write(`Supported debugger types:\n\t${types.join(' ')}\n`);
 
   if (contextSensitiveHelp.length !== 0) {
     process.stdout.write('Options which are specific to the debugger type:\n');
@@ -167,7 +169,7 @@ async function main() {
     const configFile = new (_ConfigFile().default)();
     const preset = configFile.getPresetFromArguments();
     const cmdLine = preset == null ? process.argv.splice(2) : configFile.applyPresetToArguments(preset);
-    const args = (0, _yargs().default)(cmdLine).boolean('attach').boolean('help').argv;
+    const args = (0, _yargs().default)(cmdLine).boolean('attach').boolean('dvsp').boolean('plain').boolean('help').argv;
 
     if (args.help) {
       showHelp(configFile, debuggerAdapterFactory.contextSensitiveHelp(args));
@@ -176,7 +178,7 @@ async function main() {
 
     const aliases = configFile.resolveAliasesForPreset(preset);
     const dispatcher = new (_CommandDispatcher().default)(aliases);
-    const cli = new (_CommandLine().default)(dispatcher);
+    const cli = new (_CommandLine().default)(dispatcher, args.plain);
     dispatcher.registerCommand(new (_HelpCommand().default)(cli, dispatcher));
     dispatcher.registerCommand(new (_QuitCommand().default)(() => cli.close()));
     let adapter;
@@ -190,8 +192,9 @@ async function main() {
       process.exit(0);
     }
 
+    const muteOutputCategories = args.dvsp || adapter == null ? new Set() : adapter.adapter.muteOutputCategories;
     const logger = buildLogger();
-    const debuggerInstance = new (_Debugger().default)(logger, cli, preset);
+    const debuggerInstance = new (_Debugger().default)(logger, cli, preset, muteOutputCategories);
 
     if (adapter != null) {
       await debuggerInstance.launch(adapter);

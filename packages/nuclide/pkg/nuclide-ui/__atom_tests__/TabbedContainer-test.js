@@ -37,6 +37,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  *
  * 
  * @format
+ * @emails oncall+nuclide
  */
 describe('TabbedContainer', () => {
   let containerNode;
@@ -64,7 +65,11 @@ describe('TabbedContainer', () => {
 
     }
 
-    const tabbedContainer = renderTabbedContainer(['tab1', 'tab2'], [React.createElement(Child1, null), React.createElement(Child1, null)]);
+    const tabbedContainer = renderTabbedContainer(['tab1', 'tab2'], [React.createElement(Child1, {
+      key: 1
+    }), React.createElement(Child1, {
+      key: 2
+    })]);
     expect(tabbedContainer.state.activeTabName).toBe('tab1');
     const renderedTabs = containerNode.getElementsByClassName('tab');
     expect(renderedTabs.length).toBe(2); // the second tab should have its contents hidden
@@ -75,7 +80,9 @@ describe('TabbedContainer', () => {
 
     expect(tabbedContainer.state.activeTabName).toBe('tab2'); // now the second tab's content becomes null
 
-    renderTabbedContainer(['tab1', 'tab2'], [React.createElement(Child1, null), null]); // we should be put onto the first tab
+    renderTabbedContainer(['tab1', 'tab2'], [React.createElement(Child1, {
+      key: 1
+    }), null]); // we should be put onto the first tab
 
     expect(tabbedContainer.state.activeTabName).toBe('tab1'); // no content to hide now
 

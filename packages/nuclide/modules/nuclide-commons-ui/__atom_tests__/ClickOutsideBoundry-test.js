@@ -28,6 +28,7 @@ function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj;
  *
  *  strict-local
  * @format
+ * @emails oncall+nuclide
  */
 const clickId = id => {
   const node = document.getElementById(id);

@@ -1,7 +1,7 @@
 "use strict";
 
 function babylon() {
-  const data = _interopRequireWildcard(require("babylon"));
+  const data = _interopRequireWildcard(require("@babel/parser"));
 
   babylon = function () {
     return data;
@@ -31,6 +31,7 @@ function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj;
  *
  * 
  * @format
+ * @emails oncall+nuclide
  */
 const babylonOptions = {
   sourceType: 'module',

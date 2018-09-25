@@ -18,6 +18,8 @@ exports.setRpcService = setRpcService;
 exports.getJavaDebuggerHelpersServiceByNuclideUri = getJavaDebuggerHelpersServiceByNuclideUri;
 exports.NUCLIDE_DEBUGGER_DEV_GK = void 0;
 
+var _assert = _interopRequireDefault(require("assert"));
+
 function _featureConfig() {
   const data = _interopRequireDefault(require("../nuclide-commons-atom/feature-config"));
 
@@ -165,7 +167,7 @@ function getJavaConfig() {
       header: null,
 
       getProcessName(values) {
-        return values.entryPointClass + ' (Java)';
+        return values.entryPointClass;
       }
 
     },
@@ -177,7 +179,7 @@ function getJavaConfig() {
       header: null,
 
       getProcessName(values) {
-        return 'Port: ' + values.javaJdwpPort + ' (Java)';
+        return 'Port: ' + values.javaJdwpPort;
       }
 
     }
@@ -268,10 +270,10 @@ function getSourcePathClickSubscriptionsOnVspInstance(targetUri, vspInstance, cl
   }), clickEvents];
 }
 
-function getSourcePathClickSubscriptions(targetUri, debugSession, clickEvents, additionalSourcePaths = []) {
+function getSourcePathClickSubscriptions(targetUri, instance, clickEvents, additionalSourcePaths = []) {
   const defaultValues = getDefaultSourceSearchPaths(targetUri).concat(additionalSourcePaths);
   return [getDialogValues(clickEvents).startWith(getSavedPathsFromConfig()).subscribe(userValues => {
-    debugSession.custom('setSourcePath', {
+    instance.customRequest('setSourcePath', {
       sourcePath: getSourcePathString(defaultValues.concat(userValues))
     });
   }), clickEvents];
@@ -279,25 +281,20 @@ function getSourcePathClickSubscriptions(targetUri, debugSession, clickEvents, a
 
 async function resolveConfiguration(configuration) {
   const {
-    adapterExecutable,
     targetUri
-  } = configuration;
+  } = configuration; // If the incomming configuration already has a starting callback,
+  // we'd need to combine them. Guard against this bug being introduced
+  // in the future.
 
-  if (adapterExecutable == null) {
-    throw new Error('Cannot resolve configuration for unset adapterExecutable');
-  }
-
-  const subscriptions = new (_UniversalDisposable().default)();
+  (0, _assert.default)(configuration.onDebugStartingCallback == null);
   const clickEvents = new _RxMin.Subject();
-  const customDisposable = configuration.customDisposable || new (_UniversalDisposable().default)();
-  customDisposable.add(subscriptions);
   const javaAdapterExecutable = await getJavaDebuggerHelpersServiceByNuclideUri(targetUri).getJavaVSAdapterExecutableInfo(false);
   return Object.assign({}, configuration, {
     customControlButtons: getCustomControlButtonsForJavaSourcePaths(clickEvents),
+    servicedFileExtensions: ['java'],
     adapterExecutable: javaAdapterExecutable,
-    customDisposable,
-    onInitializeCallback: async session => {
-      customDisposable.add(...getSourcePathClickSubscriptions(targetUri, session, clickEvents));
+    onDebugStartingCallback: instance => {
+      return new (_UniversalDisposable().default)(...getSourcePathClickSubscriptions(targetUri, instance, clickEvents));
     }
   });
 }

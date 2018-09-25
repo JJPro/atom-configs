@@ -56,6 +56,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  *
  * 
  * @format
+ * @emails oncall+nuclide
  */
 const grammar = 'testgrammar';
 
@@ -352,7 +353,8 @@ describe('message transformation functions', () => {
         kind: undefined,
         filePath: 'file.txt',
         range: new _atom.Range([0, 0], [0, 1]),
-        text: 'Error\nDescription',
+        text: 'Error',
+        description: 'Description',
         trace: [{
           type: 'Trace',
           text: 'Reference',

@@ -22,15 +22,14 @@ function _textEdit() {
  *
  * 
  * @format
+ * @emails oncall+nuclide
  */
 const fakeFile = '/tmp/file.txt';
 describe('applyTextEdits', () => {
   let editor = null;
   beforeEach(async () => {
-    await (async () => {
-      editor = await atom.workspace.open(fakeFile);
-      editor.setText('foo\nbar\nbaz\n');
-    })();
+    editor = await atom.workspace.open(fakeFile);
+    editor.setText('foo\nbar\nbaz\n');
   });
   it('should apply a patch', () => {
     const textedit = {
@@ -97,5 +96,31 @@ describe('applyTextEdits', () => {
     }];
     expect((0, _textEdit().applyTextEdits)(fakeFile, ...edits)).toBeTruthy();
     expect(editor.getText()).toEqual('FFFoOOO\nbar\nbaz\n');
+  });
+  it('should correctly apply an insert edit followed by a remove edit with the same start position', () => {
+    const edits = [{
+      oldRange: new _atom.Range([0, 0], [0, 0]),
+      oldText: '',
+      newText: 'Hello World'
+    }, {
+      oldRange: new _atom.Range([0, 0], [3, 3]),
+      oldText: 'foo\nbar\nbaz\n',
+      newText: ''
+    }];
+    expect((0, _textEdit().applyTextEdits)(fakeFile, ...edits)).toBeTruthy();
+    expect(editor.getText()).toEqual('Hello World');
+  });
+  it('should correctly apply a remove edit followed by an insert edit with the same start position', () => {
+    const edits = [{
+      oldRange: new _atom.Range([0, 0], [3, 3]),
+      oldText: 'foo\nbar\nbaz\n',
+      newText: ''
+    }, {
+      oldRange: new _atom.Range([0, 0], [0, 0]),
+      oldText: '',
+      newText: 'Hello World'
+    }];
+    expect((0, _textEdit().applyTextEdits)(fakeFile, ...edits)).toBeTruthy();
+    expect(editor.getText()).toEqual('Hello World');
   });
 });

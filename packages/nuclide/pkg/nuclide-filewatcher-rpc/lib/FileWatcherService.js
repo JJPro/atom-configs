@@ -90,6 +90,7 @@ const entityWatches = new (_SharedObservableCache().default)(registerWatch); // 
 // dispatch events from the root subscription.
 
 const entityObserver = new Map();
+const watchedDirectories = new Set();
 let watchmanClient = null;
 
 function getWatchmanClient() {
@@ -143,29 +144,44 @@ function watchDirectory(directoryPath) {
 }
 
 function watchEntity(entityPath, isFile) {
-  return _RxMin.Observable.fromPromise(getRealPath(entityPath, isFile)).switchMap(realPath => (0, _debounceDeletes().default)(entityWatches.get(realPath)));
+  return _RxMin.Observable.fromPromise(getRealOrWatchablePath(entityPath, isFile)).switchMap(realPath => (0, _debounceDeletes().default)(entityWatches.get(realPath)));
 } // Register an observable for the given path.
 
 
 function registerWatch(path) {
   return _RxMin.Observable.create(observer => {
     entityObserver.set(path, observer);
-    return () => entityObserver.delete(path);
+    return () => {
+      entityObserver.delete(path);
+    };
   }).map(type => ({
     path,
     type
   })).share();
 }
 
-async function getRealPath(entityPath, isFile) {
-  // NOTE: this will throw when trying to watch non-existent entities.
-  const stat = await _fsPromise().default.stat(entityPath);
+async function getRealOrWatchablePath(entityPath, isFile) {
+  try {
+    const stat = await _fsPromise().default.stat(entityPath);
 
-  if (stat.isFile() !== isFile) {
-    (0, _log4js().getLogger)('nuclide-filewatcher-rpc').warn(`FileWatcherService: expected ${entityPath} to be a ${isFile ? 'file' : 'directory'}`);
+    if (stat.isFile() !== isFile) {
+      (0, _log4js().getLogger)('nuclide-filewatcher-rpc').warn(`FileWatcherService: expected ${entityPath} to be a ${isFile ? 'file' : 'directory'}`);
+    }
+
+    return await _fsPromise().default.realpath(entityPath);
+  } catch (error) {
+    if (error.code === 'ENOENT') {
+      for (const dir of watchedDirectories) {
+        if (entityPath.startsWith(_nuclideUri().default.ensureTrailingSeparator(dir))) {
+          // We have at least one watched directory that will find this path,
+          // continue with the watch assuming it's canonical
+          return entityPath;
+        }
+      }
+    }
+
+    throw error;
   }
-
-  return _fsPromise().default.realpath(entityPath);
 }
 
 function watchDirectoryRecursive(directoryPath) {
@@ -184,6 +200,7 @@ function watchDirectoryRecursive(directoryPath) {
     watcher.on('change', entries => {
       onWatcherChange(watcher, entries);
     });
+    watchedDirectories.add(directoryPath);
     return _RxMin.Observable.create(observer => {
       // Notify success watcher setup.
       observer.next('SUCCESS');
@@ -224,5 +241,6 @@ function onWatcherChange(subscription, entries) {
 }
 
 async function unwatchDirectoryRecursive(directoryPath) {
+  watchedDirectories.delete(directoryPath);
   await getWatchmanClient().unwatch(directoryPath);
 }

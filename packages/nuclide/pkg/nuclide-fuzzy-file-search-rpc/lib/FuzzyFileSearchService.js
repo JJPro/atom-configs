@@ -124,7 +124,7 @@ async function queryFuzzyFile(config) {
   const searchConfig = await searchConfigPromise;
   return (0, _nuclideAnalytics().trackTiming)('fuzzy-file-search', async () => {
     if (searchConfig.useCustomSearch) {
-      return searchConfig.search(config.queryString, rootDirectory);
+      return searchConfig.search(config.queryString, rootDirectory, config.context);
     } else {
       const search = await (0, _FileSearchProcess().fileSearchForDirectory)(rootDirectory, config.ignoredNames);
       return search.query(config.queryString, {
@@ -138,13 +138,14 @@ async function queryFuzzyFile(config) {
   });
 }
 
-async function queryAllExistingFuzzyFile(queryString, ignoredNames, preferCustomSearch) {
+async function queryAllExistingFuzzyFile(queryString, ignoredNames, preferCustomSearch, context) {
   const directories = (0, _FileSearchProcess().getExistingSearchDirectories)();
   const aggregateResults = await Promise.all(directories.map(rootDirectory => queryFuzzyFile({
     ignoredNames,
     queryString,
     rootDirectory,
-    preferCustomSearch
+    preferCustomSearch,
+    context
   }))); // Optimize for the common case.
 
   if (aggregateResults.length === 1) {

@@ -34,6 +34,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  *
  * 
  * @format
+ * @emails oncall+nuclide
  */
 describe('ObservablePool', () => {
   it('limits the concurrency of observable values with cancellation', () => {
@@ -117,7 +118,7 @@ describe('ObservablePool', () => {
     const pool = new (_ObservablePool().default)(1);
     let error;
     pool.schedule(() => {
-      throw Error('test');
+      throw new Error('test');
     }).subscribe({
       error(err) {
         error = err;

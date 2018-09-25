@@ -22,16 +22,6 @@ function _outline() {
   return data;
 }
 
-function _nuclideTestHelpers() {
-  const data = require("../../nuclide-test-helpers");
-
-  _nuclideTestHelpers = function () {
-    return data;
-  };
-
-  return data;
-}
-
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 /**
@@ -43,6 +33,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  *
  * 
  * @format
+ * @emails oncall+nuclide
  */
 describe('Python outline', () => {
   it('converts from JSON to outline', () => {

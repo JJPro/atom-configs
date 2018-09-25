@@ -22,6 +22,7 @@ function _observableDom() {
  *
  * 
  * @format
+ * @emails oncall+nuclide
  */
 describe('new DOMObserverObservable', () => {
   let observerInstance;
@@ -88,10 +89,8 @@ describe('new DOMObserverObservable', () => {
 
     }
 
-    await (async () => {
-      const output = await new (_observableDom()._DOMObserverObservable)(MockDOMObserverEmitsArray, 'arg').take(2).toArray().toPromise();
-      expect(output).toEqual([['foo', 'bar', 'baz'], ['foo', 'bar', 'baz']]);
-    })();
+    const output = await new (_observableDom()._DOMObserverObservable)(MockDOMObserverEmitsArray, 'arg').take(2).toArray().toPromise();
+    expect(output).toEqual([['foo', 'bar', 'baz'], ['foo', 'bar', 'baz']]);
   });
   describe('multiple subscribers', () => {
     it('only disconnects the underlying observer when all subscribers have unsubscribed', () => {
@@ -161,10 +160,8 @@ describe('new DOMObserverObservable', () => {
 
       }
 
-      await (async () => {
-        const output = await new (_observableDom()._DOMObserverObservable)(MockDOMObserverEmitsArray, 'arg').flattenEntries().take(6).toArray().toPromise();
-        expect(output).toEqual(['foo', 'bar', 'baz', 'foo', 'bar', 'baz']);
-      })();
+      const output = await new (_observableDom()._DOMObserverObservable)(MockDOMObserverEmitsArray, 'arg').flattenEntries().take(6).toArray().toPromise();
+      expect(output).toEqual(['foo', 'bar', 'baz', 'foo', 'bar', 'baz']);
     });
     it('creates an observable of the individual elements of the array returned ' + 'from the getEntries method of the entrylist emitted from the DOM Observer', async () => {
       class MockDOMObserverEmitsEntryList extends MockDOMObserver {
@@ -178,10 +175,8 @@ describe('new DOMObserverObservable', () => {
 
       }
 
-      await (async () => {
-        const output = await new (_observableDom()._DOMObserverObservable)(MockDOMObserverEmitsEntryList, 'arg').flattenEntries().take(6).toArray().toPromise();
-        expect(output).toEqual(['foo', 'bar', 'baz', 'foo', 'bar', 'baz']);
-      })();
+      const output = await new (_observableDom()._DOMObserverObservable)(MockDOMObserverEmitsEntryList, 'arg').flattenEntries().take(6).toArray().toPromise();
+      expect(output).toEqual(['foo', 'bar', 'baz', 'foo', 'bar', 'baz']);
     });
     it('throws if neither an iterable nor an EntryList is emitted from the DOM Observer', async () => {
       class MockDOMObserverEmitsNonStandard extends MockDOMObserver {
@@ -193,21 +188,19 @@ describe('new DOMObserverObservable', () => {
 
       }
 
-      await (async () => {
-        let error;
+      let error;
 
-        try {
-          await new (_observableDom()._DOMObserverObservable)(MockDOMObserverEmitsNonStandard, 'arg').flattenEntries().take(2).toArray().toPromise();
-        } catch (e) {
-          error = e;
-        }
+      try {
+        await new (_observableDom()._DOMObserverObservable)(MockDOMObserverEmitsNonStandard, 'arg').flattenEntries().take(2).toArray().toPromise();
+      } catch (e) {
+        error = e;
+      }
 
-        if (!(error != null)) {
-          throw new Error("Invariant violation: \"error != null\"");
-        }
+      if (!(error != null)) {
+        throw new Error("Invariant violation: \"error != null\"");
+      }
 
-        expect(error.message).toEqual('Tried to merge DOM Observer entries, but they were not iterable nor were they an EntryList.');
-      })();
+      expect(error.message).toEqual('Tried to merge DOM Observer entries, but they were not iterable nor were they an EntryList.');
     });
   });
 });

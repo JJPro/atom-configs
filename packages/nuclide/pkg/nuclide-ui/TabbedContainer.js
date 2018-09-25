@@ -57,8 +57,13 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 class TabbedContainer extends React.Component {
   constructor(props) {
     super(props);
+    const {
+      children,
+      tabNames
+    } = props;
+    const firstRealTabIndex = children.findIndex(val => val != null);
     this.state = {
-      activeTabName: props.tabNames[0]
+      activeTabName: tabNames[Math.max(0, firstRealTabIndex)]
     };
   }
 

@@ -41,6 +41,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  *
  *  strict-local
  * @format
+ * @emails oncall+nuclide
  */
 describe('ErrorServer', () => {
   let testHelper;
@@ -65,62 +66,54 @@ describe('ErrorServer', () => {
     service = testHelper.getRemoteService('ErrorService');
   });
   it('ErrorService - error message', async () => {
-    await (async () => {
-      try {
-        if (!service) {
-          throw new Error("Invariant violation: \"service\"");
-        }
-
-        await service.promiseError('msg');
-        expect(false).toBe(true);
-      } catch (e) {
-        expect(e instanceof Error).toBe(true);
-        expect(e.message.startsWith('Remote Error: msg processing message {"protocol":"error_protocol","type":' + '"call","method":"ErrorService/promiseError","id":1,"args":{"message":"msg"}}')).toBe(true);
+    try {
+      if (!service) {
+        throw new Error("Invariant violation: \"service\"");
       }
-    })();
+
+      await service.promiseError('msg');
+      expect(false).toBe(true);
+    } catch (e) {
+      expect(e instanceof Error).toBe(true);
+      expect(e.message.startsWith('Remote Error: msg processing message {"protocol":"error_protocol","type":' + '"call","method":"ErrorService/promiseError","id":1,"args":{"message":"msg"}}')).toBe(true);
+    }
   });
   it('ErrorService - error string', async () => {
-    await (async () => {
-      try {
-        if (!service) {
-          throw new Error("Invariant violation: \"service\"");
-        }
-
-        await service.promiseErrorString('msg');
-        expect(false).toBe(true);
-      } catch (e) {
-        expect(e).toBe('msg');
+    try {
+      if (!service) {
+        throw new Error("Invariant violation: \"service\"");
       }
-    })();
+
+      await service.promiseErrorString('msg');
+      expect(false).toBe(true);
+    } catch (e) {
+      expect(e).toBe('msg');
+    }
   });
   it('ErrorService - error undefined', async () => {
-    await (async () => {
-      try {
-        if (!service) {
-          throw new Error("Invariant violation: \"service\"");
-        }
-
-        await service.promiseErrorUndefined();
-        expect(false).toBe(true);
-      } catch (e) {
-        expect(e).toBe(undefined);
+    try {
+      if (!service) {
+        throw new Error("Invariant violation: \"service\"");
       }
-    })();
+
+      await service.promiseErrorUndefined();
+      expect(false).toBe(true);
+    } catch (e) {
+      expect(e).toBe(undefined);
+    }
   });
   it('ErrorService - error code', async () => {
-    await (async () => {
-      try {
-        if (!service) {
-          throw new Error("Invariant violation: \"service\"");
-        }
-
-        await service.promiseErrorCode(42);
-        expect(false).toBe(true);
-      } catch (e) {
-        expect(e instanceof Error).toBe(true);
-        expect(e.code).toBe(42);
+    try {
+      if (!service) {
+        throw new Error("Invariant violation: \"service\"");
       }
-    })();
+
+      await service.promiseErrorCode(42);
+      expect(false).toBe(true);
+    } catch (e) {
+      expect(e instanceof Error).toBe(true);
+      expect(e.code).toBe(42);
+    }
   });
   it('ErrorService - observable error.message', () => {
     if (!service) {

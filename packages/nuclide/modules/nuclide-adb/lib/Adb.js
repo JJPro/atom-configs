@@ -334,6 +334,7 @@ class Adb {
   }
 
   static _parseDevicesCommandOutput(stdout) {
+    const nameFrequency = new Map();
     return stdout.split(/\n+/g).slice(1).filter(s => s.length > 0 && !s.trim().startsWith('*')).map(s => s.split(/\s+/g)).filter(a => a[0] !== '').map(a => {
       const serial = a[0];
       const props = a.slice(2);
@@ -376,16 +377,37 @@ class Adb {
         }
       }
 
-      const prettyName = serial.startsWith('emulator') || serial.startsWith('localhost:') || model == null ? serial : model;
+      const displayName = serial.startsWith('emulator') || serial.startsWith('localhost:') || model == null ? serial : model;
+      const count = nameFrequency.get(displayName);
+
+      if (count == null) {
+        nameFrequency.set(displayName, 1);
+      } else {
+        nameFrequency.set(displayName, count + 1);
+      }
+
       return {
         serial,
-        prettyName,
+        displayName,
         product,
         model,
         device,
         usb,
         transportId
       };
+    }).map(device => {
+      const {
+        displayName,
+        serial
+      } = device;
+
+      if (displayName === serial || nameFrequency.get(displayName) === 1) {
+        return device;
+      } else {
+        return Object.assign({}, device, {
+          displayName: `${displayName} - ${serial}`
+        });
+      }
     });
   }
 

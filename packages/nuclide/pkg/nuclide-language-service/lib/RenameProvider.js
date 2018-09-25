@@ -67,7 +67,7 @@ class RenameProvider {
   }
 
   static register(name, grammarScopes, config, connectionToLanguageService) {
-    const disposable = new (_UniversalDisposable().default)(atom.packages.serviceHub.provide('nuclide-rename.provider', config.version, new RenameProvider(name, grammarScopes, config.priority, config.analyticsEventName, connectionToLanguageService).provide()));
+    const disposable = new (_UniversalDisposable().default)(atom.packages.serviceHub.provide('nuclide-refactor', config.version, new RenameProvider(name, grammarScopes, config.priority, config.analyticsEventName, connectionToLanguageService).provide()));
     return disposable;
   }
 
@@ -89,7 +89,7 @@ class RenameProvider {
         return null;
       }
 
-      return (await languageService).rename(fileVersion, position, newName);
+      return (await languageService).rename(fileVersion, position, newName).refCount().toPromise();
     });
   }
 

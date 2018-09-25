@@ -4,12 +4,25 @@ Object.defineProperty(exports, "__esModule", {
   value: true
 });
 exports.getFontSize = getFontSize;
-exports.FONT_SCALE_CONFIG = exports.FONT_FAMILY_CONFIG = exports.CHAR_ATLAS_CONFIG = exports.TRANSPARENCY_CONFIG = exports.OPTION_IS_META_CONFIG = exports.ADD_ESCAPE_COMMAND = exports.DOCUMENTATION_MESSAGE_CONFIG = exports.LINE_HEIGHT_CONFIG = exports.CURSOR_BLINK_CONFIG = exports.CURSOR_STYLE_CONFIG = exports.SCROLLBACK_CONFIG = exports.PRESERVED_COMMANDS_CONFIG = exports.COLOR_CONFIGS = void 0;
+exports.setTerminalOption = setTerminalOption;
+exports.subscribeConfigChanges = subscribeConfigChanges;
+exports.syncTerminalFont = syncTerminalFont;
+exports.FONT_SCALE_CONFIG = exports.FONT_FAMILY_CONFIG = exports.RENDERER_TYPE_CONFIG = exports.CHAR_ATLAS_CONFIG = exports.TRANSPARENCY_CONFIG = exports.OPTION_IS_META_CONFIG = exports.ADD_ESCAPE_COMMAND = exports.DOCUMENTATION_MESSAGE_CONFIG = exports.LINE_HEIGHT_CONFIG = exports.CURSOR_BLINK_CONFIG = exports.CURSOR_STYLE_CONFIG = exports.SCROLLBACK_CONFIG = exports.PRESERVED_COMMANDS_CONFIG = exports.COLOR_CONFIGS = void 0;
 
 function _featureConfig() {
   const data = _interopRequireDefault(require("../../../../nuclide-commons-atom/feature-config"));
 
   _featureConfig = function () {
+    return data;
+  };
+
+  return data;
+}
+
+function _UniversalDisposable() {
+  const data = _interopRequireDefault(require("../../../../nuclide-commons/UniversalDisposable"));
+
+  _UniversalDisposable = function () {
     return data;
   };
 
@@ -70,6 +83,8 @@ const TRANSPARENCY_CONFIG = 'atom-ide-terminal.allowTransparency';
 exports.TRANSPARENCY_CONFIG = TRANSPARENCY_CONFIG;
 const CHAR_ATLAS_CONFIG = 'atom-ide-terminal.charAtlas';
 exports.CHAR_ATLAS_CONFIG = CHAR_ATLAS_CONFIG;
+const RENDERER_TYPE_CONFIG = 'atom-ide-terminal.rendererType';
+exports.RENDERER_TYPE_CONFIG = RENDERER_TYPE_CONFIG;
 const FONT_FAMILY_CONFIG = 'atom-ide-terminal.fontFamily';
 exports.FONT_FAMILY_CONFIG = FONT_FAMILY_CONFIG;
 const FONT_SCALE_CONFIG = 'atom-ide-terminal.fontScale';
@@ -77,4 +92,22 @@ exports.FONT_SCALE_CONFIG = FONT_SCALE_CONFIG;
 
 function getFontSize() {
   return parseFloat(_featureConfig().default.get(FONT_SCALE_CONFIG)) * parseFloat(atom.config.get('editor.fontSize'));
+}
+
+function setTerminalOption(terminal, optionName, value) {
+  if (terminal.getOption(optionName) !== value) {
+    terminal.setOption(optionName, value);
+  }
+}
+
+function subscribeConfigChanges(terminal) {
+  return new (_UniversalDisposable().default)(_featureConfig().default.observeAsStream(OPTION_IS_META_CONFIG).skip(1).subscribe(optionIsMeta => {
+    setTerminalOption(terminal, 'macOptionIsMeta', optionIsMeta);
+  }), _featureConfig().default.observeAsStream(CURSOR_STYLE_CONFIG).skip(1).subscribe(cursorStyle => setTerminalOption(terminal, 'cursorStyle', cursorStyle)), _featureConfig().default.observeAsStream(CURSOR_BLINK_CONFIG).skip(1).subscribe(cursorBlink => setTerminalOption(terminal, 'cursorBlink', cursorBlink)), _featureConfig().default.observeAsStream(SCROLLBACK_CONFIG).skip(1).subscribe(scrollback => setTerminalOption(terminal, 'scrollback', scrollback)), _featureConfig().default.observeAsStream(RENDERER_TYPE_CONFIG).skip(1).map(rendererType => rendererType === 'auto' ? 'canvas' : rendererType).subscribe(rendererType => setTerminalOption(terminal, 'rendererType', rendererType)));
+}
+
+function syncTerminalFont(terminal) {
+  setTerminalOption(terminal, 'fontSize', getFontSize());
+  setTerminalOption(terminal, 'lineHeight', _featureConfig().default.get(LINE_HEIGHT_CONFIG));
+  setTerminalOption(terminal, 'fontFamily', _featureConfig().default.get(FONT_FAMILY_CONFIG));
 }

@@ -23,6 +23,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  *
  *  strict-local
  * @format
+ * @emails oncall+nuclide
  */
 describe('FileTreeHelpers', () => {
   it('should convert key to path', () => {
@@ -42,17 +43,6 @@ describe('FileTreeHelpers', () => {
     expect(_FileTreeHelpers().default.keyToName('/a/b/foo//')).toBe('foo');
     expect(_FileTreeHelpers().default.keyToName('nuclide://host/a/b/foo//')).toBe('foo');
     expect(_FileTreeHelpers().default.keyToName('asdf')).toBe('asdf');
-  });
-  it('should determine if a key represents a directory', () => {
-    expect(_FileTreeHelpers().default.isDirOrArchiveKey('/a/b/foo')).toBe(false);
-    expect(_FileTreeHelpers().default.isDirOrArchiveKey('/a/b/')).toBe(true);
-    expect(_FileTreeHelpers().default.isDirOrArchiveKey('/a/b//')).toBe(true);
-    expect(_FileTreeHelpers().default.isDirOrArchiveKey('nuclide://host/a/b')).toBe(false);
-    expect(_FileTreeHelpers().default.isDirOrArchiveKey('nuclide://host/a/b/')).toBe(true);
-    expect(_FileTreeHelpers().default.isDirOrArchiveKey('/a.zip')).toBe(true);
-    expect(_FileTreeHelpers().default.isDirOrArchiveKey('/a.zip/')).toBe(true);
-    expect(_FileTreeHelpers().default.isDirOrArchiveKey('nuclide://host/a.zip')).toBe(true);
-    expect(_FileTreeHelpers().default.isDirOrArchiveKey('nuclide://host/a.zip/')).toBe(true);
   });
   it('should instantiate a local directory from a key', () => {
     expect(_FileTreeHelpers().default.getDirectoryByKey('/a/') instanceof _atom.Directory).toBe(true);
@@ -92,13 +82,6 @@ describe('FileTreeHelpers', () => {
       expect(_FileTreeHelpers().default.keyToName('\\a\\b\\foo\\')).toBe('foo');
       expect(_FileTreeHelpers().default.keyToName('\\a\\b\\foo\\\\')).toBe('foo');
       expect(_FileTreeHelpers().default.keyToName('asdf')).toBe('asdf');
-    });
-    it('should determine if a key represents a directory', () => {
-      expect(_FileTreeHelpers().default.isDirOrArchiveKey('c:\\a\\b\\foo')).toBe(false);
-      expect(_FileTreeHelpers().default.isDirOrArchiveKey('c:\\a\\b\\')).toBe(true);
-      expect(_FileTreeHelpers().default.isDirOrArchiveKey('c:\\a\\b\\\\')).toBe(true);
-      expect(_FileTreeHelpers().default.isDirOrArchiveKey('c:\\a.zip')).toBe(true);
-      expect(_FileTreeHelpers().default.isDirOrArchiveKey('c:\\a.zip\\')).toBe(true);
     });
     it('should instantiate a local directory from a key', () => {
       expect(_FileTreeHelpers().default.getDirectoryByKey('\\a\\') instanceof _atom.Directory).toBe(true);

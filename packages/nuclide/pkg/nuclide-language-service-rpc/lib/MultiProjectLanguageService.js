@@ -295,8 +295,8 @@ class MultiProjectLanguageService {
     return _RxMin.Observable.fromPromise(this._getLanguageServiceForFile(fileVersion.filePath)).concatMap(ls => ls.findReferences(fileVersion, position).refCount()).publish();
   }
 
-  async rename(fileVersion, position, newName) {
-    return (await this._getLanguageServiceForFile(fileVersion.filePath)).rename(fileVersion, position, newName);
+  rename(fileVersion, position, newName) {
+    return _RxMin.Observable.fromPromise(this._getLanguageServiceForFile(fileVersion.filePath)).concatMap(ls => ls.rename(fileVersion, position, newName).refCount()).publish();
   }
 
   async getCoverage(filePath) {
@@ -408,6 +408,22 @@ class MultiProjectLanguageService {
 
   onWillSave(fileVersion) {
     return _RxMin.Observable.fromPromise(this._getLanguageServiceForFile(fileVersion.filePath)).flatMap(languageService => languageService.onWillSave(fileVersion).refCount()).publish();
+  }
+
+  async sendLspRequest(filePath, method, params) {
+    return (await this._getLanguageServiceForFile(filePath)).sendLspRequest(filePath, method, params);
+  }
+
+  async sendLspNotification(filePath, method, params) {
+    return (await this._getLanguageServiceForFile(filePath)).sendLspNotification(filePath, method, params);
+  }
+
+  observeLspNotifications(notificationMethod) {
+    return this.observeLanguageServices().mergeMap(process => process.observeLspNotifications(notificationMethod).refCount().catch(error => {
+      this._logger.error('Error: observeLspNotifications', error);
+
+      return _RxMin.Observable.empty();
+    })).publish();
   }
 
   dispose() {

@@ -19,6 +19,7 @@ function _parseRegularLine() {
  *
  *  strict-local
  * @format
+ * @emails oncall+nuclide
  */
 describe('parseRegularLine', () => {
   it('parses the message when the time is in brackets', () => {

@@ -20,6 +20,7 @@ function _LinterAdapterFactory() {
  *
  * 
  * @format
+ * @emails oncall+nuclide
  */
 const grammar = 'testgrammar';
 describe('createAdapter', () => {

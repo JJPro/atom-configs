@@ -19,6 +19,7 @@ function _() {
  *
  * 
  * @format
+ * @emails oncall+nuclide
  */
 describe('JAVASCRIPT_WORD_REGEX', () => {
   // For brevity in specs.

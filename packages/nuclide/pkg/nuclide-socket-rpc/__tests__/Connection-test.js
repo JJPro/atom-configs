@@ -53,6 +53,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  *
  * 
  * @format
+ * @emails oncall+nuclide
  */
 const TEST_PORT = 5004;
 const TEST_TUNNEL_HOST = {
@@ -77,7 +78,6 @@ describe.skip('Connection', () => {
   it('should create a connection to an already listening server', async () => {
     const connectionSpy = jest.fn();
     let localServer;
-    let connection;
     const port = TEST_PORT;
     await new Promise(resolve => {
       localServer = _net.default.createServer(connectionSpy);
@@ -85,7 +85,7 @@ describe.skip('Connection', () => {
         port
       }, resolve);
     });
-    connection = await connectionFactory.createConnection(TEST_TUNNEL_HOST, remoteSocket);
+    const connection = await connectionFactory.createConnection(TEST_TUNNEL_HOST, remoteSocket);
     await (0, _waits_for().default)(() => connectionSpy.mock.calls.length > 0);
     expect(connectionSpy).toHaveBeenCalled();
     connection.dispose();
@@ -97,7 +97,6 @@ describe.skip('Connection', () => {
     const remoteServerWriteSpy = jest.fn();
     const connectionSpy = jest.fn();
     let localServer;
-    let connection;
     remoteServer.socket.on('data', remoteServerWriteSpy);
     const port = TEST_PORT;
     await new Promise(resolve => {
@@ -110,7 +109,7 @@ describe.skip('Connection', () => {
         port
       }, resolve);
     });
-    connection = await connectionFactory.createConnection(TEST_TUNNEL_HOST, remoteSocket);
+    const connection = await connectionFactory.createConnection(TEST_TUNNEL_HOST, remoteSocket);
     await (0, _waits_for().default)(() => connectionSpy.mock.calls.length > 0);
     expect(connectionSpy).toHaveBeenCalled();
     connection.write(new Buffer('hello world'));

@@ -4,6 +4,8 @@ Object.defineProperty(exports, "__esModule", {
   value: true
 });
 exports.setRpcService = setRpcService;
+exports.setGkService = setGkService;
+exports.getGkService = getGkService;
 exports.getPtyServiceByNuclideUri = getPtyServiceByNuclideUri;
 
 function _nuclideUri() {
@@ -62,12 +64,24 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  * @format
  */
 let _rpcService = null;
+let _gkService = null;
 
 function setRpcService(rpcService) {
   _rpcService = rpcService;
   return new (_UniversalDisposable().default)(() => {
     _rpcService = null;
   });
+}
+
+function setGkService(gkService) {
+  _gkService = gkService;
+  return new (_UniversalDisposable().default)(() => {
+    _gkService = null;
+  });
+}
+
+function getGkService() {
+  return _gkService;
 }
 
 function getPtyServiceByNuclideUri(uri) {

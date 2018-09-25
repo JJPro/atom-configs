@@ -53,24 +53,23 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  *
  *  strict-local
  * @format
+ * @emails oncall+nuclide
  */
 describe('ClangService.formatCode', () => {
   it('uses clang-format correctly', async () => {
-    await (async () => {
-      const fixtureCode = await _fsPromise().default.readFile(_nuclideUri().default.join(__dirname, '../__mocks__/fixtures/cpp_buck_project/test.cpp'), 'utf8');
-      const projectDir = await (0, _testHelpers().generateFixture)('project', new Map([['test.cpp', fixtureCode]]));
+    const fixtureCode = await _fsPromise().default.readFile(_nuclideUri().default.join(__dirname, '../__mocks__/fixtures/cpp_buck_project/test.cpp'), 'utf8');
+    const projectDir = await (0, _testHelpers().generateFixture)('project', new Map([['test.cpp', fixtureCode]]));
 
-      const testFile = _nuclideUri().default.join(projectDir, 'test.cpp');
+    const testFile = _nuclideUri().default.join(projectDir, 'test.cpp');
 
-      const spy = jest.spyOn(require("../../../modules/nuclide-commons/process"), 'runCommand').mockReturnValue(_RxMin.Observable.of('{ "Cursor": 4, "Incomplete": false }\ntest2'));
-      const result = await (0, _().formatCode)(testFile, 'test', 1, 2, 3);
-      expect(result).toEqual({
-        newCursor: 4,
-        formatted: 'test2'
-      });
-      expect(spy).toHaveBeenCalledWith('clang-format', ['-style=file', '-assume-filename=' + testFile, '-cursor=1', '-offset=2', '-length=3'], {
-        input: 'test'
-      });
-    })();
+    const spy = jest.spyOn(require("../../../modules/nuclide-commons/process"), 'runCommand').mockReturnValue(_RxMin.Observable.of('{ "Cursor": 4, "Incomplete": false }\ntest2'));
+    const result = await (0, _().formatCode)(testFile, 'test', 1, 2, 3);
+    expect(result).toEqual({
+      newCursor: 4,
+      formatted: 'test2'
+    });
+    expect(spy).toHaveBeenCalledWith('clang-format', ['-style=file', '-assume-filename=' + testFile, '-cursor=1', '-offset=2', '-length=3'], {
+      input: 'test'
+    });
   });
 });

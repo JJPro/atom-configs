@@ -128,9 +128,10 @@ function executeEpic(actions, store) {
       kind: 'request',
       level: 'log',
       text: code,
-      scopeName: executor.scopeName,
+      scopeName: executor.scopeName(),
       data: null,
-      repeatCount: 1
+      repeatCount: 1,
+      incomplete: false
     })) // Execute the code as a side-effect.
     .finally(() => {
       executor.send(code);

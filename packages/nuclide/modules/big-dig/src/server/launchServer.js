@@ -190,7 +190,10 @@ async function enforceExclusive(exclusive) {
 
 
   process.on('exit', () => {
-    _fs.default.unlinkSync(pidFile);
+    try {
+      _fs.default.unlinkSync(pidFile);
+    } catch (err) {// It's fine if the file no longer exists.
+    }
   });
 }
 

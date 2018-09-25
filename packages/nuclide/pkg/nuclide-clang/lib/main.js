@@ -10,9 +10,7 @@ exports.provideDefinitions = provideDefinitions;
 exports.provideCodeFormat = provideCodeFormat;
 exports.provideLinter = provideLinter;
 exports.provideOutlineView = provideOutlineView;
-exports.provideRefactoring = provideRefactoring;
 exports.provideDeclarationInfo = provideDeclarationInfo;
-exports.provideRelatedFiles = provideRelatedFiles;
 exports.provideFileFamily = provideFileFamily;
 exports.consumeClangConfigurationProvider = consumeClangConfigurationProvider;
 exports.provideCodeActions = provideCodeActions;
@@ -82,16 +80,6 @@ function _TypeHintHelpers() {
   const data = _interopRequireDefault(require("./TypeHintHelpers"));
 
   _TypeHintHelpers = function () {
-    return data;
-  };
-
-  return data;
-}
-
-function _Refactoring() {
-  const data = _interopRequireDefault(require("./Refactoring"));
-
-  _Refactoring = function () {
     return data;
   };
 
@@ -249,34 +237,9 @@ function provideOutlineView() {
   };
 }
 
-function provideRefactoring() {
-  return {
-    grammarScopes: Array.from(_constants().GRAMMAR_SET),
-    priority: 1,
-
-    refactorings(editor, range) {
-      return _Refactoring().default.refactorings(editor, range);
-    },
-
-    refactor(request) {
-      return _Refactoring().default.refactor(request);
-    }
-
-  };
-}
-
 function provideDeclarationInfo() {
   return {
     getDeclarationInfo: _libclang().getDeclarationInfo
-  };
-}
-
-function provideRelatedFiles() {
-  return {
-    getRelatedFiles(filePath) {
-      return (0, _libclang().getRelatedSourceOrHeader)(filePath).then(related => related == null ? [] : [related]);
-    }
-
   };
 }
 

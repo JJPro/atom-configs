@@ -5,16 +5,6 @@ Object.defineProperty(exports, "__esModule", {
 });
 exports.JavaDebuggerDevicePanelProvider = void 0;
 
-function _UniversalDisposable() {
-  const data = _interopRequireDefault(require("../../../modules/nuclide-commons/UniversalDisposable"));
-
-  _UniversalDisposable = function () {
-    return data;
-  };
-
-  return data;
-}
-
 function _nuclideDebuggerCommon() {
   const data = require("../../../modules/nuclide-debugger-common");
 
@@ -37,8 +27,6 @@ function _debugger() {
   return data;
 }
 
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
 /**
  * Copyright (c) 2015-present, Facebook, Inc.
  * All rights reserved.
@@ -49,13 +37,16 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  *  strict-local
  * @format
  */
-async function _createAndroidDebugAttachConfig(targetUri, device, pid) {
+function _createAndroidDebugAttachConfig(targetUri, device, proc) {
   const config = {
     deviceAndProcess: {
-      device,
+      // See pkg/nuclide-device-panel-android/lib/Registration.js to see why
+      // serial and identifier are interchangeable
+      deviceSerial: device.identifier,
       selectedProcess: {
-        pid,
-        name: ''
+        user: proc.user,
+        pid: String(proc.pid),
+        name: proc.name
       }
     },
     adbServiceUri: targetUri
@@ -65,8 +56,7 @@ async function _createAndroidDebugAttachConfig(targetUri, device, pid) {
     debugMode: 'attach',
     adapterType: _nuclideDebuggerCommon().VsAdapterTypes.JAVA_ANDROID,
     config,
-    customDisposable: new (_UniversalDisposable().default)(),
-    processName: 'Process ' + pid + ' (Android Java ' + device.name + ')'
+    processName: 'Process ' + proc.pid + ' (Android Java ' + device.displayName + ')'
   };
 }
 
@@ -91,7 +81,9 @@ class JavaDebuggerDevicePanelProvider {
 
   async run(host, device, proc) {
     const debuggerService = await (0, _debugger().getDebuggerService)();
-    const config = await _createAndroidDebugAttachConfig(host, device, proc.pid);
+
+    const config = _createAndroidDebugAttachConfig(host, device, proc);
+
     debuggerService.startVspDebugging(config);
   }
 

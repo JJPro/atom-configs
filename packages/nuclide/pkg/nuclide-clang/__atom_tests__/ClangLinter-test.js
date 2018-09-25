@@ -35,6 +35,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  *
  * 
  * @format
+ * @emails oncall+nuclide
  */
 describe('ClangDiagnosticsProvider', () => {
   const TEST_PATH = '/path/test.cpp';

@@ -43,13 +43,13 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  *
  * 
  * @format
+ * @emails oncall+nuclide
  */
 _temp().default.track();
 
 describe('updateKeymap', () => {
   it('updates a user keymap', async () => {
     let notification;
-    let updatePromise;
 
     const {
       path
@@ -65,7 +65,7 @@ describe('updateKeymap', () => {
         dismiss: () => {}
       };
     });
-    updatePromise = (0, _updateKeymap().default)(path, {
+    const updatePromise = (0, _updateKeymap().default)(path, {
       command: 'new-command',
       'command-1': 'new-command-1'
     });

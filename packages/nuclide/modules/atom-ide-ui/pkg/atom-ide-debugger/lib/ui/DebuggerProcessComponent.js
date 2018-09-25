@@ -5,6 +5,16 @@ Object.defineProperty(exports, "__esModule", {
 });
 exports.default = void 0;
 
+function _AtomInput() {
+  const data = require("../../../../../nuclide-commons-ui/AtomInput");
+
+  _AtomInput = function () {
+    return data;
+  };
+
+  return data;
+}
+
 function _event() {
   const data = require("../../../../../nuclide-commons/event");
 
@@ -21,16 +31,6 @@ function _Tree() {
   const data = require("../../../../../nuclide-commons-ui/Tree");
 
   _Tree = function () {
-    return data;
-  };
-
-  return data;
-}
-
-function _FrameTreeNode() {
-  const data = _interopRequireDefault(require("./FrameTreeNode"));
-
-  _FrameTreeNode = function () {
     return data;
   };
 
@@ -57,8 +57,6 @@ function _observable() {
   return data;
 }
 
-var _RxMin = require("rxjs/bundles/Rx.min.js");
-
 function _ProcessTreeNode() {
   const data = _interopRequireDefault(require("./ProcessTreeNode"));
 
@@ -69,10 +67,30 @@ function _ProcessTreeNode() {
   return data;
 }
 
-function _ThreadTreeNode() {
-  const data = _interopRequireDefault(require("./ThreadTreeNode"));
+function _Button() {
+  const data = require("../../../../../nuclide-commons-ui/Button");
 
-  _ThreadTreeNode = function () {
+  _Button = function () {
+    return data;
+  };
+
+  return data;
+}
+
+function _ButtonGroup() {
+  const data = require("../../../../../nuclide-commons-ui/ButtonGroup");
+
+  _ButtonGroup = function () {
+    return data;
+  };
+
+  return data;
+}
+
+function _featureConfig() {
+  const data = _interopRequireDefault(require("../../../../../nuclide-commons-atom/feature-config"));
+
+  _featureConfig = function () {
     return data;
   };
 
@@ -94,80 +112,115 @@ function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj;
  * 
  * @format
  */
+const SHOW_PAUSED_ONLY_KEY = 'debugger-show-paused-threads-only';
+
 class DebuggerProcessComponent extends React.PureComponent {
   constructor(props) {
     super(props);
-
-    this._handleThreadsChanged = () => {
-      this.setState(this._getState());
-    };
-
-    this.state = this._getState();
     this._disposables = new (_UniversalDisposable().default)();
+    this.state = {
+      processList: this.props.service.getModel().getProcesses(),
+      filter: null,
+      showPausedThreadsOnly: Boolean(_featureConfig().default.get(SHOW_PAUSED_ONLY_KEY))
+    };
   }
 
   componentDidMount() {
     const {
       service
     } = this.props;
-    const {
-      viewModel
-    } = service;
     const model = service.getModel();
 
-    this._disposables.add(_RxMin.Observable.merge((0, _event().observableFromSubscribeFunction)(viewModel.onDidFocusStackFrame.bind(viewModel)), (0, _event().observableFromSubscribeFunction)(model.onDidChangeCallStack.bind(model)), (0, _event().observableFromSubscribeFunction)(service.onDidChangeMode.bind(service))).let((0, _observable().fastDebounce)(150)).subscribe(this._handleThreadsChanged));
+    this._disposables.add((0, _event().observableFromSubscribeFunction)(model.onDidChangeProcesses.bind(model)).let((0, _observable().fastDebounce)(150)).subscribe(() => {
+      this.setState({
+        processList: model.getProcesses()
+      });
+    }));
   }
 
   componentWillUnmount() {
     this._disposables.dispose();
   }
 
-  _getState() {
-    return {
-      processList: this.props.service.getModel().getProcesses().slice()
-    };
-  }
-
   render() {
     const {
-      processList
+      processList,
+      filter
     } = this.state;
     const {
       service
     } = this.props;
+    let filterRegEx = null;
+
+    try {
+      if (filter != null) {
+        filterRegEx = new RegExp(filter, 'ig');
+      }
+    } catch (_) {}
+
     const processElements = processList.map((process, processIndex) => {
       const {
         adapterType,
         processName
       } = process.configuration;
-      const threadElements = process.getAllThreads().map((thread, threadIndex) => {
-        const stackFrameElements = thread.getCallStack().map((frame, frameIndex) => {
-          return React.createElement(_FrameTreeNode().default, {
-            text: frame.name,
-            frame: frame,
-            key: frameIndex,
-            service: service
-          });
-        });
-        return React.createElement(_ThreadTreeNode().default, {
-          title: thread.name + (thread.stopped ? ' (Paused)' : ' (Running)'),
-          key: threadIndex,
-          childItems: stackFrameElements,
-          thread: thread,
-          service: service
-        });
-      });
       return process == null ? 'No processes are currently being debugged' : React.createElement(_ProcessTreeNode().default, {
         title: processName != null ? processName : adapterType,
-        key: processIndex,
-        childItems: threadElements,
+        filter: filter,
+        filterRegEx: filterRegEx,
+        showPausedThreadsOnly: this.state.showPausedThreadsOnly,
+        key: process.getId(),
+        childItems: process.getAllThreads(),
         process: process,
         service: service
       });
     });
-    return React.createElement(_Tree().TreeList, {
+    return React.createElement("div", null, React.createElement("div", {
+      className: "debugger-thread-filter-row"
+    }, React.createElement(_AtomInput().AtomInput, {
+      className: "debugger-thread-filter-box",
+      placeholderText: "Filter threads...",
+      value: this.state.filter || '',
+      size: "sm",
+      onDidChange: text => {
+        this.setState({
+          filter: text
+        });
+      },
+      autofocus: false
+    }), React.createElement(_ButtonGroup().ButtonGroup, {
+      className: "inline-block"
+    }, React.createElement(_Button().Button, {
+      icon: 'playback-pause',
+      size: _Button().ButtonSizes.SMALL,
+      selected: this.state.showPausedThreadsOnly,
+      onClick: () => {
+        _featureConfig().default.set(SHOW_PAUSED_ONLY_KEY, !this.state.showPausedThreadsOnly);
+
+        this.setState(prevState => ({
+          showPausedThreadsOnly: !prevState.showPausedThreadsOnly
+        }));
+      },
+      tooltip: {
+        title: 'Show only paused threads'
+      }
+    }), React.createElement(_Button().Button, {
+      icon: 'x',
+      disabled: !this.state.showPausedThreadsOnly && (this.state.filter === '' || this.state.filter == null),
+      size: _Button().ButtonSizes.SMALL,
+      onClick: () => {
+        _featureConfig().default.set(SHOW_PAUSED_ONLY_KEY, false);
+
+        this.setState({
+          showPausedThreadsOnly: false,
+          filter: ''
+        });
+      },
+      tooltip: {
+        title: 'Clear thread filters'
+      }
+    }))), React.createElement(_Tree().TreeList, {
       showArrows: true
-    }, processElements);
+    }, processElements));
   }
 
 }

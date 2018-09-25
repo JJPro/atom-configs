@@ -3,24 +3,14 @@
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-exports.ProjectSelection = void 0;
+exports.default = void 0;
 
 var React = _interopRequireWildcard(require("react"));
 
-function _UniversalDisposable() {
-  const data = _interopRequireDefault(require("../../../modules/nuclide-commons/UniversalDisposable"));
+function _reactRedux() {
+  const data = require("react-redux");
 
-  _UniversalDisposable = function () {
-    return data;
-  };
-
-  return data;
-}
-
-function _FileTreeStore() {
-  const data = _interopRequireDefault(require("../lib/FileTreeStore"));
-
-  _FileTreeStore = function () {
+  _reactRedux = function () {
     return data;
   };
 
@@ -28,7 +18,7 @@ function _FileTreeStore() {
 }
 
 function Selectors() {
-  const data = _interopRequireWildcard(require("../lib/FileTreeSelectors"));
+  const data = _interopRequireWildcard(require("../lib/redux/Selectors"));
 
   Selectors = function () {
     return data;
@@ -61,56 +51,15 @@ function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj;
  * 
  * @format
  */
-class ProjectSelection extends React.Component {
-  constructor(props) {
-    super(props);
-    this._disposables = new (_UniversalDisposable().default)();
-    this.state = {
-      extraContent: this.calculateExtraContent()
-    };
-  }
-
-  componentDidMount() {
-    this._processExternalUpdate();
-
-    this._disposables.add(this.props.store.subscribe(this._processExternalUpdate.bind(this)));
-  }
-
-  componentWillUnmount() {
-    this._disposables.dispose();
-  }
-
-  _processExternalUpdate() {
-    if (this._disposables.disposed) {
-      // If an emitted event results in the disposal of a subscription to that
-      // same emitted event, the disposal will not take effect until the next
-      // emission. This is because event-kit handler arrays are immutable.
-      //
-      // Since this method subscribes to store updates, and store updates can
-      // also cause this component to become unmounted, there is a possiblity
-      // that the subscription disposal in `componentWillUnmount` may not
-      // prevent this method from running on an unmounted instance. So, we
-      // manually check the component's mounted state.
-      return;
-    }
-
-    this.setState({
-      extraContent: this.calculateExtraContent()
-    });
+class ProjectSelection extends React.PureComponent {
+  componentDidUpdate() {
     this.props.remeasureHeight();
   }
 
-  calculateExtraContent() {
-    const list = Selectors().getExtraProjectSelectionContent(this.props.store);
-
-    if (list.isEmpty()) {
-      return null;
-    }
-
-    return list.toArray();
-  }
-
   render() {
+    // The only time we re-render is when this prop changes, so no need to memoize this. If this
+    // component had a bunch of other props, the story might be different.
+    const renderedExtraContent = this.props.extraContent.isEmpty() ? null : this.props.extraContent.toArray();
     return React.createElement("div", {
       className: "padded"
     }, React.createElement(_TruncatedButton().default, {
@@ -121,7 +70,7 @@ class ProjectSelection extends React.Component {
       onClick: () => this.runCommand('nuclide-remote-projects:connect'),
       icon: "cloud-upload",
       label: "Add Remote Folder"
-    }), this.state.extraContent);
+    }), renderedExtraContent);
   }
 
   runCommand(command) {
@@ -130,4 +79,10 @@ class ProjectSelection extends React.Component {
 
 }
 
-exports.ProjectSelection = ProjectSelection;
+const mapStateToProps = state => ({
+  extraContent: Selectors().getExtraProjectSelectionContent(state)
+});
+
+var _default = (0, _reactRedux().connect)(mapStateToProps, () => ({}))(ProjectSelection);
+
+exports.default = _default;

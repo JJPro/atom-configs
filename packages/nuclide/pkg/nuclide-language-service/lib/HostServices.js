@@ -35,6 +35,16 @@ function _log4js() {
   return data;
 }
 
+function _nuclideUri() {
+  const data = _interopRequireDefault(require("../../../modules/nuclide-commons/nuclideUri"));
+
+  _nuclideUri = function () {
+    return data;
+  };
+
+  return data;
+}
+
 var _RxMin = require("rxjs/bundles/Rx.min.js");
 
 function _UniversalDisposable() {
@@ -240,6 +250,34 @@ class RootHostServices {
         }
 
     }
+  } // Returns false if there is no such registered command on the active text
+  // editor. Otherwise returns true and dispatches the command.
+
+
+  async dispatchCommand(command, params) {
+    const textEditor = atom.workspace.getActiveTextEditor();
+    const target = textEditor != null ? textEditor.getElement() : null;
+
+    if (target == null) {
+      return false;
+    }
+
+    const commands = atom.commands.findCommands({
+      target
+    });
+
+    if (commands.find(c => c.name === command) == null) {
+      return false;
+    } // The LSPLanguageService forwards the args directly from the language server
+    // and so all the URIs in the args are local to the remote server. Pass in
+    // the hostname here so that we can easily resolve the URIs on the client side.
+
+
+    atom.commands.dispatch(target, command, {
+      hostname: _nuclideUri().default.isRemote(params.projectRoot) ? _nuclideUri().default.getHostname(params.projectRoot) : null,
+      args: params.args
+    });
+    return true;
   }
 
 }

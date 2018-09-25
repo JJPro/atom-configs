@@ -611,7 +611,7 @@ Object.defineProperty(module.exports, "defs", {
       location: {
         type: "source",
         fileName: "types.js",
-        line: 34
+        line: 35
       },
       name: "Process",
       definition: {
@@ -743,7 +743,7 @@ Object.defineProperty(module.exports, "defs", {
       location: {
         type: "source",
         fileName: "types.js",
-        line: 24
+        line: 25
       },
       name: "AdbDevice",
       definition: {
@@ -755,7 +755,7 @@ Object.defineProperty(module.exports, "defs", {
           },
           optional: false
         }, {
-          name: "prettyName",
+          name: "displayName",
           type: {
             kind: "string"
           },
@@ -1448,7 +1448,7 @@ Object.defineProperty(module.exports, "defs", {
       location: {
         type: "source",
         fileName: "types.js",
-        line: 16
+        line: 17
       },
       name: "SimpleProcess",
       definition: {
@@ -1479,7 +1479,7 @@ Object.defineProperty(module.exports, "defs", {
       location: {
         type: "source",
         fileName: "types.js",
-        line: 22
+        line: 23
       },
       name: "AndroidJavaProcess",
       definition: {

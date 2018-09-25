@@ -86,7 +86,12 @@ class IndieLinterDelegate {
   }
 
   setAllMessages(messages) {
-    this.clearMessages();
+    if (messages.length === 0) {
+      this._invalidations.next({
+        scope: 'all'
+      });
+    }
+
     this._messages = messages;
 
     this._updates.next((0, _LinterAdapter().linterMessagesToDiagnosticUpdate)(null, [...messages], this._name));

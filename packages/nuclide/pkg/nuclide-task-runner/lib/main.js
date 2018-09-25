@@ -172,16 +172,6 @@ function _reduxMin() {
 
 var _RxMin = require("rxjs/bundles/Rx.min.js");
 
-function _ToolbarUtils() {
-  const data = require("../../../modules/nuclide-commons-ui/ToolbarUtils");
-
-  _ToolbarUtils = function () {
-    return data;
-  };
-
-  return data;
-}
-
 var React = _interopRequireWildcard(require("react"));
 
 function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) { var desc = Object.defineProperty && Object.getOwnPropertyDescriptor ? Object.getOwnPropertyDescriptor(obj, key) : {}; if (desc.get || desc.set) { Object.defineProperty(newObj, key, desc); } else { newObj[key] = obj[key]; } } } } newObj.default = obj; return newObj; } }
@@ -364,13 +354,13 @@ class Activation {
     });
     const {
       element
-    } = toolBar.addButton((0, _ToolbarUtils().makeToolbarButtonSpec)({
+    } = toolBar.addButton({
       callback: 'nuclide-task-runner:toggle-toolbar-visibility',
       tooltip: 'Toggle Task Runner Toolbar',
       iconset: 'ion',
       icon: 'play',
       priority: 401
-    }));
+    });
     element.className += ' nuclide-task-runner-tool-bar-button';
     const buttonUpdatesDisposable = new (_UniversalDisposable().default)( // $FlowFixMe: Update rx defs to accept ish with Symbol.observable
     _RxMin.Observable.from(this._store).subscribe(state => {

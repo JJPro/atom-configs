@@ -123,7 +123,7 @@ class AdbDeviceSelector extends React.Component {
 
     return this.state.deviceList.value.map(device => ({
       value: device,
-      label: device.prettyName
+      label: device.displayName
     }));
   }
 

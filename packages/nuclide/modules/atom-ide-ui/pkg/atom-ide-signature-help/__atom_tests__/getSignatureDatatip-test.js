@@ -1,6 +1,26 @@
 "use strict";
 
+function _marked() {
+  const data = _interopRequireDefault(require("marked"));
+
+  _marked = function () {
+    return data;
+  };
+
+  return data;
+}
+
 var _atom = require("atom");
+
+function _string() {
+  const data = require("../../../../nuclide-commons/string");
+
+  _string = function () {
+    return data;
+  };
+
+  return data;
+}
 
 function _getSignatureDatatip() {
   const data = _interopRequireDefault(require("../lib/getSignatureDatatip"));
@@ -24,6 +44,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  *
  *  strict-local
  * @format
+ * @emails oncall+nuclide
  */
 describe('getSignatureDatatip', () => {
   const point = new _atom.Point(0, 0);
@@ -51,6 +72,10 @@ describe('getSignatureDatatip', () => {
       }],
       range
     });
+  });
+  it('escapes all markdown correctly', () => {
+    const s = 'atoz0TO9 !#()*+-.[\\]_`{}';
+    expect((0, _marked().default)((0, _string().escapeMarkdown)(s))).toEqual(`<p>${s}</p>\n`);
   });
   it('is able to bolden ambiguous parameters', () => {
     expect((0, _getSignatureDatatip().default)({

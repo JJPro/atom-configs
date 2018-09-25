@@ -17,6 +17,26 @@ function _classnames() {
 
 var _atom = require("atom");
 
+function _Button() {
+  const data = require("../../../../nuclide-commons-ui/Button");
+
+  _Button = function () {
+    return data;
+  };
+
+  return data;
+}
+
+function _UniversalDisposable() {
+  const data = _interopRequireDefault(require("../../../../nuclide-commons/UniversalDisposable"));
+
+  _UniversalDisposable = function () {
+    return data;
+  };
+
+  return data;
+}
+
 var React = _interopRequireWildcard(require("react"));
 
 var _reactDom = _interopRequireDefault(require("react-dom"));
@@ -71,22 +91,12 @@ function _analytics() {
   return data;
 }
 
-function _bindObservableAsProps() {
-  const data = require("../../../../nuclide-commons-ui/bindObservableAsProps");
-
-  _bindObservableAsProps = function () {
-    return data;
-  };
-
-  return data;
-}
-
 var _RxMin = require("rxjs/bundles/Rx.min.js");
 
-function _DiagnosticsPopup() {
-  const data = require("./ui/DiagnosticsPopup");
+function _BlockDecoration() {
+  const data = _interopRequireDefault(require("../../../../nuclide-commons-ui/BlockDecoration"));
 
-  _DiagnosticsPopup = function () {
+  _BlockDecoration = function () {
     return data;
   };
 
@@ -107,6 +117,16 @@ function _aim() {
   const data = require("./aim");
 
   _aim = function () {
+    return data;
+  };
+
+  return data;
+}
+
+function _getDiagnosticDatatip() {
+  const data = require("./getDiagnosticDatatip.js");
+
+  _getDiagnosticDatatip = function () {
     return data;
   };
 
@@ -156,8 +176,27 @@ const GUTTER_CSS_GROUPS = {
 };
 const editorToMarkers = new WeakMap();
 const itemToEditor = new WeakMap();
+const handleSpawnPopupEvents = new _RxMin.Subject();
+const SpawnPopupEvents = handleSpawnPopupEvents.switchMap(({
+  messages,
+  diagnosticUpdater,
+  gutter,
+  item
+}) => {
+  return spawnPopup(messages, diagnosticUpdater, gutter, item).let((0, _observable().completingSwitchMap)(popupElement => {
+    const innerPopupElement = popupElement.firstChild;
 
-function applyUpdateToEditor(editor, update, diagnosticUpdater) {
+    if (!(innerPopupElement instanceof HTMLElement)) {
+      throw new Error("Invariant violation: \"innerPopupElement instanceof HTMLElement\"");
+    } // Events which should cause the popup to close.
+
+
+    return _RxMin.Observable.merge((0, _aim().hoveringOrAiming)(item, innerPopupElement), // This makes sure that the popup disappears when you ctrl+tab to switch tabs.
+    (0, _event().observableFromSubscribeFunction)(cb => atom.workspace.onDidChangeActivePaneItem(cb)).mapTo(false), _RxMin.Observable.fromEvent(item, 'click').filter(() => messages.some(message => message.kind === 'review')).mapTo(false));
+  })).takeUntil((0, _event().observableFromSubscribeFunction)(cb => gutter.onDidDestroy(cb))).takeWhile(Boolean);
+}).share();
+
+function applyUpdateToEditor(editor, update, diagnosticUpdater, blockDecorationContainer, openedMessageIds, setOpenMessageIds) {
   let gutter = editor.gutterWithName(GUTTER_ID);
 
   if (!gutter) {
@@ -250,15 +289,17 @@ function applyUpdateToEditor(editor, update, diagnosticUpdater) {
     } else {
       addMessageForRow(message, 0);
     }
-  } // Find all of the gutter markers for the same row and combine them into one marker/popup.
+  } // create diagnostics messages with block decoration and maintain their openness
 
+
+  createBlockDecorations(editor, rowToMessage, blockDecorationContainer, openedMessageIds, setOpenMessageIds); // Find all of the gutter markers for the same row and combine them into one marker/popup.
 
   for (const [row, messages] of rowToMessage.entries()) {
     // This marker adds some UI to the gutter.
     const {
       item,
       dispose
-    } = createGutterItem(messages, diagnosticUpdater, gutter);
+    } = createGutterItem(editor, messages, diagnosticUpdater, gutter, openedMessageIds, setOpenMessageIds);
     itemToEditor.set(item, editor);
     const gutterMarker = editor.markBufferPosition([row, 0]);
     gutter.decorateMarker(gutterMarker, {
@@ -268,7 +309,11 @@ function applyUpdateToEditor(editor, update, diagnosticUpdater) {
     markers.add(gutterMarker);
   }
 
-  editorToMarkers.set(editor, markers); // Once the gutter is shown for the first time, it is displayed for the lifetime of the
+  editorToMarkers.set(editor, markers);
+  editor.onDidDestroy(() => {
+    // clean up openned message ids
+    removeOpenMessageId(update.messages, openedMessageIds, setOpenMessageIds);
+  }); // Once the gutter is shown for the first time, it is displayed for the lifetime of the
   // TextEditor.
 
   if (update.messages.length > 0) {
@@ -278,7 +323,36 @@ function applyUpdateToEditor(editor, update, diagnosticUpdater) {
   }
 }
 
-function createGutterItem(messages, diagnosticUpdater, gutter) {
+function createBlockDecorations(editor, rowToMessage, blockDecorationContainer, openedMessageIds, setOpenMessageIds) {
+  const blockRowToMessages = new Map();
+  rowToMessage.forEach((messages, row) => {
+    if (messages.some(message => message.kind === 'review' && message.id != null && openedMessageIds != null && openedMessageIds.has(message.id))) {
+      blockRowToMessages.set(row, messages);
+    }
+  });
+  const fragment = React.createElement(React.Fragment, null, Array.from(blockRowToMessages).map(([row, messages]) => {
+    return React.createElement(_BlockDecoration().default, {
+      range: new _atom.Range([row, 0], [row, 0]),
+      editor: editor,
+      key: messages[0].id
+    }, React.createElement(_Button().Button, {
+      onClick: () => removeOpenMessageId(messages, openedMessageIds, setOpenMessageIds)
+    }, "Close"), messages.map(message => {
+      if (!message.getBlockComponent) {
+        return null;
+      }
+
+      const Component = message.getBlockComponent();
+      return React.createElement(Component, {
+        key: message.id
+      });
+    }));
+  }));
+
+  _reactDom.default.render(fragment, blockDecorationContainer);
+}
+
+function createGutterItem(editor, messages, diagnosticUpdater, gutter, openedMessageIds, setOpenMessageIds) {
   // Determine which group to display.
   const messageGroups = new Set();
   messages.forEach(msg => messageGroups.add(GroupUtils().getGroup(msg)));
@@ -290,53 +364,74 @@ function createGutterItem(messages, diagnosticUpdater, gutter) {
   const icon = document.createElement('span');
   icon.className = `icon icon-${GroupUtils().getIcon(group)}`;
   item.appendChild(icon);
-
-  const spawnPopup = () => {
-    return _RxMin.Observable.create(observer => {
-      const goToLocation = (path, line) => {
-        // Before we jump to the location, we want to close the popup.
-        const column = 0;
-        (0, _goToLocation().goToLocation)(path, {
-          line,
-          column
-        });
-        observer.complete();
-      };
-
-      const popupElement = showPopupFor(messages, item, goToLocation, diagnosticUpdater, gutter);
-      observer.next(popupElement);
-      return () => {
-        _reactDom.default.unmountComponentAtNode(popupElement);
-
-        if (!(popupElement.parentNode != null)) {
-          throw new Error("Invariant violation: \"popupElement.parentNode != null\"");
-        }
-
-        popupElement.parentNode.removeChild(popupElement);
-      };
+  const disposable = new (_UniversalDisposable().default)(SpawnPopupEvents.subscribe(), _RxMin.Observable.fromEvent(item, 'mouseenter').subscribe(() => {
+    handleSpawnPopupEvents.next({
+      messages,
+      diagnosticUpdater,
+      gutter,
+      item
     });
-  };
-
-  const hoverSubscription = _RxMin.Observable.fromEvent(item, 'mouseenter').exhaustMap(event => {
-    return spawnPopup().let((0, _observable().completingSwitchMap)(popupElement => {
-      const innerPopupElement = popupElement.firstChild;
-
-      if (!(innerPopupElement instanceof HTMLElement)) {
-        throw new Error("Invariant violation: \"innerPopupElement instanceof HTMLElement\"");
-      } // Events which should cause the popup to close.
-
-
-      return _RxMin.Observable.merge((0, _aim().hoveringOrAiming)(item, innerPopupElement), // This makes sure that the popup disappears when you ctrl+tab to switch tabs.
-      (0, _event().observableFromSubscribeFunction)(cb => atom.workspace.onDidChangeActivePaneItem(cb)).mapTo(false));
-    })).takeWhile(Boolean);
-  }).subscribe();
-
-  const dispose = () => hoverSubscription.unsubscribe();
-
+  }), _RxMin.Observable.fromEvent(item, 'click').subscribe(() => {
+    addOpenMessageId(messages, openedMessageIds, setOpenMessageIds);
+  }));
   return {
     item,
-    dispose
+
+    dispose() {
+      disposable.dispose();
+    }
+
   };
+}
+
+function addOpenMessageId(messages, openedMessageIds, setOpenMessageIds) {
+  const newOpenedMessageIds = new Set([...openedMessageIds]);
+  messages.forEach(message => {
+    if (message.id != null) {
+      newOpenedMessageIds.add(message.id);
+    }
+  });
+  setOpenMessageIds(newOpenedMessageIds);
+}
+
+function removeOpenMessageId(messages, openedMessageIds, setOpenMessageIds) {
+  if (openedMessageIds.size === 0) {
+    return;
+  }
+
+  const newOpenedMessageIds = new Set([...openedMessageIds]);
+  messages.forEach(message => {
+    if (message.id != null) {
+      newOpenedMessageIds.delete(message.id);
+    }
+  });
+  setOpenMessageIds(newOpenedMessageIds);
+}
+
+function spawnPopup(messages, diagnosticUpdater, gutter, item) {
+  return _RxMin.Observable.create(observer => {
+    const goToLocation = (path, line) => {
+      // Before we jump to the location, we want to close the popup.
+      const column = 0;
+      (0, _goToLocation().goToLocation)(path, {
+        line,
+        column
+      });
+      observer.complete();
+    };
+
+    const popupElement = showPopupFor(messages, item, goToLocation, diagnosticUpdater, gutter);
+    observer.next(popupElement);
+    return () => {
+      _reactDom.default.unmountComponentAtNode(popupElement);
+
+      if (!(popupElement.parentNode != null)) {
+        throw new Error("Invariant violation: \"popupElement.parentNode != null\"");
+      }
+
+      popupElement.parentNode.removeChild(popupElement);
+    };
+  });
 }
 /**
  * Shows a popup for the diagnostic just below the specified item.
@@ -381,18 +476,17 @@ function showPopupFor(messages, item, goToLocation, diagnosticUpdater, gutter) {
   }
 
   diagnosticUpdater.fetchCodeActions(editor, messages);
+  diagnosticUpdater.fetchDescriptions(messages);
   const popupTop = itemBottom;
-  const BoundPopup = (0, _bindObservableAsProps().bindObservableAsProps)((0, _event().observableFromSubscribeFunction)(cb => diagnosticUpdater.observeCodeActionsForMessage(cb)).map(codeActionsForMessage => ({
+  const BoundPopup = (0, _getDiagnosticDatatip().makeDatatipComponent)(messages, diagnosticUpdater, {
+    fixer: trackedFixer,
+    goToLocation: trackedGoToLocation,
     style: {
       left: gutterRight,
       top: popupTop,
       position: 'absolute'
-    },
-    messages,
-    fixer: trackedFixer,
-    goToLocation: trackedGoToLocation,
-    codeActionsForMessage
-  })), _DiagnosticsPopup().DiagnosticsPopup);
+    }
+  });
 
   _reactDom.default.render(React.createElement(BoundPopup, null), hostElement); // Check to see whether the popup is within the bounds of the TextEditor. If not, display it above
   // the glyph rather than below it.

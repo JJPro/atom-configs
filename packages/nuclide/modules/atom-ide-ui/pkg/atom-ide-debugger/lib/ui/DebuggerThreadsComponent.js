@@ -122,8 +122,8 @@ class DebuggerThreadsComponent extends React.Component {
       }
 
       const thread = matchedThread[0];
-      await service.getModel().fetchCallStack(thread);
-      this.props.service.focusStackFrame(null, thread, null, true);
+      await service.getModel().refreshCallStack(thread, true);
+      this.props.service.viewModel.setFocusedThread(thread, true);
     };
 
     this._handleSort = (sortedColumn, sortDescending) => {
@@ -143,7 +143,7 @@ class DebuggerThreadsComponent extends React.Component {
         const cmp = (a || 0) - (b || 0);
         return isAsc ? cmp : -cmp;
       } : (a, b, isAsc) => {
-        const cmp = (a != null ? a.toLowerCase() : '').localeCompare(b != null ? b.toLowerCase() : '');
+        const cmp = (a != null ? String(a).toLowerCase() : '').localeCompare(b != null ? String(b).toLowerCase() : '');
         return isAsc ? cmp : -cmp;
       };
 
@@ -173,7 +173,7 @@ class DebuggerThreadsComponent extends React.Component {
     } = service;
     const model = service.getModel();
 
-    this._disposables.add(_RxMin.Observable.merge((0, _event().observableFromSubscribeFunction)(viewModel.onDidFocusStackFrame.bind(viewModel)), (0, _event().observableFromSubscribeFunction)(model.onDidChangeCallStack.bind(model))).let((0, _observable().fastDebounce)(150)).subscribe(this._handleThreadsChanged));
+    this._disposables.add(_RxMin.Observable.merge((0, _event().observableFromSubscribeFunction)(viewModel.onDidChangeDebuggerFocus.bind(viewModel)), (0, _event().observableFromSubscribeFunction)(model.onDidChangeCallStack.bind(model))).let((0, _observable().fastDebounce)(150)).subscribe(this._handleThreadsChanged));
   }
 
   componentWillUnmount() {
@@ -269,7 +269,7 @@ class DebuggerThreadsComponent extends React.Component {
 
     const rows = threadList == null ? [] : threadList.map(thread => {
       const stoppedDetails = thread.stoppedDetails;
-      const callstack = thread.getCallStack();
+      const callstack = thread.getCachedCallStack();
       const cellData = {
         data: {
           id: thread.threadId,

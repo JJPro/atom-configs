@@ -265,15 +265,15 @@ function mountDatatipWithMarker(editor, element, range, renderedProviders, posit
   const overlayMarker = editor.markBufferRange(new _atom.Range(position, position), {
     invalidate: 'never'
   });
-  editor.decorateMarker(overlayMarker, {
-    type: 'overlay',
-    position: 'tail',
-    item: element
-  });
   return new (_UniversalDisposable().default)(() => highlightMarker.destroy(), () => overlayMarker.destroy(), // The editor may not mount the marker until the next update.
   // It's not safe to render anything until that point, as datatips
   // often need to measure their size in the DOM.
   _RxMin.Observable.from(editor.getElement().getNextUpdatePromise()).subscribe(() => {
+    editor.decorateMarker(overlayMarker, {
+      type: 'overlay',
+      position: 'tail',
+      item: element
+    });
     element.style.display = 'block';
 
     _reactDom.default.render(renderedProviders, element);

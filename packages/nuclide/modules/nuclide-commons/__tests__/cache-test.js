@@ -20,6 +20,7 @@ function _cache() {
  *
  *  strict-local
  * @format
+ * @emails oncall+nuclide
  */
 describe('Cache', () => {
   const key1 = 'key1';
@@ -77,25 +78,21 @@ describe('Cache', () => {
     expect(dispose).toHaveBeenCalledWith(value);
   });
   it('observeValues sees existing and new values', async () => {
-    await (async () => {
-      const factory = jest.fn().mockImplementation(key => key);
-      const cache = new (_cache().Cache)(factory);
-      cache.get(key1);
-      const values = cache.observeValues().toArray().toPromise();
-      cache.get(key2);
-      cache.dispose();
-      expect((await values)).toEqual([key1, key2]);
-    })();
+    const factory = jest.fn().mockImplementation(key => key);
+    const cache = new (_cache().Cache)(factory);
+    cache.get(key1);
+    const values = cache.observeValues().toArray().toPromise();
+    cache.get(key2);
+    cache.dispose();
+    expect((await values)).toEqual([key1, key2]);
   });
   it('observeKeys sees existing and new keys', async () => {
-    await (async () => {
-      const factory = jest.fn().mockImplementation(key => value);
-      const cache = new (_cache().Cache)(factory);
-      cache.get(key1);
-      const values = cache.observeKeys().toArray().toPromise();
-      cache.get(key2);
-      cache.dispose();
-      expect((await values)).toEqual([key1, key2]);
-    })();
+    const factory = jest.fn().mockImplementation(key => value);
+    const cache = new (_cache().Cache)(factory);
+    cache.get(key1);
+    const values = cache.observeKeys().toArray().toPromise();
+    cache.get(key2);
+    cache.dispose();
+    expect((await values)).toEqual([key1, key2]);
   });
 });

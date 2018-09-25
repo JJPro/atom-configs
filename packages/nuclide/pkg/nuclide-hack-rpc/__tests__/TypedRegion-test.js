@@ -19,6 +19,7 @@ function _TypedRegions() {
  *
  *  strict-local
  * @format
+ * @emails oncall+nuclide
  */
 function runTest(regions, expectedPercentage, ...expected) {
   const result = (0, _TypedRegions().convertTypedRegionsToCoverageResult)(regions);

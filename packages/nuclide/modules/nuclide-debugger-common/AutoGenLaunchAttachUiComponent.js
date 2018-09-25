@@ -277,8 +277,8 @@ class AutoGenLaunchAttachUiComponent extends React.Component {
         showThreads: threads,
         customControlButtons: [],
         threadsComponentTitle: 'Threads',
-        customDisposable: new (_UniversalDisposable().default)(),
-        processName: getProcessName(values)
+        processName: getProcessName(values),
+        isRestartable: true
       });
       (0, _DebuggerConfigSerializer().serializeDebuggerConfig)(...this._getSerializationArgs(this.props), {
         atomInputValues: Array.from(atomInputValues),
@@ -314,6 +314,7 @@ class AutoGenLaunchAttachUiComponent extends React.Component {
   }
 
   _populateDefaultValues(config, atomInputValues, booleanValues, enumValues) {
+    const ignorePreviousParams = config.ignorePreviousParams !== undefined ? config.ignorePreviousParams : false;
     config.properties.filter(property => property.visible).map(property => {
       var _ref;
 
@@ -326,7 +327,7 @@ class AutoGenLaunchAttachUiComponent extends React.Component {
       if (this._atomInputType(type, itemType)) {
         const existingValue = atomInputValues.get(name);
 
-        if (existingValue == null && typeof property.defaultValue !== 'undefined') {
+        if ((ignorePreviousParams || existingValue == null) && typeof property.defaultValue !== 'undefined') {
           // String(propertyDescription.default) deals with both strings and numbers and arrays
           // JSON.stringify for JSON
           // empty string otherwise
@@ -336,7 +337,7 @@ class AutoGenLaunchAttachUiComponent extends React.Component {
       } else if (type === 'boolean') {
         const existingValue = booleanValues.get(name);
 
-        if (existingValue == null && typeof property.defaultValue !== 'undefined' && property.defaultValue != null && typeof property.defaultValue === 'boolean') {
+        if ((ignorePreviousParams || existingValue == null) && typeof property.defaultValue !== 'undefined' && property.defaultValue != null && typeof property.defaultValue === 'boolean') {
           booleanValues.set(name, property.defaultValue);
         } else {
           booleanValues.set(name, false);
@@ -344,7 +345,7 @@ class AutoGenLaunchAttachUiComponent extends React.Component {
       } else if (type === 'enum' && property.enums != null) {
         const existingValue = enumValues.get(name);
 
-        if (existingValue == null && typeof property.defaultValue !== 'undefined' && property.defaultValue != null && typeof property.defaultValue === 'string') {
+        if ((ignorePreviousParams || existingValue == null) && typeof property.defaultValue !== 'undefined' && property.defaultValue != null && typeof property.defaultValue === 'string') {
           enumValues.set(name, property.defaultValue);
         }
       }
@@ -443,7 +444,7 @@ class AutoGenLaunchAttachUiComponent extends React.Component {
       type
     } = property;
 
-    if (type === 'string' || type === 'path') {
+    if (type === 'string' || type === 'path' || type === 'array' && property.itemType === 'string') {
       const value = this.state.atomInputValues.get(name);
       return value != null && value !== '';
     } else if (type === 'number') {
@@ -460,10 +461,10 @@ class AutoGenLaunchAttachUiComponent extends React.Component {
       return value != null;
     } else if (type === 'deviceAndPackage') {
       const deviceAndPackageValue = this.state.deviceAndPackageValues.get(name);
-      return deviceAndPackageValue != null && deviceAndPackageValue.device != null && deviceAndPackageValue.selectedPackage != null;
+      return deviceAndPackageValue != null;
     } else if (type === 'deviceAndProcess') {
       const deviceAndProcessValue = this.state.deviceAndProcessValues.get(name);
-      return deviceAndProcessValue != null && deviceAndProcessValue.device != null && deviceAndProcessValue.selectedProcess != null;
+      return deviceAndProcessValue != null;
     } else if (type === 'selectSources') {
       const selectSourcesValue = this.state.selectSourcesValues.get(name);
       return selectSourcesValue != null;
@@ -547,11 +548,16 @@ class AutoGenLaunchAttachUiComponent extends React.Component {
           const packageValues = new Map(packageValuesArray);
           return packageValues.get(name) || null;
         },
-        onSelect: (device, javaPackage) => {
-          this.state.deviceAndPackageValues.set(name, {
-            device,
-            selectedPackage: javaPackage
-          });
+        onSelect: (deviceSerial, javaPackage) => {
+          if (deviceSerial != null) {
+            this.state.deviceAndPackageValues.set(name, {
+              deviceSerial,
+              selectedPackage: javaPackage
+            });
+          } else {
+            this.state.deviceAndPackageValues.delete(name);
+          }
+
           this.props.configIsValidChanged(this._debugButtonShouldEnable());
         }
       });
@@ -566,11 +572,16 @@ class AutoGenLaunchAttachUiComponent extends React.Component {
           const processValues = new Map(processValuesArray);
           return processValues.get(name) || null;
         },
-        onSelect: (device, javaProcess) => {
-          this.state.deviceAndProcessValues.set(name, {
-            device,
-            selectedProcess: javaProcess
-          });
+        onSelect: (deviceSerial, javaProcess) => {
+          if (deviceSerial != null && javaProcess != null) {
+            this.state.deviceAndProcessValues.set(name, {
+              deviceSerial,
+              selectedProcess: javaProcess
+            });
+          } else {
+            this.state.deviceAndProcessValues.delete(name);
+          }
+
           this.props.configIsValidChanged(this._debugButtonShouldEnable());
         }
       });

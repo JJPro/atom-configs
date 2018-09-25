@@ -47,6 +47,7 @@ function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj;
  *
  *  strict-local
  * @format
+ * @emails oncall+nuclide
  */
 const TEST_PORT = 5004;
 const cf = new (_Connection().ConnectionFactory)();
@@ -96,7 +97,6 @@ describe.skip('createTunnel', () => {
   it('should return a ConnectableObservable that emits listener events', async () => {
     const events = Tunnel().createTunnel(td, cf);
     const eventList = [];
-    let types;
     const subscription = events.refCount().subscribe({
       next: event => {
         eventList.push(event);
@@ -104,19 +104,19 @@ describe.skip('createTunnel', () => {
     });
     await testConnectability(TEST_PORT);
     subscription.unsubscribe();
-    types = eventList.map(event => event.type);
+    const types = eventList.map(event => event.type);
     expect(types).toContain('server_started');
     expect(types).toContain('client_connected');
     expect(types).toContain('client_disconnected');
   });
   it('should send replies back to the originating client', async done => {
     const message = 'HELLO WORLD';
-    let response = null;
-    let echoServer; // start echo server
+    let response = null; // start echo server
 
-    echoServer = _net.default.createServer(socket => {
+    const echoServer = _net.default.createServer(socket => {
       socket.pipe(socket);
     });
+
     await new Promise(resolve => {
       echoServer.listen({
         host: '::',

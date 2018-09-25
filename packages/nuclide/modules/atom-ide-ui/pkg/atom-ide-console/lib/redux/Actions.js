@@ -5,6 +5,7 @@ Object.defineProperty(exports, "__esModule", {
 });
 exports.clearRecords = clearRecords;
 exports.recordReceived = recordReceived;
+exports.recordUpdated = recordUpdated;
 exports.registerExecutor = registerExecutor;
 exports.execute = execute;
 exports.registerOutputProvider = registerOutputProvider;
@@ -20,7 +21,7 @@ exports.updateStatus = updateStatus;
 exports.setCreatePasteFunction = setCreatePasteFunction;
 exports.setWatchEditor = setWatchEditor;
 exports.setFontSize = setFontSize;
-exports.SET_FONT_SIZE = exports.UPDATE_STATUS = exports.REMOVE_SOURCE = exports.REGISTER_SOURCE = exports.RECORD_RECEIVED = exports.SET_MAX_MESSAGE_COUNT = exports.SELECT_EXECUTOR = exports.REGISTER_RECORD_PROVIDER = exports.EXECUTE = exports.REGISTER_EXECUTOR = exports.SET_WATCH_EDITOR_FUNCTION = exports.SET_CREATE_PASTE_FUNCTION = exports.CLEAR_RECORDS = void 0;
+exports.SET_FONT_SIZE = exports.UPDATE_STATUS = exports.REMOVE_SOURCE = exports.REGISTER_SOURCE = exports.RECORD_UPDATED = exports.RECORD_RECEIVED = exports.SET_MAX_MESSAGE_COUNT = exports.SELECT_EXECUTOR = exports.REGISTER_RECORD_PROVIDER = exports.EXECUTE = exports.REGISTER_EXECUTOR = exports.SET_WATCH_EDITOR_FUNCTION = exports.SET_CREATE_PASTE_FUNCTION = exports.CLEAR_RECORDS = void 0;
 
 /**
  * Copyright (c) 2017-present, Facebook, Inc.
@@ -51,6 +52,8 @@ const SET_MAX_MESSAGE_COUNT = 'SET_MAX_MESSAGE_COUNT';
 exports.SET_MAX_MESSAGE_COUNT = SET_MAX_MESSAGE_COUNT;
 const RECORD_RECEIVED = 'RECORD_RECEIVED';
 exports.RECORD_RECEIVED = RECORD_RECEIVED;
+const RECORD_UPDATED = 'RECORD_UPDATED';
+exports.RECORD_UPDATED = RECORD_UPDATED;
 const REGISTER_SOURCE = 'REGISTER_SOURCE';
 exports.REGISTER_SOURCE = REGISTER_SOURCE;
 const REMOVE_SOURCE = 'REMOVE_SOURCE';
@@ -71,6 +74,18 @@ function recordReceived(record) {
     type: RECORD_RECEIVED,
     payload: {
       record
+    }
+  };
+}
+
+function recordUpdated(messageId, appendText, overrideLevel, setComplete) {
+  return {
+    type: RECORD_UPDATED,
+    payload: {
+      messageId,
+      appendText,
+      overrideLevel,
+      setComplete
     }
   };
 }
@@ -106,6 +121,7 @@ function registerOutputProvider(outputProvider) {
       data: message.data,
       tags: message.tags,
       repeatCount: 1,
+      incomplete: false,
       kind: 'message',
       sourceId: outputProvider.id,
       scopeName: null,

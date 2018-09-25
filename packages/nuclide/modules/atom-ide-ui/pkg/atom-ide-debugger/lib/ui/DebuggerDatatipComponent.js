@@ -76,15 +76,19 @@ class DebuggerDatatipComponent extends React.Component {
         size: "EXTRA_SMALL"
       });
     } else {
-      datatipElement = React.createElement("span", {
-        className: "debugger-datatip-value"
-      }, React.createElement(_LazyNestedValueComponent().LazyNestedValueComponent, {
-        evaluationResult: evaluationResult,
-        expression: expression,
-        fetchChildren: _utils().fetchChildrenForLazyComponent,
-        simpleValueComponent: _SimpleValueComponent().default,
-        expansionStateId: this
-      }));
+      if (evaluationResult.value == null && evaluationResult.description == null) {
+        return null;
+      } else {
+        datatipElement = React.createElement("span", {
+          className: "debugger-datatip-value"
+        }, React.createElement(_LazyNestedValueComponent().LazyNestedValueComponent, {
+          evaluationResult: evaluationResult,
+          expression: expression,
+          fetchChildren: _utils().fetchChildrenForLazyComponent,
+          simpleValueComponent: _SimpleValueComponent().default,
+          expansionStateId: this
+        }));
+      }
     }
 
     return React.createElement("div", {

@@ -11,6 +11,7 @@ var _RxMin = require("rxjs/bundles/Rx.min.js");
  *
  *  strict
  * @format
+ * @emails oncall+nuclide
  */
 describe('ConnectableObservable', () => {
   it('connect', () => {

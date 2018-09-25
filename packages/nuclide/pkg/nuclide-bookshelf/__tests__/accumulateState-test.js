@@ -63,6 +63,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  *
  * 
  * @format
+ * @emails oncall+nuclide
  */
 describe('BookShelf accumulateState', () => {
   let fakeRepository = null;

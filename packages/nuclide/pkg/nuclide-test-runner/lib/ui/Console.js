@@ -32,6 +32,7 @@ function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj;
 class Console extends React.Component {
   render() {
     return React.createElement(_AtomTextEditor().AtomTextEditor, {
+      correctContainerWidth: false,
       gutterHidden: true,
       path: ".ansi",
       readOnly: true,

@@ -37,6 +37,16 @@ function _openConnection() {
   return data;
 }
 
+function _SimpleConnect() {
+  const data = require("./SimpleConnect");
+
+  _SimpleConnect = function () {
+    return data;
+  };
+
+  return data;
+}
+
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 /**
@@ -90,6 +100,10 @@ class RemoteProjectsService {
       initialServer: host,
       initialCwd: path
     });
+  }
+
+  connectToServer(config) {
+    return (0, _SimpleConnect().connectToServer)(config);
   }
 
   openConnectionDialog(options) {

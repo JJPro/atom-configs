@@ -22,6 +22,7 @@ function _FocusManager() {
  *
  * 
  * @format
+ * @emails oncall+nuclide
  */
 describe('LastItemManager', () => {
   it('ensure subscriptions are disposed, as appropriate', () => {

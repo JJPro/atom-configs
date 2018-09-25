@@ -63,6 +63,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  *
  *  strict-local
  * @format
+ * @emails oncall+nuclide
  */
 describe('RpcProcess', () => {
   let server;
@@ -107,89 +108,79 @@ describe('RpcProcess', () => {
     })();
   });
   it('should be able to handle multiple calls', async () => {
-    await (async () => {
-      const service = await getService();
-      const responses = await Promise.all([service.a(), service.b(), service.c(), service.d()]);
-      expect(responses.length).toBe(4);
-      expect(responses).toEqual([{
-        hello: 'Hello World'
-      }, {
-        hello: 'Hello World'
-      }, {
-        hello: 'Hello World'
-      }, {
-        hello: 'Hello World'
-      }]);
-    })();
+    const service = await getService();
+    const responses = await Promise.all([service.a(), service.b(), service.c(), service.d()]);
+    expect(responses.length).toBe(4);
+    expect(responses).toEqual([{
+      hello: 'Hello World'
+    }, {
+      hello: 'Hello World'
+    }, {
+      hello: 'Hello World'
+    }, {
+      hello: 'Hello World'
+    }]);
   });
   it('should reject pending calls upon error', async () => {
-    await (async () => {
-      try {
-        await (await getService()).error();
+    try {
+      await (await getService()).error();
 
-        if (!false) {
-          throw new Error('Fail - expected promise to reject');
-        }
-      } catch (e) {
-        expect(e).toEqual('Command to error received');
+      if (!false) {
+        throw new Error('Fail - expected promise to reject');
       }
-    })();
+    } catch (e) {
+      expect(e).toEqual('Command to error received');
+    }
   });
   it('should reject pending calls upon the child process exiting', async () => {
-    await (async () => {
-      const message = server.observeExitMessage().take(1).toPromise();
+    const message = server.observeExitMessage().take(1).toPromise();
 
-      try {
-        await (await getService()).kill();
+    try {
+      await (await getService()).kill();
 
-        if (!false) {
-          throw new Error('Fail - expected promise to reject');
-        }
-      } catch (e) {
-        expect(e.message.startsWith('Remote Error: Connection Closed processing message')).toBeTruthy();
+      if (!false) {
+        throw new Error('Fail - expected promise to reject');
       }
+    } catch (e) {
+      expect(e.message.startsWith('Remote Error: Connection Closed processing message')).toBeTruthy();
+    }
 
-      expect((await message).exitCode).toBe(0);
-    })();
+    expect((await message).exitCode).toBe(0);
   });
   it('should recover gracefully after the child process exits', async () => {
-    await (async () => {
-      try {
-        await (await getService()).kill();
+    try {
+      await (await getService()).kill();
 
-        if (!false) {
-          throw new Error('Fail - expected promise to reject');
-        }
-      } catch (e) {} // Ignore.
-      // Subsequent request should process successfully, meaning the killed
-      // child process has been restarted.
+      if (!false) {
+        throw new Error('Fail - expected promise to reject');
+      }
+    } catch (e) {} // Ignore.
+    // Subsequent request should process successfully, meaning the killed
+    // child process has been restarted.
 
 
-      const response = await (await getService()).polarbears();
-      expect(response).toEqual({
-        hello: 'Hello World'
-      });
-      expect(server.isDisposed()).toBe(false);
-    })();
+    const response = await (await getService()).polarbears();
+    expect(response).toEqual({
+      hello: 'Hello World'
+    });
+    expect(server.isDisposed()).toBe(false);
   });
   it('dispose should kill the process', async () => {
-    await (async () => {
-      await getService();
-      const process = server._process;
+    await getService();
+    const process = server._process;
 
-      if (!(process != null)) {
-        throw new Error("Invariant violation: \"process != null\"");
-      }
+    if (!(process != null)) {
+      throw new Error("Invariant violation: \"process != null\"");
+    }
 
-      const spy = jasmine.createSpy();
-      process.on('exit', spy);
-      server.dispose();
-      (0, _waits_for().default)(() => spy.wasCalled);
-      const exitSpy = jasmine.createSpy();
-      server.observeExitMessage().subscribe(() => exitSpy()); // Manual dispose should not trigger any side effects.
+    const spy = jest.fn();
+    process.on('exit', spy);
+    server.dispose();
+    await (0, _waits_for().default)(() => spy.mock.calls.length > 0);
+    const exitSpy = jest.fn();
+    server.observeExitMessage().subscribe(() => exitSpy()); // Manual dispose should not trigger any side effects.
 
-      expect(exitSpy).not.toHaveBeenCalled();
-    })();
+    expect(exitSpy).not.toHaveBeenCalled();
   });
   it('should respond to dispose immediately if the process is created asynchronously', async () => {
     await (async () => {

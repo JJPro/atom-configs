@@ -222,6 +222,7 @@ class Activation {
           line: definition.position.row,
           column: definition.position.column,
           from: editor.getPath(),
+          name: definition.name,
           duration
         });
       };

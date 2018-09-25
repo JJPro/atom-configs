@@ -72,6 +72,12 @@ class Activation {
     }));
   }
 
+  consumeRemoteFileOpenerService(service) {
+    service.register(file => {
+      return openUri(file.getPath());
+    });
+  }
+
   deserializeImageEditor(state) {
     return new (_ImageEditor().default)(state.filePath);
   }

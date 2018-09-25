@@ -40,16 +40,6 @@ function _nuclideTestHelpers() {
   return data;
 }
 
-function _utils() {
-  const data = require("../lib/utils");
-
-  _utils = function () {
-    return data;
-  };
-
-  return data;
-}
-
 var _path = _interopRequireDefault(require("path"));
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
@@ -63,6 +53,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  *
  *  strict-local
  * @format
+ * @emails oncall+nuclide
  */
 jest.setTimeout(70000);
 let flagsManager;

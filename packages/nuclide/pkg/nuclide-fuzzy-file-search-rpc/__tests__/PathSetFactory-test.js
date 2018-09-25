@@ -53,6 +53,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  *
  *  strict-local
  * @format
+ * @emails oncall+nuclide
  */
 const {
   getFilesFromGit,
@@ -69,13 +70,11 @@ describe('PathSetFactory', () => {
   let untrackedFile;
   let ignoredFile;
   beforeEach(async () => {
-    await (async () => {
-      const tempDir = await (0, _testHelpers().generateFixture)('fuzzy-file-search-rpc');
-      testDir = _fs.default.realpathSync(tempDir);
-      trackedFile = _nuclideUri().default.join(testDir, TRACKED_FILE_BASE);
-      untrackedFile = _nuclideUri().default.join(testDir, UNTRACKED_FILE_BASE);
-      ignoredFile = _nuclideUri().default.join(testDir, IGNORED_FILE_BASE);
-    })();
+    const tempDir = await (0, _testHelpers().generateFixture)('fuzzy-file-search-rpc');
+    testDir = _fs.default.realpathSync(tempDir);
+    trackedFile = _nuclideUri().default.join(testDir, TRACKED_FILE_BASE);
+    untrackedFile = _nuclideUri().default.join(testDir, UNTRACKED_FILE_BASE);
+    ignoredFile = _nuclideUri().default.join(testDir, IGNORED_FILE_BASE);
   });
   describe('getFilesFromGit()', () => {
     const setUpGitRepo = async () => {
@@ -114,17 +113,15 @@ describe('PathSetFactory', () => {
     };
 
     it('returns tracked and untracked files, but not ignored files.', async () => {
-      await (async () => {
-        await setUpGitRepo();
-        const expectedOutput = [TRACKED_FILE_BASE, UNTRACKED_FILE_BASE];
+      await setUpGitRepo();
+      const expectedOutput = [TRACKED_FILE_BASE, UNTRACKED_FILE_BASE];
 
-        if (!testDir) {
-          throw new Error("Invariant violation: \"testDir\"");
-        }
+      if (!testDir) {
+        throw new Error("Invariant violation: \"testDir\"");
+      }
 
-        const fetchedFiles = await getFilesFromGit(testDir);
-        expect(fetchedFiles).toEqual(expectedOutput);
-      })();
+      const fetchedFiles = await getFilesFromGit(testDir);
+      expect(fetchedFiles).toEqual(expectedOutput);
     });
   });
   describe('getFilesFromHg()', () => {
@@ -164,17 +161,15 @@ describe('PathSetFactory', () => {
     };
 
     it('returns tracked and untracked files, but not ignored files.', async () => {
-      await (async () => {
-        await setUpHgRepo();
-        const expectedOutput = [TRACKED_FILE_BASE, UNTRACKED_FILE_BASE];
+      await setUpHgRepo();
+      const expectedOutput = [TRACKED_FILE_BASE, UNTRACKED_FILE_BASE];
 
-        if (!testDir) {
-          throw new Error("Invariant violation: \"testDir\"");
-        }
+      if (!testDir) {
+        throw new Error("Invariant violation: \"testDir\"");
+      }
 
-        const fetchedFiles = await getFilesFromHg(testDir);
-        expect(fetchedFiles).toEqual(expectedOutput);
-      })();
+      const fetchedFiles = await getFilesFromHg(testDir);
+      expect(fetchedFiles).toEqual(expectedOutput);
     });
   });
 });

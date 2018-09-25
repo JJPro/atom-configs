@@ -49,7 +49,7 @@ class AndroidDeviceStopProcessProvider {
   }
 
   async run(host, device, proc) {
-    return (0, _utils().getAdbServiceByNuclideUri)(host).stopProcess(device.name, proc.name, proc.pid);
+    return (0, _utils().getAdbServiceByNuclideUri)(host).stopProcess(device.identifier, proc.name, proc.pid);
   }
 
 }

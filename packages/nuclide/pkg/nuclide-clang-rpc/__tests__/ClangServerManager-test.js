@@ -33,6 +33,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  *
  *  strict-local
  * @format
+ * @emails oncall+nuclide
  */
 describe('ClangServerManager', () => {
   let serverManager;
@@ -144,19 +145,16 @@ describe('ClangServerManager', () => {
 
       return runCommand(command, ...args);
     });
-    let server;
-    let server2;
-    let server3;
     serverManager.setMemoryLimit(0);
-    server = serverManager.getClangServer('test.cpp', '', null, emptyServerSettings); // We're still over the limit, but keep the last one alive.
+    const server = serverManager.getClangServer('test.cpp', '', null, emptyServerSettings); // We're still over the limit, but keep the last one alive.
 
-    server2 = serverManager.getClangServer('test2.cpp', '', null, emptyServerSettings);
+    const server2 = serverManager.getClangServer('test2.cpp', '', null, emptyServerSettings);
     await (0, _waits_for().default)(() => server2.isReady(), 'server2 to become ready');
     await serverManager._checkMemoryUsage();
     expect(server.isDisposed()).toBe(true);
     expect(server2.isDisposed()).toBe(false); // It should be disposed once the next server gets created.
 
-    server3 = serverManager.getClangServer('test3.cpp', '', null, emptyServerSettings);
+    const server3 = serverManager.getClangServer('test3.cpp', '', null, emptyServerSettings);
     await (0, _waits_for().default)(() => server3.isReady(), 'server3 to become ready');
     await serverManager._checkMemoryUsage();
     expect(server2.isDisposed()).toBe(true);

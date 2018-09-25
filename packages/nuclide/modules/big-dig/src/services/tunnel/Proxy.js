@@ -85,17 +85,32 @@ class Proxy extends _events.default {
           });
         });
         socket.once('error', error => {
-          this.emit('error', error);
-
           this._destroySocket(clientId, error);
         });
         socket.once('close', this._closeSocket.bind(this, clientId));
       });
 
+      this._server.on('error', error => {
+        this._sendMessage({
+          event: 'proxyError',
+          port: this._localPort,
+          useIpv4: this._useIPv4,
+          remotePort: this._remotePort,
+          error
+        });
+
+        reject(error);
+      });
+
+      if (!this._server) {
+        throw new Error("Invariant violation: \"this._server\"");
+      }
+
       this._server.listen({
         port: this._localPort
       }, () => {
-        // send a message to create the SocketManager
+        logger.info(`successfully started listening on port ${this._localPort}`); // send a message to create the SocketManager
+
         this._sendMessage({
           event: 'proxyCreated',
           port: this._localPort,
@@ -121,18 +136,28 @@ class Proxy extends _events.default {
 
     const socket = this._socketByClientId.get(clientId);
 
-    if (!socket) {
-      throw new Error("Invariant violation: \"socket\"");
-    }
-
     const arg = msg.arg;
 
-    if (!(arg != null)) {
-      throw new Error("Invariant violation: \"arg != null\"");
-    }
+    if (socket == null) {
+      logger.warn(`received a ${msg.event} message for a non-existent or already closed socket`);
+    } else if (msg.event === 'data') {
+      if (!(arg != null)) {
+        throw new Error("Invariant violation: \"arg != null\"");
+      }
 
-    if (msg.event === 'data') {
       socket.write(arg);
+    } else if (msg.event === 'close') {
+      socket.end();
+    } else if (msg.event === 'error') {
+      if (!(clientId != null)) {
+        throw new Error("Invariant violation: \"clientId != null\"");
+      }
+
+      if (!(msg.error != null)) {
+        throw new Error("Invariant violation: \"msg.error != null\"");
+      }
+
+      this._destroySocket(clientId, msg.error);
     }
   }
 
@@ -159,7 +184,7 @@ class Proxy extends _events.default {
       throw new Error("Invariant violation: \"socket\"");
     }
 
-    socket.destroy(error);
+    socket.destroy();
 
     this._closeSocket(id);
   }

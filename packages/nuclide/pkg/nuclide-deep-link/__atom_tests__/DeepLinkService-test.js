@@ -53,6 +53,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  *
  *  strict-local
  * @format
+ * @emails oncall+nuclide
  */
 const remote = (0, _nullthrows().default)(_electron.default.remote);
 describe('DeepLinkService', () => {

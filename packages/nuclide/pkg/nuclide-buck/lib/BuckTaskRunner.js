@@ -318,6 +318,16 @@ class BuckTaskRunner {
     this._getStore().dispatch(Actions().setBuildTarget(buildTarget));
   }
 
+  setDeploymentTarget(preferredNames) {
+    const store = this._getStore();
+
+    const target = (0, _DeploymentTarget().selectValidDeploymentTarget)(preferredNames, store.getState().platformGroups);
+
+    if (target != null) {
+      store.dispatch(Actions().setDeploymentTarget(target));
+    }
+  }
+
   setProjectRoot(projectRoot, callback) {
     // $FlowFixMe: type symbol-observable
     const storeReady = _RxMin.Observable.from(this._getStore()).distinctUntilChanged().filter(state => !state.isLoadingBuckProject && state.projectRoot === projectRoot).share();

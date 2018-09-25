@@ -45,6 +45,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  *
  *  strict-local
  * @format
+ * @emails oncall+nuclide
  */
 const PROVIDER1_ID = 'context-provider-1';
 const PROVIDER1_TITLE = 'Provider One';

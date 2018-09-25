@@ -19,6 +19,7 @@ function _FlowVersion() {
  *
  * 
  * @format
+ * @emails oncall+nuclide
  */
 describe('FlowVersion', () => {
   let flowVersion = null;

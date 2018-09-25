@@ -20,16 +20,18 @@ const p = nuclidePath => path.resolve(__dirname, '..', nuclidePath);
 
 module.exports = {
   displayName: 'node',
-  rootDir: p('../..'),
+  rootDir: p(''),
   roots: [p('')],
   testMatch: ['**/__tests__/**/*.js?(x)'],
   transform: {
-    '\\.js$': p('modules/nuclide-jest/jestTransformer.js'),
+    '\\.js$': p('jest/transform.js'),
   },
   setupTestFrameworkScriptFile: p('jest/setupTestFrameworkScriptFile.node.js'),
   setupFiles: [p('jest/setup.js')],
+  testRunner: require.resolve('jest-circus/runner'),
   moduleNameMapper: {
     electron: p('jest/__mocks__/emptyObject.js'),
   },
   testPathIgnorePatterns: ['/node_modules/'],
+  reporters: require('./reporters.config'),
 };

@@ -62,11 +62,8 @@ function rootReducer(state, action) {
         isWelcomePageVisible: action.payload.isVisible
       });
 
-    case ActionTypes().HIDE_UNHIDE_TOPICS:
-      return _hideUnhideTopics(state, action.payload.topicsToHide, action.payload.topicsToUnhide);
-
-    case ActionTypes().SET_SHOW_OPTION:
-      return _setShowOption(state, action.payload.showOption);
+    case ActionTypes().SET_TOPIC_HIDDEN:
+      return _setTopicHidden(state, action.payload.topic, action.payload.shouldHide);
   }
 
   return state;
@@ -78,7 +75,6 @@ function _addWelcomePage(state, welcomePage) {
     topic,
     content
   } = welcomePage;
-  const priority = welcomePage.priority != null ? welcomePage.priority : 1000;
 
   if (welcomePages.has(topic)) {
     log.warn(`Duplicate welcome page for topic '${topic}'`);
@@ -87,7 +83,10 @@ function _addWelcomePage(state, welcomePage) {
 
   welcomePages.set(topic, {
     content,
-    priority
+    hideCheckboxProps: Object.assign({
+      className: 'welcome-page-hide-checkbox',
+      label: "Don't show this again"
+    }, welcomePage.hideCheckboxProps)
   });
   return Object.assign({}, state, {
     welcomePages
@@ -102,37 +101,23 @@ function _deleteWelcomePage(state, topic) {
   });
 }
 
-function _hideUnhideTopics(state, topicsToHide, topicsToUnhide) {
+function _setTopicHidden(state, topic, shouldHide) {
   const hiddenTopics = new Set(state.hiddenTopics);
-  topicsToHide.forEach(topic => {
+  const isHidden = hiddenTopics.has(topic);
+
+  if (!isHidden && shouldHide) {
     hiddenTopics.add(topic);
-  });
-  const hidden = Array.from(topicsToHide);
-
-  if (hidden.length > 0) {
-    log.info(`Hiding topics: [${hidden.join(', ')}]`);
-  }
-
-  topicsToUnhide.forEach(topic => {
+    log.info(`Hiding topic: ${topic}]`);
+  } else if (isHidden && !shouldHide) {
     hiddenTopics.delete(topic);
-  });
-  const unhidden = Array.from(topicsToUnhide);
-
-  if (unhidden.length > 0) {
-    log.info(`Unhiding topics: [${unhidden.join(', ')}]`);
+    log.info(`Unhiding topic: ${topic}`);
   }
 
-  (0, _nuclideAnalytics().track)('nuclide-welcome-page-hide-unhide-topics', {
-    hidden,
-    unhidden
+  (0, _nuclideAnalytics().track)('nuclide-welcome-page-set-topic-hidden', {
+    topic,
+    shouldHide
   });
   return Object.assign({}, state, {
     hiddenTopics
-  });
-}
-
-function _setShowOption(state, showOption) {
-  return Object.assign({}, state, {
-    showOption
   });
 }

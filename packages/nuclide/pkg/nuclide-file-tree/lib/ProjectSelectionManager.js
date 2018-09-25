@@ -6,9 +6,19 @@ Object.defineProperty(exports, "__esModule", {
 exports.default = void 0;
 
 function Selectors() {
-  const data = _interopRequireWildcard(require("./FileTreeSelectors"));
+  const data = _interopRequireWildcard(require("./redux/Selectors"));
 
   Selectors = function () {
+    return data;
+  };
+
+  return data;
+}
+
+function Actions() {
+  const data = _interopRequireWildcard(require("./redux/Actions"));
+
+  Actions = function () {
     return data;
   };
 
@@ -50,19 +60,18 @@ function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj;
  * @format
  */
 class ProjectSelectionManager {
-  constructor(store, actions) {
+  constructor(store) {
     this._store = store;
-    this._actions = actions;
   }
 
   addExtraContent(content) {
-    this._actions.addExtraProjectSelectionContent(content);
+    this._store.dispatch(Actions().addExtraProjectSelectionContent(content));
 
-    return new (_UniversalDisposable().default)(() => this._actions.removeExtraProjectSelectionContent(content));
+    return new (_UniversalDisposable().default)(() => this._store.dispatch(Actions().removeExtraProjectSelectionContent(content)));
   }
 
   getExtraContent() {
-    return Selectors().getExtraProjectSelectionContent(this._store);
+    return Selectors().getExtraProjectSelectionContent(this._store.getState());
   }
 
 }

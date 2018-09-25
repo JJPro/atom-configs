@@ -16,7 +16,7 @@
     "atom-ide-diagnostics",
     "atom-ide-diagnostics-ui",
     "atom-ide-find-references",
-    "atom-ide-rename",
+    "atom-ide-refactor",
     "atom-ide-global",
     "atom-ide-outline-view",
     "atom-ide-signature-help",
@@ -33,6 +33,7 @@
     "nuclide-code-search",
     "nuclide-context-view",
     "nuclide-debugger-vsp",
+    "nuclide-debugger-prepack",
     "nuclide-deep-link",
     "nuclide-definition-preview",
     "nuclide-definition-preview-provider",
@@ -65,8 +66,6 @@
     "nuclide-quick-open",
     "nuclide-recent-files-provider",
     "nuclide-recent-files-service",
-    "nuclide-refactorizer",
-    "nuclide-related-files",
     "nuclide-settings",
     "nuclide-ssh-tunnel",
     "nuclide-syntactic-selection",
@@ -105,7 +104,6 @@
   "cpp": [
     "nuclide-clang",
     "nuclide-clang-base",
-    "nuclide-cquery-lsp",
     "nuclide-ctags"
   ],
   "flow": ["nuclide-flow"],
@@ -155,7 +153,6 @@
   ],
   "objc": [
     "nuclide-clang",
-    "nuclide-cquery-lsp",
     "nuclide-ctags",
     "nuclide-objc"
   ],

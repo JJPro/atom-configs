@@ -88,6 +88,7 @@ class HHVMDebuggerWrapper {
       adapterID: 'hhvm'
     };
     this._asyncBreakPending = false;
+    this._connectionRefused = false;
   }
 
   debug() {
@@ -129,11 +130,13 @@ class HHVMDebuggerWrapper {
         this._processDebuggerMessage(chunk);
       });
       socket.on('close', () => {
-        this._writeOutputWithHeader({
-          seq: ++this._sequenceNumber,
-          type: 'event',
-          event: 'hhvmConnectionDied'
-        });
+        if (!this._connectionRefused) {
+          this._writeOutputWithHeader({
+            seq: ++this._sequenceNumber,
+            type: 'event',
+            event: 'hhvmConnectionDied'
+          });
+        }
 
         process.exit(0);
       });
@@ -592,6 +595,22 @@ class HHVMDebuggerWrapper {
               case 'info':
                 message.body.category = 'log';
                 break;
+            } // Detect HHVM refusing a connection due to another connection
+            // existing and raise an explicit event for that.
+            // TODO: (Ericblue) adding an explicit event in HHVM rather than
+            //   relying on the specific wording of this output event.
+
+
+            const attachMsg = 'Could not attach to HHVM';
+
+            if (message.body.output.includes(attachMsg)) {
+              this._connectionRefused = true;
+
+              this._writeOutputWithHeader({
+                seq: ++this._sequenceNumber,
+                type: 'event',
+                event: 'hhvmConnectionRefused'
+              });
             }
 
             break;
@@ -608,6 +627,12 @@ class HHVMDebuggerWrapper {
               message.body.preserveFocusHint = !focusThread;
             }
 
+            break;
+          }
+
+        case 'hhvmConnectionRefused':
+          {
+            this._connectionRefused = true;
             break;
           }
 

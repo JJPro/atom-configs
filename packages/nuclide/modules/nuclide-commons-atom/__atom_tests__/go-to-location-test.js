@@ -44,6 +44,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  *
  * 
  * @format
+ * @emails oncall+nuclide
  */
 const FILE1_PATH = _nuclideUri().default.join(__dirname, '../__mocks__/fixtures/file1.txt');
 
@@ -57,78 +58,64 @@ describe('goToLocation', () => {
     });
   });
   it('should work with nothing open', async () => {
-    await (async () => {
-      const editor = await (0, _goToLocation().goToLocation)(FILE1_PATH);
-      expect(editor.getPath()).toBe(FILE1_PATH);
-      expect(atom.workspace.getActiveTextEditor()).toBe(editor);
-    })();
+    const editor = await (0, _goToLocation().goToLocation)(FILE1_PATH);
+    expect(editor.getPath()).toBe(FILE1_PATH);
+    expect(atom.workspace.getActiveTextEditor()).toBe(editor);
   });
   it('should open the current file successfully', async () => {
-    await (async () => {
-      const editor1 = await (0, _goToLocation().goToLocation)(FILE1_PATH);
-      const editor2 = await (0, _goToLocation().goToLocation)(FILE1_PATH);
-      expect(editor1).toBe(editor2);
-      expect(editor1.getPath()).toBe(FILE1_PATH);
-      expect(atom.workspace.getActiveTextEditor()).toBe(editor1);
-    })();
+    const editor1 = await (0, _goToLocation().goToLocation)(FILE1_PATH);
+    const editor2 = await (0, _goToLocation().goToLocation)(FILE1_PATH);
+    expect(editor1).toBe(editor2);
+    expect(editor1.getPath()).toBe(FILE1_PATH);
+    expect(atom.workspace.getActiveTextEditor()).toBe(editor1);
   });
   it('should re-use the editor for an already-open file', async () => {
-    await (async () => {
-      const editor1 = await (0, _goToLocation().goToLocation)(FILE1_PATH);
-      const editor2 = await (0, _goToLocation().goToLocation)(FILE2_PATH);
-      expect(atom.workspace.getActiveTextEditor()).toBe(editor2);
-      const editor3 = await (0, _goToLocation().goToLocation)(FILE1_PATH);
-      expect(editor1).toBe(editor3);
-      expect(atom.workspace.getActiveTextEditor()).toBe(editor1);
-    })();
+    const editor1 = await (0, _goToLocation().goToLocation)(FILE1_PATH);
+    const editor2 = await (0, _goToLocation().goToLocation)(FILE2_PATH);
+    expect(atom.workspace.getActiveTextEditor()).toBe(editor2);
+    const editor3 = await (0, _goToLocation().goToLocation)(FILE1_PATH);
+    expect(editor1).toBe(editor3);
+    expect(atom.workspace.getActiveTextEditor()).toBe(editor1);
   });
   it('should search other panes for an editor for this file', async () => {
-    await (async () => {
-      const editor1 = await atom.workspace.open(FILE1_PATH);
-      const editor2 = await atom.workspace.open(FILE2_PATH, {
-        split: 'right'
-      });
-      expect(atom.workspace.getActiveTextEditor()).toBe(editor2);
-      expect(atom.workspace.paneForItem(editor1)).not.toBe(atom.workspace.paneForItem(editor2));
-      const editor3 = await (0, _goToLocation().goToLocation)(FILE1_PATH);
-      expect(atom.workspace.getActiveTextEditor()).toBe(editor3);
-      expect(editor3).toBe(editor1);
-    })();
+    const editor1 = await atom.workspace.open(FILE1_PATH);
+    const editor2 = await atom.workspace.open(FILE2_PATH, {
+      split: 'right'
+    });
+    expect(atom.workspace.getActiveTextEditor()).toBe(editor2);
+    expect(atom.workspace.paneForItem(editor1)).not.toBe(atom.workspace.paneForItem(editor2));
+    const editor3 = await (0, _goToLocation().goToLocation)(FILE1_PATH);
+    expect(atom.workspace.getActiveTextEditor()).toBe(editor3);
+    expect(editor3).toBe(editor1);
   });
   it('should correctly set the cursor position when opening a file', async () => {
-    await (async () => {
-      const editor = await (0, _goToLocation().goToLocation)(FILE1_PATH, {
-        line: 1,
-        column: 3
-      });
-      expect(editor.getCursorBufferPosition()).toEqual(new _atom.Point(1, 3));
-    })();
+    const editor = await (0, _goToLocation().goToLocation)(FILE1_PATH, {
+      line: 1,
+      column: 3
+    });
+    expect(editor.getCursorBufferPosition()).toEqual(new _atom.Point(1, 3));
   });
   it('should correctly set the cursor position when opening an already-open file', async () => {
-    await (async () => {
-      const editor1 = await atom.workspace.open(FILE1_PATH);
-      expect(editor1.getCursorBufferPosition()).toEqual(new _atom.Point(0, 0));
-      const editor2 = await (0, _goToLocation().goToLocation)(FILE1_PATH, {
-        line: 1,
-        column: 3
-      });
-      expect(editor2).toBe(editor1);
-      expect(editor1.getCursorBufferPosition()).toEqual(new _atom.Point(1, 3));
-    })();
+    const editor1 = await atom.workspace.open(FILE1_PATH);
+    expect(editor1.getCursorBufferPosition()).toEqual(new _atom.Point(0, 0));
+    const editor2 = await (0, _goToLocation().goToLocation)(FILE1_PATH, {
+      line: 1,
+      column: 3
+    });
+    expect(editor2).toBe(editor1);
+    expect(editor1.getCursorBufferPosition()).toEqual(new _atom.Point(1, 3));
   });
   it('focuses the editor', async () => {
-    await (async () => {
-      const editor1 = await atom.workspace.open(FILE1_PATH);
-      const dock = atom.workspace.getLeftDock();
-      dock.activate();
-      expect(dock.getElement().contains(document.activeElement)).toBe(true);
-      const editor2 = await (0, _goToLocation().goToLocation)(FILE1_PATH, {
-        line: 0,
-        column: 0
-      });
-      expect(editor2).toBe(editor1);
-      expect(editor1.getElement().contains(document.activeElement)).toBe(true);
-    })();
+    const editor1 = await atom.workspace.open(FILE1_PATH);
+    const dock = atom.workspace.getLeftDock();
+    dock.activate();
+    expect(dock.getElement().contains(document.activeElement)).toBe(true);
+    const editor2 = await (0, _goToLocation().goToLocation)(FILE1_PATH, {
+      line: 0,
+      column: 0
+    });
+    expect(editor2).toBe(editor1);
+    expect(editor1.getElement().contains(document.activeElement)).toBe(true);
   });
   describe('its effect on observeNavigatingEditors', () => {
     let navigatingEditorsArray = null;
@@ -143,53 +130,45 @@ describe('goToLocation', () => {
       subscription.unsubscribe();
     });
     it('should not publish when opening a new file', async () => {
-      await (async () => {
-        await (0, _goToLocation().goToLocation)(FILE1_PATH, {
-          line: 1,
-          column: 2
-        });
-        expect(navigatingEditorsArray).toEqual([]);
-      })();
+      await (0, _goToLocation().goToLocation)(FILE1_PATH, {
+        line: 1,
+        column: 2
+      });
+      expect(navigatingEditorsArray).toEqual([]);
     });
     it('should not publish when opening the current editor with no position', async () => {
-      await (async () => {
-        await (0, _goToLocation().goToLocation)(FILE1_PATH);
-        await (0, _goToLocation().goToLocation)(FILE1_PATH);
-        expect(navigatingEditorsArray).toEqual([]);
-      })();
+      await (0, _goToLocation().goToLocation)(FILE1_PATH);
+      await (0, _goToLocation().goToLocation)(FILE1_PATH);
+      expect(navigatingEditorsArray).toEqual([]);
     });
     it('should publish when opening the current file with a position', async () => {
-      await (async () => {
-        const editor1 = await (0, _goToLocation().goToLocation)(FILE1_PATH, {
-          line: 1,
-          column: 2
-        });
-        expect(navigatingEditorsArray).toEqual([]);
-        const editor2 = await (0, _goToLocation().goToLocation)(FILE1_PATH, {
-          line: 1,
-          column: 2
-        });
-        expect(editor2).toBe(editor1);
-        expect(navigatingEditorsArray).toEqual([editor1]);
-        expect(editor1.getCursorBufferPosition()).toEqual(new _atom.Point(1, 2));
-      })();
+      const editor1 = await (0, _goToLocation().goToLocation)(FILE1_PATH, {
+        line: 1,
+        column: 2
+      });
+      expect(navigatingEditorsArray).toEqual([]);
+      const editor2 = await (0, _goToLocation().goToLocation)(FILE1_PATH, {
+        line: 1,
+        column: 2
+      });
+      expect(editor2).toBe(editor1);
+      expect(navigatingEditorsArray).toEqual([editor1]);
+      expect(editor1.getCursorBufferPosition()).toEqual(new _atom.Point(1, 2));
     });
     it('should not publish when opening a file that is already open but not focused', async () => {
-      await (async () => {
-        await (0, _goToLocation().goToLocation)(FILE1_PATH, {
-          line: 1,
-          column: 2
-        });
-        await (0, _goToLocation().goToLocation)(FILE2_PATH, {
-          line: 1,
-          column: 2
-        });
-        await (0, _goToLocation().goToLocation)(FILE1_PATH, {
-          line: 1,
-          column: 2
-        });
-        expect(navigatingEditorsArray).toEqual([]);
-      })();
+      await (0, _goToLocation().goToLocation)(FILE1_PATH, {
+        line: 1,
+        column: 2
+      });
+      await (0, _goToLocation().goToLocation)(FILE2_PATH, {
+        line: 1,
+        column: 2
+      });
+      await (0, _goToLocation().goToLocation)(FILE1_PATH, {
+        line: 1,
+        column: 2
+      });
+      expect(navigatingEditorsArray).toEqual([]);
     });
   });
 });

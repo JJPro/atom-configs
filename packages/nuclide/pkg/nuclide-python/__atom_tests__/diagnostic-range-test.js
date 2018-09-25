@@ -33,6 +33,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  *
  * 
  * @format
+ * @emails oncall+nuclide
  */
 describe('Diagnostic range', () => {
   const fixturePath = _nuclideUri().default.join(__dirname, '../__mocks__/fixtures', 'bad_syntax_land.py');

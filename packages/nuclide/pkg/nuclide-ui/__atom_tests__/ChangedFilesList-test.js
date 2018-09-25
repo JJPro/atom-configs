@@ -19,6 +19,7 @@ function _ChangedFilesList() {
  *
  *  strict-local
  * @format
+ * @emails oncall+nuclide
  */
 describe('computeDisplayPaths', () => {
   it('should compute depth 1 paths correctly', () => {

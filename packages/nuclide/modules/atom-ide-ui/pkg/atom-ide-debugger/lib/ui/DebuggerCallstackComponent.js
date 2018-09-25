@@ -130,7 +130,7 @@ class DebuggerCallstackComponent extends React.Component {
     super(props);
 
     this._handleStackFrameClick = (clickedRow, callFrameIndex) => {
-      this.props.service.focusStackFrame(clickedRow.frame, null, null, true);
+      this.props.service.viewModel.setFocusedStackFrame(clickedRow.frame, true);
     };
 
     this._disposables = new (_UniversalDisposable().default)();
@@ -145,10 +145,15 @@ class DebuggerCallstackComponent extends React.Component {
       focusedStackFrame,
       focusedThread
     } = service.viewModel;
+    const {
+      focusedProcess
+    } = service.viewModel;
+    const mode = focusedProcess == null ? _constants().DebuggerMode.STOPPED : focusedProcess.debuggerMode;
+    const callstack = mode !== _constants().DebuggerMode.RUNNING ? focusedThread == null ? [] : focusedThread.getCachedCallStack() : [];
     return {
       callStackLevels: this.state == null ? 20 : this.state.callStackLevels,
-      mode: service.getDebuggerMode(),
-      callstack: focusedThread == null ? [] : focusedThread.getCallStack(),
+      mode,
+      callstack,
       selectedCallFrameId: focusedStackFrame == null ? -1 : focusedStackFrame.frameId,
       isFechingStackFrames: false
     };
@@ -163,7 +168,13 @@ class DebuggerCallstackComponent extends React.Component {
       viewModel
     } = service;
 
-    this._disposables.add(_RxMin.Observable.merge((0, _event().observableFromSubscribeFunction)(model.onDidChangeCallStack.bind(model)), (0, _event().observableFromSubscribeFunction)(viewModel.onDidFocusStackFrame.bind(viewModel)), (0, _event().observableFromSubscribeFunction)(service.onDidChangeMode.bind(service))).let((0, _observable().fastDebounce)(15)).subscribe(() => this.setState(this._getState())));
+    this._disposables.add(_RxMin.Observable.merge((0, _event().observableFromSubscribeFunction)(model.onDidChangeCallStack.bind(model)), (0, _event().observableFromSubscribeFunction)(viewModel.onDidChangeDebuggerFocus.bind(viewModel)), (0, _event().observableFromSubscribeFunction)(service.onDidChangeProcessMode.bind(service))).let((0, _observable().fastDebounce)(15)).subscribe(() => {
+      if (viewModel.focusedThread != null) {
+        (0, _nullthrows().default)(viewModel.focusedThread).refreshCallStack().then(() => this.setState(this._getState()));
+      } else {
+        this.setState(this._getState());
+      }
+    }));
   }
 
   componentWillUnmount() {
@@ -182,6 +193,8 @@ class DebuggerCallstackComponent extends React.Component {
           frameId: index + 1,
           address: stackFrame.name,
           frame: stackFrame,
+          source: stackFrame.source != null && stackFrame.source.name != null ? `${stackFrame.source.name}` : '',
+          line: `${stackFrame.range.end.row + 1}`,
           isSelected
         }
       };
@@ -200,7 +213,15 @@ class DebuggerCallstackComponent extends React.Component {
     }, {
       title: 'Address',
       key: 'address',
-      width: 0.95
+      width: 0.5
+    }, {
+      title: 'Source',
+      key: 'source',
+      width: 0.35
+    }, {
+      title: 'Line',
+      key: 'line',
+      width: 0.1
     }];
 
     const emptyComponent = () => React.createElement("div", {
@@ -252,7 +273,7 @@ class DebuggerCallstackComponent extends React.Component {
         this.setState({
           isFechingStackFrames: true
         });
-        (0, _nullthrows().default)(viewModel.focusedThread).fetchCallStack(this.state.callStackLevels).then(() => this.setState(this._getState()));
+        (0, _nullthrows().default)(viewModel.focusedThread).refreshCallStack().then(() => this.setState(this._getState()));
       }
     }, "More Stack Frames"), React.createElement(_AtomInput().AtomInput, {
       style: {

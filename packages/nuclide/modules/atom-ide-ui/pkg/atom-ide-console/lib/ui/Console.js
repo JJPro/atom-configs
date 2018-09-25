@@ -15,6 +15,16 @@ function _observePaneItemVisibility() {
   return data;
 }
 
+function _collection() {
+  const data = require("../../../../../nuclide-commons/collection");
+
+  _collection = function () {
+    return data;
+  };
+
+  return data;
+}
+
 function _Model() {
   const data = _interopRequireDefault(require("../../../../../nuclide-commons/Model"));
 
@@ -162,6 +172,7 @@ const WORKSPACE_VIEW_URI = 'atom://nuclide/console';
 exports.WORKSPACE_VIEW_URI = WORKSPACE_VIEW_URI;
 const ERROR_TRANSCRIBING_MESSAGE = "// Nuclide couldn't find the right text to display";
 const INITIAL_RECORD_HEIGHT = 21;
+const ALL_SEVERITIES = new Set(['error', 'warning', 'info']);
 /**
  * An Atom "view model" for the console. This object is responsible for creating a stateful view
  * (via `getElement()`). That view is bound to both global state (from the store) and view-specific
@@ -215,13 +226,31 @@ class Console {
       });
     };
 
+    this._toggleSeverity = severity => {
+      const {
+        selectedSeverities
+      } = this._model.state;
+      const nextSelectedSeverities = new Set(selectedSeverities);
+
+      if (nextSelectedSeverities.has(severity)) {
+        nextSelectedSeverities.delete(severity);
+      } else {
+        nextSelectedSeverities.add(severity);
+      }
+
+      this._model.setState({
+        selectedSeverities: nextSelectedSeverities
+      });
+    };
+
     this._handleDisplayableRecordHeightChange = (recordId, newHeight, callback) => {
       const {
-        records
+        records,
+        incompleteRecords
       } = this._store.getState();
 
-      const nextDisplayableRecords = Array(records.size);
-      records.forEach((record, i) => {
+      const nextDisplayableRecords = Array(records.size + incompleteRecords.size);
+      records.concat(incompleteRecords).forEach((record, i) => {
         let displayableRecord = this._toDisplayableRecord(record);
 
         if (displayableRecord.id === recordId) {
@@ -247,13 +276,15 @@ class Console {
       store,
       initialFilterText,
       initialEnableRegExpFilter,
-      initialUnselectedSourceIds
+      initialUnselectedSourceIds,
+      initialUnselectedSeverities
     } = options;
     this._model = new (_Model().default)({
       displayableRecords: [],
       filterText: initialFilterText == null ? '' : initialFilterText,
       enableRegExpFilter: Boolean(initialEnableRegExpFilter),
-      unselectedSourceIds: initialUnselectedSourceIds == null ? [] : initialUnselectedSourceIds
+      unselectedSourceIds: initialUnselectedSourceIds == null ? [] : initialUnselectedSourceIds,
+      selectedSeverities: initialUnselectedSeverities == null ? ALL_SEVERITIES : (0, _collection().setDifference)(ALL_SEVERITIES, initialUnselectedSeverities)
     });
     this._store = store;
     this._nextRecordId = 0;
@@ -312,13 +343,15 @@ class Console {
     const {
       providers,
       providerStatuses,
-      records
+      records,
+      incompleteRecords
     } = this._store.getState();
 
     return this._getSourcesMemoized({
       providers,
       providerStatuses,
-      records
+      records,
+      incompleteRecords
     });
   } // Memoize `getSources()`. Unfortunately, since we look for unrepresented sources in the record
   // list, this still needs to be called whenever the records change.
@@ -336,7 +369,8 @@ class Console {
       store: this._store,
       initialFilterText: this._model.state.filterText,
       initialEnableRegExpFilter: this._model.state.enableRegExpFilter,
-      initialUnselectedSourceIds: this._model.state.unselectedSourceIds
+      initialUnselectedSourceIds: this._model.state.unselectedSourceIds,
+      initialUnselectedSeverities: (0, _collection().setDifference)(ALL_SEVERITIES, this._model.state.selectedSeverities)
     });
   }
 
@@ -367,10 +401,14 @@ class Console {
     const sources = this._getSources();
 
     const selectedSourceIds = sources.map(source => source.id).filter(sourceId => this._model.state.unselectedSourceIds.indexOf(sourceId) === -1);
-    const filteredRecords = filterRecords(this._getDisplayableRecords(), selectedSourceIds, pattern, sources.length !== selectedSourceIds.length);
+    const {
+      selectedSeverities
+    } = this._model.state;
+    const filteredRecords = filterRecords(this._getDisplayableRecords(), selectedSourceIds, selectedSeverities, pattern, sources.length !== selectedSourceIds.length);
     return {
       invalid,
       selectedSourceIds,
+      selectedSeverities,
       filteredRecords
     };
   }
@@ -388,6 +426,7 @@ class Console {
       const {
         invalid,
         selectedSourceIds,
+        selectedSeverities,
         filteredRecords
       } = this._getFilterInfo();
 
@@ -415,7 +454,9 @@ class Console {
         updateFilter: this._updateFilter,
         onDisplayableRecordHeightChange: this._handleDisplayableRecordHeightChange,
         resetAllFilters: this._resetAllFilters,
-        fontSize: globalState.fontSize
+        fontSize: globalState.fontSize,
+        selectedSeverities,
+        toggleSeverity: this._toggleSeverity
       };
     });
 
@@ -427,23 +468,35 @@ class Console {
     const {
       filterText,
       enableRegExpFilter,
-      unselectedSourceIds
+      unselectedSourceIds,
+      selectedSeverities
     } = this._model.state;
     return {
       deserializer: 'nuclide.Console',
       filterText,
       enableRegExpFilter,
-      unselectedSourceIds
+      unselectedSourceIds,
+      unselectedSeverities: [...(0, _collection().setDifference)(ALL_SEVERITIES, selectedSeverities)]
     };
+  }
+
+  /** Unselects the sources from the given IDs */
+  unselectSources(ids) {
+    const newIds = ids.filter(id => !this._model.state.unselectedSourceIds.includes(id));
+
+    this._model.setState({
+      unselectedSourceIds: this._model.state.unselectedSourceIds.concat(newIds)
+    });
   }
 
   _getDisplayableRecords() {
     const {
-      records
+      records,
+      incompleteRecords
     } = this._store.getState();
 
-    const displayableRecords = Array(records.size);
-    records.forEach((record, i) => {
+    const displayableRecords = Array(records.size + incompleteRecords.size);
+    records.concat(incompleteRecords).forEach((record, i) => {
       displayableRecords[i] = this._toDisplayableRecord(record);
     });
     return displayableRecords;
@@ -488,7 +541,7 @@ function getSources(options) {
   const mapOfSources = new Map(Array.from(providers.entries()).map(([k, provider]) => {
     const source = {
       id: provider.id,
-      name: provider.id,
+      name: provider.name,
       status: providerStatuses.get(provider.id) || 'stopped',
       start: typeof provider.start === 'function' ? provider.start : undefined,
       stop: typeof provider.stop === 'function' ? provider.stop : undefined
@@ -511,8 +564,8 @@ function getSources(options) {
   return Array.from(mapOfSources.values());
 }
 
-function filterRecords(displayableRecords, selectedSourceIds, filterPattern, filterSources) {
-  if (!filterSources && filterPattern == null) {
+function filterRecords(displayableRecords, selectedSourceIds, selectedSeverities, filterPattern, filterSources) {
+  if (!filterSources && filterPattern == null && (0, _collection().areSetsEqual)(ALL_SEVERITIES, selectedSeverities)) {
     return displayableRecords;
   }
 
@@ -522,6 +575,10 @@ function filterRecords(displayableRecords, selectedSourceIds, filterPattern, fil
     // Only filter regular messages
     if (record.kind !== 'message') {
       return true;
+    }
+
+    if (!selectedSeverities.has(levelToSeverity(record.level))) {
+      return false;
     }
 
     const sourceMatches = selectedSourceIds.indexOf(record.sourceId) !== -1;
@@ -611,5 +668,25 @@ async function createPaste(createPasteImpl, records) {
       detail: errorMessages.join('\n'),
       dismissable: true
     });
+  }
+}
+
+function levelToSeverity(level) {
+  switch (level) {
+    case 'error':
+      return 'error';
+
+    case 'warning':
+      return 'warning';
+
+    case 'log':
+    case 'info':
+    case 'debug':
+    case 'success':
+      return 'info';
+
+    default:
+      // All the colors are "info"
+      return 'info';
   }
 }

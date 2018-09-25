@@ -30,16 +30,6 @@ function _autogenUtils() {
   return data;
 }
 
-function _passesGK() {
-  const data = _interopRequireDefault(require("../../commons-node/passesGK"));
-
-  _passesGK = function () {
-    return data;
-  };
-
-  return data;
-}
-
 function _AutoGenLaunchAttachProvider() {
   const data = require("../../../modules/nuclide-debugger-common/AutoGenLaunchAttachProvider");
 
@@ -70,28 +60,6 @@ function _UniversalDisposable() {
   return data;
 }
 
-function _fsPromise() {
-  const data = _interopRequireDefault(require("../../../modules/nuclide-commons/fsPromise"));
-
-  _fsPromise = function () {
-    return data;
-  };
-
-  return data;
-}
-
-function _utils() {
-  const data = require("./utils");
-
-  _utils = function () {
-    return data;
-  };
-
-  return data;
-}
-
-var _path = _interopRequireDefault(require("path"));
-
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 /**
@@ -104,35 +72,30 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  *  strict-local
  * @format
  */
-// eslint-disable-next-line nuclide-internal/prefer-nuclide-uri
 class Activation {
   constructor() {
     this._subscriptions = new (_UniversalDisposable().default)();
 
-    _fsPromise().default.exists(_path.default.join(__dirname, 'fb-marker')).then(exists => {
-      const isOpenSource = !exists;
+    this._registerLLDBProvider();
 
-      this._registerPrepackDebugProvider(isOpenSource);
+    this._registerHHVMDebugProvider();
+  }
 
-      this._registerLLDBProvider();
-
-      this._registerHHVMDebugProvider();
-    });
+  _javaCheck(_gkService) {
+    if (_gkService != null) {
+      _gkService.passesGK('nuclide_extrafeatures_debugging').then(passes => {
+        if (passes) {
+          try {
+            this._subscriptions.add( // $FlowFB
+            require("./fb-JavaCheck").javaCheck());
+          } catch (_) {}
+        }
+      });
+    }
   }
 
   _registerDebugProvider(provider) {
     this._subscriptions.add(atom.packages.serviceHub.provide('debugger.provider', '0.0.0', provider));
-  }
-
-  async _registerPrepackDebugProvider(isOpenSource) {
-    if ((await (0, _passesGK().default)('nuclide_debugger_prepack')) || isOpenSource) {
-      this._registerDebugProvider({
-        type: _nuclideDebuggerCommon().VsAdapterTypes.PREPACK,
-        getLaunchAttachProvider: connection => {
-          return new (_AutoGenLaunchAttachProvider().AutoGenLaunchAttachProvider)(_nuclideDebuggerCommon().VsAdapterNames.PREPACK, connection, (0, _utils().getPrepackAutoGenConfig)());
-        }
-      });
-    }
   }
 
   _registerLLDBProvider() {
@@ -144,13 +107,21 @@ class Activation {
     });
   }
 
-  async _registerHHVMDebugProvider() {
+  _registerHHVMDebugProvider() {
     this._registerDebugProvider({
       type: _nuclideDebuggerCommon().VsAdapterTypes.HHVM,
       getLaunchAttachProvider: connection => {
         return new (_HhvmLaunchAttachProvider().default)(_nuclideDebuggerCommon().VsAdapterNames.HHVM, connection);
       }
     });
+  }
+
+  consumeGatekeeperService(service) {
+    let _gkService = service;
+
+    this._javaCheck(_gkService);
+
+    return new (_UniversalDisposable().default)(() => _gkService = null);
   }
 
   dispose() {

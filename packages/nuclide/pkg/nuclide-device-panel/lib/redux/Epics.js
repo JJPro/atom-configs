@@ -4,6 +4,7 @@ Object.defineProperty(exports, "__esModule", {
   value: true
 });
 exports.pollDevicesEpic = pollDevicesEpic;
+exports.setDevicesEpic = setDevicesEpic;
 exports.pollProcessesEpic = pollProcessesEpic;
 exports.setDeviceEpic = setDeviceEpic;
 exports.setDeviceTypesEpic = setDeviceTypesEpic;
@@ -13,7 +14,7 @@ exports.setAppInfoEpic = setAppInfoEpic;
 exports.setDeviceTypeComponentsEpic = setDeviceTypeComponentsEpic;
 
 function _log4js() {
-  const data = _interopRequireDefault(require("log4js"));
+  const data = require("log4js");
 
   _log4js = function () {
     return data;
@@ -64,6 +65,16 @@ function _constants() {
   return data;
 }
 
+function _DevicePanelTask() {
+  const data = require("../DevicePanelTask");
+
+  _DevicePanelTask = function () {
+    return data;
+  };
+
+  return data;
+}
+
 function Actions() {
   const data = _interopRequireWildcard(require("./Actions"));
 
@@ -78,16 +89,6 @@ function _providers() {
   const data = require("../providers");
 
   _providers = function () {
-    return data;
-  };
-
-  return data;
-}
-
-function _DeviceTask() {
-  const data = require("../DeviceTask");
-
-  _DeviceTask = function () {
     return data;
   };
 
@@ -114,9 +115,9 @@ function Immutable() {
   return data;
 }
 
-function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) { var desc = Object.defineProperty && Object.getOwnPropertyDescriptor ? Object.getOwnPropertyDescriptor(obj, key) : {}; if (desc.get || desc.set) { Object.defineProperty(newObj, key, desc); } else { newObj[key] = obj[key]; } } } } newObj.default = obj; return newObj; } }
-
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) { var desc = Object.defineProperty && Object.getOwnPropertyDescriptor ? Object.getOwnPropertyDescriptor(obj, key) : {}; if (desc.get || desc.set) { Object.defineProperty(newObj, key, desc); } else { newObj[key] = obj[key]; } } } } newObj.default = obj; return newObj; } }
 
 /**
  * Copyright (c) 2015-present, Facebook, Inc.
@@ -150,6 +151,18 @@ function pollDevicesEpic(actions, store) {
   });
 }
 
+function setDevicesEpic(actions, store) {
+  return actions.ofType(Actions().SET_DEVICES).switchMap(action => {
+    return getDeviceTasks(store.getState()).catch(error => {
+      (0, _log4js().getLogger)().error(error);
+      (0, _nuclideAnalytics().track)('nuclide-device-panel:device-tasks:error', {
+        error
+      });
+      return _RxMin.Observable.of(new Map());
+    });
+  }).map(tasks => Actions().setDeviceTasks(tasks));
+}
+
 function pollProcessesEpic(actions, store) {
   return actions.ofType(Actions().TOGGLE_PROCESS_POLLING).switchMap(action => {
     if (!(action.type === Actions().TOGGLE_PROCESS_POLLING)) {
@@ -181,7 +194,7 @@ function setDeviceEpic(actions, store) {
     }
 
     const state = store.getState();
-    return _RxMin.Observable.merge(getInfoTables(state).switchMap(infoTables => _RxMin.Observable.of(Actions().setInfoTables(infoTables))), getProcessTasks(state).switchMap(processTasks => _RxMin.Observable.of(Actions().setProcessTasks(processTasks))), getDeviceTasks(state).switchMap(deviceTasks => _RxMin.Observable.of(Actions().setDeviceTasks(deviceTasks))));
+    return _RxMin.Observable.merge(getInfoTables(state).switchMap(infoTables => _RxMin.Observable.of(Actions().setInfoTables(infoTables))), getProcessTasks(state).switchMap(processTasks => _RxMin.Observable.of(Actions().setProcessTasks(processTasks))));
   });
 }
 
@@ -204,7 +217,7 @@ const deviceTypeTaskCache = new (_SimpleCache().SimpleCache)({
 function setDeviceTypeEpic(actions, store) {
   return actions.ofType(Actions().SET_DEVICE_TYPE).switchMap(action => {
     const state = store.getState();
-    return _RxMin.Observable.of(Array.from((0, _providers().getProviders)().deviceTypeTask).filter(provider => provider.getType() === state.deviceType).map(provider => deviceTypeTaskCache.getOrCreate([state, provider.getName()], () => new (_DeviceTask().DeviceTask)(() => provider.getTask(state.host), provider.getName())))).map(tasks => Actions().setDeviceTypeTasks(tasks.sort((a, b) => a.getName().localeCompare(b.getName()))));
+    return _RxMin.Observable.of(Array.from((0, _providers().getProviders)().deviceTypeTask).filter(provider => provider.getType() === state.deviceType).map(provider => deviceTypeTaskCache.getOrCreate([state, provider.getName()], () => new (_DevicePanelTask().DevicePanelTask)(() => provider.getDeviceTypeTask(state.host), provider.getName())))).map(tasks => Actions().setDeviceTypeTasks(tasks.sort((a, b) => a.getName().localeCompare(b.getName()))));
   });
 }
 
@@ -262,8 +275,7 @@ function setDeviceTypeComponentsEpic(actions, store) {
         disposable.dispose();
       };
     }).startWith(null).catch(e => {
-      _log4js().default.getLogger().error(e);
-
+      (0, _log4js().getLogger)().error(e);
       return _RxMin.Observable.of(null);
     })) // $FlowFixMe add combineAll to flow
     ).combineAll();
@@ -393,28 +405,47 @@ function getProcessTasks(state) {
       };
     });
   })).toArray();
-} // The actual device tasks are cached so that if a task is running when the store switches back and
-// forth from the device associated with that task, the same running task is used
+} // Generates a map of device tasks for each device identifier.
 
-
-const deviceTaskCache = new (_SimpleCache().SimpleCache)({
-  keyFactory: ([state, providerName]) => JSON.stringify([state.host, state.deviceType, providerName])
-});
 
 function getDeviceTasks(state) {
-  const device = state.device;
+  const {
+    devices,
+    deviceType,
+    host
+  } = state;
 
-  if (device == null) {
-    return _RxMin.Observable.of([]);
+  if (deviceType == null) {
+    return _RxMin.Observable.empty();
   }
 
-  return _RxMin.Observable.merge(...Array.from((0, _providers().getProviders)().deviceTask).filter(provider => provider.getType() === state.deviceType).map(provider => {
-    return provider.isSupported(state.host).switchMap(isSupported => {
-      if (!isSupported) {
-        return _RxMin.Observable.empty();
-      }
+  const providers = Array.from((0, _providers().getProviders)().deviceTask).filter(provider => provider.getType() === deviceType);
+  const observablePerDevice = devices.getOrDefault([]).map(device => getDeviceTasksForDevice(providers, device, host));
 
-      return _RxMin.Observable.of(deviceTaskCache.getOrCreate([state, provider.getName()], () => new (_DeviceTask().DeviceTask)(() => provider.getTask(state.host, device), provider.getName())));
-    }).catch(() => _RxMin.Observable.empty());
-  })).toArray().map(actions => actions.sort((a, b) => a.getName().localeCompare(b.getName())));
+  const combinedMapPairs = // $FlowIgnore combineAll
+  _RxMin.Observable.from(observablePerDevice).combineAll();
+
+  return combinedMapPairs.map(pairs => new Map(pairs));
+} // Generates a pair of device identifier + tasks for it. The identifier is always for the device passed in.
+// It's convenient to make a Map out of these tuples.
+
+
+function getDeviceTasksForDevice(providers, device, host) {
+  // A single observable per each provider for this device.
+  const perProviderAndDevice = providers.map(provider => getDeviceTasksForProvider(device, provider, host)); // $FlowIgnore combineAll
+
+  const combinedForDevice = _RxMin.Observable.from(perProviderAndDevice).combineAll(); // Flatten the array (merge tasks from all providers into a single flat array)
+  // and put that array it into a tuple with identifier for this device.
+
+
+  return combinedForDevice.map(array => array.reduce((acc, element) => {
+    return acc.concat(element);
+  }, [])).map(tasks => [device.identifier, tasks.sort((a, b) => a.getName().localeCompare(b.getName()))]);
+}
+
+function getDeviceTasksForProvider(device, provider, host) {
+  return provider.getDeviceTasks(host, device).catch(() => _RxMin.Observable.of([])).defaultIfEmpty([]).map(tasks => {
+    return tasks.map( // TODO: Keep track of tasks after starting them
+    t => new (_DevicePanelTask().DevicePanelTask)(() => t.getEvents(), t.getName()));
+  });
 }

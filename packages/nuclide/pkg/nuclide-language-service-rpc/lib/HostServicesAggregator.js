@@ -126,6 +126,10 @@ class HostServicesAggregator {
     return this._selfRelay().showActionRequired(title, options);
   }
 
+  dispatchCommand(command, params) {
+    return this._selfRelay().dispatchCommand(command, params);
+  }
+
   isDisposed() {
     return this._isDisposed;
   } // Call 'dispose' to dispose of the aggregate and all its children
@@ -290,6 +294,14 @@ class HostServicesRelay {
     }
 
     return this._aggregator._parent.showActionRequired(title, options).refCount().takeUntil(this._childIsDisposed).publish();
+  }
+
+  async dispatchCommand(command, params) {
+    if (this._aggregator.isDisposed()) {
+      return false;
+    }
+
+    return this._aggregator._parent.dispatchCommand(command, params);
   }
 
   dispose() {

@@ -20,6 +20,7 @@ function _PtyService() {
  *
  *  strict-local
  * @format
+ * @emails oncall+nuclide
  */
 describe('PtyService', () => {
   describe('spawn', () => {
@@ -36,18 +37,16 @@ describe('PtyService', () => {
       runner = new LocalRunner();
     });
     it('adds numbers in bash', async () => {
-      await (async () => {
-        if (!(ptyInfo.command != null)) {
-          throw new Error("Invariant violation: \"ptyInfo.command != null\"");
-        }
+      if (!(ptyInfo.command != null)) {
+        throw new Error("Invariant violation: \"ptyInfo.command != null\"");
+      }
 
-        ptyInfo.command.file = '/bin/bash';
-        ptyInfo.command.args = ['--norc', '-c', 'echo $((1 + 1))'];
-        await (0, _PtyService().spawn)(ptyInfo, runner);
-        const result = await runner.promise;
-        expect(result.output.trim()).toBe('2');
-        expect(result.code).toBe(0);
-      })();
+      ptyInfo.command.file = '/bin/bash';
+      ptyInfo.command.args = ['--norc', '-c', 'echo $((1 + 1))'];
+      await (0, _PtyService().spawn)(ptyInfo, runner);
+      const result = await runner.promise;
+      expect(result.output.trim()).toBe('2');
+      expect(result.code).toBe(0);
     });
   });
 });

@@ -19,6 +19,7 @@ function _utils() {
  *
  *  strict
  * @format
+ * @emails oncall+nuclide
  */
 describe('utils', () => {
   describe('parseFileNameQuery()', () => {

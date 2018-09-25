@@ -20,60 +20,10 @@ function _FileTreeNode() {
   return data;
 }
 
-function _FileTreeActions() {
-  const data = _interopRequireDefault(require("../lib/FileTreeActions"));
+function _createStore() {
+  const data = _interopRequireDefault(require("../lib/redux/createStore"));
 
-  _FileTreeActions = function () {
-    return data;
-  };
-
-  return data;
-}
-
-function _FileTreeStore() {
-  const data = _interopRequireWildcard(require("../lib/FileTreeStore"));
-
-  _FileTreeStore = function () {
-    return data;
-  };
-
-  return data;
-}
-
-function _FileTreeSelectionManager() {
-  const data = require("../lib/FileTreeSelectionManager");
-
-  _FileTreeSelectionManager = function () {
-    return data;
-  };
-
-  return data;
-}
-
-function _nuclideWorkingSetsCommon() {
-  const data = require("../../nuclide-working-sets-common");
-
-  _nuclideWorkingSetsCommon = function () {
-    return data;
-  };
-
-  return data;
-}
-
-function _promise() {
-  const data = require("../../../modules/nuclide-commons/promise");
-
-  _promise = function () {
-    return data;
-  };
-
-  return data;
-}
-
-function _BuildTempDirTree() {
-  const data = require("../__mocks__/helpers/BuildTempDirTree");
-
-  _BuildTempDirTree = function () {
+  _createStore = function () {
     return data;
   };
 
@@ -81,7 +31,7 @@ function _BuildTempDirTree() {
 }
 
 function Selectors() {
-  const data = _interopRequireWildcard(require("../lib/FileTreeSelectors"));
+  const data = _interopRequireWildcard(require("../lib/redux/Selectors"));
 
   Selectors = function () {
     return data;
@@ -113,18 +63,21 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  *
  * 
  * @format
+ * @emails oncall+nuclide
  */
 _temp().default.track();
 
-const tempCleanup = (0, _promise().denodeify)(_temp().default.cleanup);
 describe('FileTreeSelectionRange', () => {
+  let store;
+  beforeEach(() => {
+    store = (0, _createStore().default)();
+  });
+
   function createNode(rootUri, uri) {
     return new (_FileTreeNode().FileTreeNode)({
       rootUri,
       uri
-    }, Object.assign({}, _FileTreeStore().DEFAULT_CONF, {
-      selectionManager: new (_FileTreeSelectionManager().FileTreeSelectionManager)(() => {})
-    }));
+    }, Selectors().getConf(store.getState()));
   }
 
   describe('RangeKey', () => {
@@ -178,210 +131,6 @@ describe('FileTreeSelectionRange', () => {
       const range1 = new (_FileTreeSelectionRange().SelectionRange)(key1, key2);
       const range2 = new (_FileTreeSelectionRange().SelectionRange)(key1, key2);
       expect(range1.equals(range2)).toBe(true);
-    });
-  });
-  describe('RangeUtil', () => {
-    const store = new (_FileTreeStore().default)();
-    const actions = new (_FileTreeActions().default)(store);
-
-    async function prepareFileTree() {
-      const map = await (0, _BuildTempDirTree().buildTempDirTree)('dir/foo/foo1', 'dir/foo/foo2', 'dir/bar/bar1', 'dir/bar/bar2', 'dir/bar/bar3');
-      const dir = map.get('dir'); // flowlint-next-line sketchy-null-string:off
-
-      if (!dir) {
-        throw new Error("Invariant violation: \"dir\"");
-      }
-
-      actions.setRootKeys([dir]);
-      return map;
-    }
-
-    let map = new Map();
-    beforeEach(async () => {
-      await (async () => {
-        map = await prepareFileTree();
-        const dir = map.get('dir'); // flowlint-next-line sketchy-null-string:off
-
-        if (!dir) {
-          throw new Error("Invariant violation: \"dir\"");
-        } // Await **internal-only** API because the public `expandNodeDeep` API does not
-        // return the promise that can be awaited on
-
-
-        await store._expandNodeDeep(dir, dir);
-      })();
-    });
-    afterEach(async () => {
-      await (async () => {
-        actions.updateWorkingSet(new (_nuclideWorkingSetsCommon().WorkingSet)([]));
-        actions.reset();
-        await tempCleanup();
-      })();
-    });
-    describe('findSelectedNode', () => {
-      it('returns the node itself if it is shown and selected', () => {
-        const dir = map.get('dir');
-        const bar1 = map.get('dir/bar/bar1'); // flowlint-next-line sketchy-null-string:off
-
-        if (!dir) {
-          throw new Error("Invariant violation: \"dir\"");
-        } // flowlint-next-line sketchy-null-string:off
-
-
-        if (!bar1) {
-          throw new Error("Invariant violation: \"bar1\"");
-        }
-
-        actions.setSelectedNode(dir, bar1);
-        const node = Selectors().getNode(store, dir, bar1);
-
-        if (!node) {
-          throw new Error("Invariant violation: \"node\"");
-        }
-
-        expect(_FileTreeSelectionRange().RangeUtil.findSelectedNode(node)).toBe(node);
-      });
-      it('searches the next selected node if passed in node is unselected', () => {
-        const dir = map.get('dir');
-        const bar1 = map.get('dir/bar/bar1');
-        const bar3 = map.get('dir/bar/bar3'); // flowlint-next-line sketchy-null-string:off
-
-        if (!dir) {
-          throw new Error("Invariant violation: \"dir\"");
-        } // flowlint-next-line sketchy-null-string:off
-
-
-        if (!bar1) {
-          throw new Error("Invariant violation: \"bar1\"");
-        } // flowlint-next-line sketchy-null-string:off
-
-
-        if (!bar3) {
-          throw new Error("Invariant violation: \"bar3\"");
-        }
-
-        actions.setSelectedNode(dir, bar3);
-        const node = Selectors().getNode(store, dir, bar1);
-
-        if (!node) {
-          throw new Error("Invariant violation: \"node\"");
-        }
-
-        expect(_FileTreeSelectionRange().RangeUtil.findSelectedNode(node)).toBe(Selectors().getNode(store, dir, bar3));
-      });
-      it('searches the prev selected node if nothing else is selected', () => {
-        const dir = map.get('dir');
-        const bar1 = map.get('dir/bar/bar1');
-        const bar3 = map.get('dir/bar/bar3'); // flowlint-next-line sketchy-null-string:off
-
-        if (!dir) {
-          throw new Error("Invariant violation: \"dir\"");
-        } // flowlint-next-line sketchy-null-string:off
-
-
-        if (!bar1) {
-          throw new Error("Invariant violation: \"bar1\"");
-        } // flowlint-next-line sketchy-null-string:off
-
-
-        if (!bar3) {
-          throw new Error("Invariant violation: \"bar3\"");
-        }
-
-        actions.setSelectedNode(dir, bar1);
-        const node = Selectors().getNode(store, dir, bar3);
-
-        if (!node) {
-          throw new Error("Invariant violation: \"node\"");
-        }
-
-        expect(_FileTreeSelectionRange().RangeUtil.findSelectedNode(node)).toBe(Selectors().getNode(store, dir, bar1));
-      });
-      it('returns null if nothing is selected', () => {
-        const dir = map.get('dir');
-        const bar1 = map.get('dir/bar/bar1'); // flowlint-next-line sketchy-null-string:off
-
-        if (!dir) {
-          throw new Error("Invariant violation: \"dir\"");
-        } // flowlint-next-line sketchy-null-string:off
-
-
-        if (!bar1) {
-          throw new Error("Invariant violation: \"bar1\"");
-        }
-
-        const node = Selectors().getNode(store, dir, bar1);
-
-        if (!node) {
-          throw new Error("Invariant violation: \"node\"");
-        }
-
-        expect(_FileTreeSelectionRange().RangeUtil.findSelectedNode(node)).toBe(null);
-      });
-      it('searches the next selected node if itself is not shown', () => {
-        const dir = map.get('dir');
-        const foo = map.get('dir/foo');
-        const foo1 = map.get('dir/foo/foo1');
-        const bar1 = map.get('dir/bar/bar1'); // flowlint-next-line sketchy-null-string:off
-
-        if (!dir) {
-          throw new Error("Invariant violation: \"dir\"");
-        } // flowlint-next-line sketchy-null-string:off
-
-
-        if (!foo) {
-          throw new Error("Invariant violation: \"foo\"");
-        } // flowlint-next-line sketchy-null-string:off
-
-
-        if (!foo1) {
-          throw new Error("Invariant violation: \"foo1\"");
-        } // flowlint-next-line sketchy-null-string:off
-
-
-        if (!bar1) {
-          throw new Error("Invariant violation: \"bar1\"");
-        }
-
-        actions.collapseNode(dir, foo);
-        actions.setSelectedNode(dir, bar1);
-        const node = Selectors().getNode(store, dir, foo1);
-
-        if (!node) {
-          throw new Error("Invariant violation: \"node\"");
-        }
-
-        expect(_FileTreeSelectionRange().RangeUtil.findSelectedNode(node)).toBe(Selectors().getNode(store, dir, bar1));
-      });
-      it('only searches the selected node within the working set', () => {
-        const dir = map.get('dir');
-        const foo1 = map.get('dir/foo/foo1');
-        const bar1 = map.get('dir/bar/bar1'); // flowlint-next-line sketchy-null-string:off
-
-        if (!dir) {
-          throw new Error("Invariant violation: \"dir\"");
-        } // flowlint-next-line sketchy-null-string:off
-
-
-        if (!foo1) {
-          throw new Error("Invariant violation: \"foo1\"");
-        } // flowlint-next-line sketchy-null-string:off
-
-
-        if (!bar1) {
-          throw new Error("Invariant violation: \"bar1\"");
-        }
-
-        actions.updateWorkingSet(new (_nuclideWorkingSetsCommon().WorkingSet)([foo1, bar1]));
-        actions.setSelectedNode(dir, bar1);
-        const node = Selectors().getNode(store, dir, foo1);
-
-        if (!node) {
-          throw new Error("Invariant violation: \"node\"");
-        }
-
-        expect(_FileTreeSelectionRange().RangeUtil.findSelectedNode(node)).toBe(Selectors().getNode(store, dir, bar1));
-      });
     });
   });
 });

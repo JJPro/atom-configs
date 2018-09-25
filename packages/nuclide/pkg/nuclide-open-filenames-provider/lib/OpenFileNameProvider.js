@@ -11,7 +11,7 @@ function _collection() {
 }
 
 function _nuclideFuzzyNative() {
-  const data = require("../../nuclide-fuzzy-native");
+  const data = require("../../../modules/nuclide-fuzzy-native");
 
   _nuclideFuzzyNative = function () {
     return data;

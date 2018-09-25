@@ -32,6 +32,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  *
  *  strict-local
  * @format
+ * @emails oncall+nuclide
  */
 const CONFIG_FILE_NAME = '.test_nuclide_config_file';
 const CONFIG_FILE_NAME_2 = '.test_nuclide_config_file_2';
@@ -53,29 +54,29 @@ describe('ConfigCache', () => {
     expect((await cache.getConfigDir(rootFile))).toBe(rootFolder);
   });
   it('prefers closer matches with multiple config files', async () => {
-    await (async () => {
-      const cache = new (_ConfigCache().ConfigCache)([CONFIG_FILE_NAME, CONFIG_FILE_NAME_2]);
-      expect((await cache.getConfigDir(rootFolder))).toBe(rootFolder);
-      expect((await cache.getConfigDir(nestedFolder2))).toBe(nestedFolder2);
-    })();
+    const cache = new (_ConfigCache().ConfigCache)([CONFIG_FILE_NAME, CONFIG_FILE_NAME_2]);
+    expect((await cache.getConfigDir(rootFolder))).toBe(rootFolder);
+    expect((await cache.getConfigDir(nestedFolder2))).toBe(nestedFolder2);
   });
-  it('prefers further matches when the search strategy is "furthest"', async () => {
-    await (async () => {
-      const cache = new (_ConfigCache().ConfigCache)([CONFIG_FILE_NAME, CONFIG_FILE_NAME_2], 'furthest');
-      expect((await cache.getConfigDir(rootFolder))).toBe(rootFolder);
-      expect((await cache.getConfigDir(nestedFolder))).toBe(rootFolder);
-      expect((await cache.getConfigDir(nestedFolder2))).toBe(rootFolder);
-    })();
+  it('prefers further matches when the search strategy is "eclipse"', async () => {
+    const cache = new (_ConfigCache().ConfigCache)([CONFIG_FILE_NAME, CONFIG_FILE_NAME_2], 'eclipse');
+    expect((await cache.getConfigDir(rootFolder))).toBe(rootFolder);
+    expect((await cache.getConfigDir(nestedFolder))).toBe(rootFolder);
+    expect((await cache.getConfigDir(nestedFolder2))).toBe(rootFolder);
   });
-  it('prefers priority matches when the search strategy is "priority"', async () => {
-    await (async () => {
-      const cache = new (_ConfigCache().ConfigCache)([CONFIG_FILE_NAME, CONFIG_FILE_NAME_2], 'priority');
-      expect((await cache.getConfigDir(rootFolder))).toBe(rootFolder);
-      expect((await cache.getConfigDir(nestedFolder2))).toBe(rootFolder);
-    })();
+  it('prefers priority matches when the search strategy is "ocaml"', async () => {
+    const cache = new (_ConfigCache().ConfigCache)([CONFIG_FILE_NAME, CONFIG_FILE_NAME_2], 'ocaml');
+    expect((await cache.getConfigDir(rootFolder))).toBe('/');
+    expect((await cache.getConfigDir(nestedFolder2))).toBe('/');
   });
-  it('matches first path segment when the search strategy is "pathMatch"', async () => {
-    const cache = new (_ConfigCache().ConfigCache)(['ConfigCache/testFolder', 'ConfigCache'], 'pathMatch'); // matches both patterns, tie-breaks with first one
+  it('matches only when both files are in the directory when the search strategy is "aurora"', async () => {
+    const cache = new (_ConfigCache().ConfigCache)([CONFIG_FILE_NAME, CONFIG_FILE_NAME_2], 'aurora');
+    expect((await cache.getConfigDir(nestedFolder))).toBe(nestedFolder);
+    expect((await cache.getConfigDir(nestedFolder2))).toBe(null);
+    expect((await cache.getConfigDir(rootFolder))).toBe(null);
+  });
+  it('matches first path segment when the search strategy is "thrift"', async () => {
+    const cache = new (_ConfigCache().ConfigCache)(['ConfigCache/testFolder', 'ConfigCache'], 'thrift'); // matches both patterns, tie-breaks with first one
 
     expect((await cache.getConfigDir(nestedFolder))).toBe(nestedFolder); // matches second pattern
 

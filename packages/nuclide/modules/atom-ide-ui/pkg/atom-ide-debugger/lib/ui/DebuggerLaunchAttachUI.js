@@ -105,6 +105,18 @@ function setLastUsedDebugger(host, action, debuggerDisplayName) {
 function getLastUsedDebugger(host, action) {
   const key = 'DEBUGGER_LAST_USED_' + host + '_' + action;
   return localStorage.getItem(key);
+} // Older published debugger packages did not provide `getTabName()`.
+// TODO(most): Remove this once newer debugger versions get adoption.
+
+
+function getTabName(provider) {
+  var _provider$_debuggingT;
+
+  if (typeof provider.getTabName === 'function') {
+    return provider.getTabName();
+  }
+
+  return (_provider$_debuggingT = provider._debuggingTypeName) !== null && _provider$_debuggingT !== void 0 ? _provider$_debuggingT : '';
 }
 
 class DebuggerLaunchAttachUI extends React.Component {
@@ -156,10 +168,10 @@ class DebuggerLaunchAttachUI extends React.Component {
 
   UNSAFE_componentWillMount() {
     const host = _nuclideUri().default.isRemote(this.props.connection) ? _nuclideUri().default.getHostname(this.props.connection) : 'local';
-    const selectedProvider = (this.props.providers.get(host) || []).find(p => p.getTabName() === this.props.initialSelectedTabName);
+    const selectedProvider = (this.props.providers.get(host) || []).find(p => getTabName(p) === this.props.initialSelectedTabName);
 
     if (selectedProvider != null) {
-      setLastUsedDebugger(host, this.props.dialogMode, selectedProvider.getTabName());
+      setLastUsedDebugger(host, this.props.dialogMode, getTabName(selectedProvider));
     }
 
     this._filterProviders(host);
@@ -198,7 +210,7 @@ class DebuggerLaunchAttachUI extends React.Component {
         throw new Error("Invariant violation: \"provider != null\"");
       }
 
-      const tabName = provider.getTabName();
+      const tabName = getTabName(provider);
       return {
         provider,
         tabName

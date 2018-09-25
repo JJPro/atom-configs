@@ -31,6 +31,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  *
  * 
  * @format
+ * @emails oncall+nuclide
  */
 class I1 {
   async m(arg) {
@@ -63,14 +64,12 @@ describe('BidiService', () => {
     service = testHelper.getRemoteService('BidiService');
   });
   it('Test calls from server back to client', async () => {
-    await (async () => {
-      const i1 = new I1();
-      const i2 = new I2();
-      const r1 = await service.f('call1', i1);
-      const r2 = await service.f('call2', i2);
-      expect(r1).toBe('I1:call1');
-      expect(r2).toBe('I2:call2');
-    })();
+    const i1 = new I1();
+    const i2 = new I2();
+    const r1 = await service.f('call1', i1);
+    const r2 = await service.f('call2', i2);
+    expect(r1).toBe('I1:call1');
+    expect(r2).toBe('I2:call2');
   });
   afterEach(() => testHelper.stop());
 });

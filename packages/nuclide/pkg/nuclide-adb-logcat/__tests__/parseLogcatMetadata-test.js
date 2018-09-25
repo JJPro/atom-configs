@@ -21,6 +21,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  *
  *  strict-local
  * @format
+ * @emails oncall+nuclide
  */
 describe('parseLogcatMetadata', () => {
   const formats = ['[ 01-14 17:15:01.003   640:  654 I/ProcessStatsService ]', // Older versions use hex for the tid.

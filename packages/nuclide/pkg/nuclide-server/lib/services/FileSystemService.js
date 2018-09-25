@@ -13,6 +13,7 @@ exports.chmod = chmod;
 exports.newFile = newFile;
 exports.readdir = readdir;
 exports.readdirSorted = readdirSorted;
+exports.readdirRecursive = readdirRecursive;
 exports.realpath = realpath;
 exports.resolveRealPath = resolveRealPath;
 exports.expandHomeDir = expandHomeDir;
@@ -35,6 +36,7 @@ exports.getFreeSpace = getFreeSpace;
 exports.tempdir = tempdir;
 exports.getNuclideDir = getNuclideDir;
 exports.getNuclideLogDir = getNuclideLogDir;
+exports.guessRealPath = guessRealPath;
 
 var _fs = _interopRequireDefault(require("fs"));
 
@@ -240,6 +242,45 @@ async function readdirSorted(path) {
   return (await _nuclideFs().ROOT_FS.readdir(path)).sort((a, b) => {
     return a[0].toLowerCase().localeCompare(b[0].toLowerCase());
   });
+}
+/**
+ * Recursively lists all children of the given directory. The limit param
+ * puts a bound on the maximum number of entries that can be returned.
+ * TODO: Consider adding concurrency while traversing search directories.
+ */
+
+
+async function readdirRecursive(root, limit = 100) {
+  // Keep a running array of all files and directories we encounter.
+  const result = [];
+
+  const helper = async path => {
+    const entries = await _nuclideFs().ROOT_FS.readdir(_nuclideUri().default.join(root, path)); // We have to sort the entries to ensure that the limit is applied
+    // consistently.
+
+    entries.sort((a, b) => a[0].localeCompare(b[0]));
+
+    for (const entry of entries) {
+      // Prevent the results array from going over the limit.
+      if (result.length >= limit) {
+        break;
+      }
+
+      const [name, isFile, isSymbolicLink] = entry; // Path to this entry from root.
+
+      const entryPath = _nuclideUri().default.join(path, name);
+
+      result.push([entryPath, isFile, isSymbolicLink]); // Recurse on directory if we aren't at the limit.
+
+      if (!isFile && result.length < limit) {
+        // eslint-disable-next-line no-await-in-loop
+        await helper(entryPath);
+      }
+    }
+  };
+
+  await helper('.');
+  return result;
 }
 /**
  * Gets the real path of a file path.
@@ -498,4 +539,8 @@ async function getNuclideDir() {
 
 async function getNuclideLogDir() {
   return (0, _nuclideLogging().getPathToLogDir)();
+}
+
+async function guessRealPath(path) {
+  return _fsPromise().default.guessRealPath(path);
 }

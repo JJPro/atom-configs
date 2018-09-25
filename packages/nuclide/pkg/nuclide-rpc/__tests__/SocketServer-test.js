@@ -93,45 +93,42 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  *
  *  strict-local
  * @format
+ * @emails oncall+nuclide
  */
 describe('SocketServer', () => {
   let configPath;
   beforeEach(async () => {
-    await (async () => {
-      const services3json = [{
-        implementation: _nuclideUri().default.join(__dirname, '../__mocks__/EchoService.js'),
-        name: 'EchoService'
-      }];
-      const fbservices3json = [];
-      configPath = await (0, _testHelpers().generateFixture)('services', new Map([['services-3.json', JSON.stringify(services3json)], ['fb-services-3.json', JSON.stringify(fbservices3json)]]));
-    })();
+    const services3json = [{
+      implementation: _nuclideUri().default.join(__dirname, '../__mocks__/EchoService.js'),
+      name: 'EchoService'
+    }];
+    const fbservices3json = [];
+    configPath = await (0, _testHelpers().generateFixture)('services', new Map([['services-3.json', JSON.stringify(services3json)], ['fb-services-3.json', JSON.stringify(fbservices3json)]]));
   });
   it.skip('connect and send message', async () => {
-    await (async () => {
-      // flowlint-next-line sketchy-null-string:off
-      if (!configPath) {
-        throw new Error("Invariant violation: \"configPath\"");
-      }
+    // flowlint-next-line sketchy-null-string:off
+    if (!configPath) {
+      throw new Error("Invariant violation: \"configPath\"");
+    }
 
-      const services = (0, _loadServicesConfig().default)(configPath);
-      const registry = new (_ServiceRegistry().ServiceRegistry)([_nuclideMarshalersCommon().localNuclideUriMarshalers], services);
-      const server = new (_SocketServer().SocketServer)(registry);
-      const address = await server.getAddress();
+    const services = (0, _loadServicesConfig().default)(configPath);
+    const registry = new (_ServiceRegistry().ServiceRegistry)([_nuclideMarshalersCommon().localNuclideUriMarshalers], services);
+    const server = new (_SocketServer().SocketServer)(registry);
+    const address = await server.getAddress();
 
-      if (!(address.port !== 0)) {
-        throw new Error("Invariant violation: \"address.port !== 0\"");
-      }
+    if (!(address.port !== 0)) {
+      throw new Error("Invariant violation: \"address.port !== 0\"");
+    }
 
-      const clientSocket = _net.default.connect(address.port);
+    const clientSocket = _net.default.connect(address.port);
 
-      const clientTransport = new (_SocketTransport().SocketTransport)(clientSocket);
+    const clientTransport = new (_SocketTransport().SocketTransport)(clientSocket);
 
-      const clientConnection = _RpcConnection().RpcConnection.createLocal(clientTransport, [_nuclideMarshalersCommon().localNuclideUriMarshalers], services);
+    const clientConnection = _RpcConnection().RpcConnection.createLocal(clientTransport, [_nuclideMarshalersCommon().localNuclideUriMarshalers], services);
 
-      const echoService = clientConnection.getService('EchoService');
-      const result = await echoService.echoString('Hello World!');
-      expect(result).toBe('Hello World!');
-      server.dispose();
-    })();
+    const echoService = clientConnection.getService('EchoService');
+    const result = await echoService.echoString('Hello World!');
+    expect(result).toBe('Hello World!');
+    server.dispose();
   });
 });

@@ -30,16 +30,6 @@ function _OutlineViewPanel() {
   return data;
 }
 
-function _ToolbarUtils() {
-  const data = require("../../../modules/nuclide-commons-ui/ToolbarUtils");
-
-  _ToolbarUtils = function () {
-    return data;
-  };
-
-  return data;
-}
-
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 /**
@@ -65,12 +55,12 @@ class Activation {
     const toolBar = getToolBar('outline-view');
     const {
       element
-    } = toolBar.addButton((0, _ToolbarUtils().makeToolbarButtonSpec)({
+    } = toolBar.addButton({
       icon: 'list-unordered',
       callback: 'outline-view:toggle',
       tooltip: 'Toggle Outline',
       priority: 200
-    })); // Class added is not defined elsewhere, and is just used to mark the toolbar button
+    }); // Class added is not defined elsewhere, and is just used to mark the toolbar button
 
     element.classList.add('outline-view-toolbar-button');
     const disposable = new (_UniversalDisposable().default)(() => {

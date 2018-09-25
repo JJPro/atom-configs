@@ -19,6 +19,7 @@ function _definitionManager() {
  *
  *  strict-local
  * @format
+ * @emails oncall+nuclide
  */
 describe('getSnippetFromDefinition', () => {
   it('should render a snippet without props', () => {
@@ -41,8 +42,8 @@ describe('getSnippetFromDefinition', () => {
       leadingComment: null
     };
     expect((0, _definitionManager().getSnippetFromDefinition)(definition)).toBe(`FDSTest
-  value={\$1}
-\$2/>`);
+  value={$1}
+$2/>`);
   });
   it('should render a string annotated prop with nested tabstop', () => {
     const definition = {
@@ -95,8 +96,8 @@ $4/>');
       leadingComment: null
     };
     expect((0, _definitionManager().getSnippetFromDefinition)(definition)).toBe(`FDSTest
-  value={\$1}
-\$2/>`);
+  value={$1}
+$2/>`);
   });
 });
 describe('getDocumentationObject', () => {

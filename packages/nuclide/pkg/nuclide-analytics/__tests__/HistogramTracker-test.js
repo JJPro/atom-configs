@@ -19,6 +19,7 @@ function _HistogramTracker() {
  *
  *  strict-local
  * @format
+ * @emails oncall+nuclide
  */
 describe('HistogramTracker', () => {
   let trackSpy;

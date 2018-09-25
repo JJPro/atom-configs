@@ -8,6 +8,7 @@ exports.getLaunchArgs = getLaunchArgs;
 exports.getHhvmStackTraces = getHhvmStackTraces;
 exports.getDebugServerLog = getDebugServerLog;
 exports.getAttachTargetList = getAttachTargetList;
+exports.terminateHhvmWrapperProcesses = terminateHhvmWrapperProcesses;
 
 function _nuclideUri() {
   const data = _interopRequireDefault(require("../../../modules/nuclide-commons/nuclideUri"));
@@ -311,5 +312,18 @@ async function getAttachTargetList() {
       pid,
       command
     };
+  });
+}
+
+async function terminateHhvmWrapperProcesses() {
+  // Note: we cannot match the full path to the wrapper reliably due
+  // to V8 caching, which might map to a prior version of Nuclide
+  // if it's available and the source of the hasn't changed between versions.
+  const wrapperPathSuffix = 'nuclide/pkg/nuclide-debugger-hhvm-rpc/lib/hhvmWrapper.js';
+  (await (0, _process().psTree)()).filter(p => {
+    const parts = p.commandWithArgs.split(' ');
+    return parts.length === 2 && parts[0].endsWith('node') && parts[1].endsWith(wrapperPathSuffix);
+  }).forEach(p => {
+    process.kill(p.pid, 'SIGKILL');
   });
 }

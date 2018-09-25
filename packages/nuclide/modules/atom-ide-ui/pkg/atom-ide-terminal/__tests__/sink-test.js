@@ -18,8 +18,9 @@ function _sink() {
  * LICENSE file in the root directory of this source tree. An additional grant
  * of patent rights can be found in the PATENTS file in the same directory.
  *
- *  strict
+ *  strict-local
  * @format
+ * @emails oncall+nuclide
  */
 describe('sink', () => {
   describe('removePrefixSink', () => {

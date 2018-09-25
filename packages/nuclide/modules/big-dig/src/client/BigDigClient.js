@@ -27,10 +27,30 @@ function _BigDigServer() {
   return data;
 }
 
+function _types() {
+  const data = require("../services/thrift/types");
+
+  _types = function () {
+    return data;
+  };
+
+  return data;
+}
+
 function _TunnelManager() {
   const data = require("../services/tunnel/TunnelManager");
 
   _TunnelManager = function () {
+    return data;
+  };
+
+  return data;
+}
+
+function _ThriftClientManager() {
+  const data = require("../services/thrift/ThriftClientManager");
+
+  _ThriftClientManager = function () {
     return data;
   };
 
@@ -67,6 +87,14 @@ class BigDigClient {
         this.sendMessage('tunnel', message);
       }
     });
+    this._thriftClientManager = new (_ThriftClientManager().ThriftClientManager)({
+      onMessage: () => {
+        return this.onMessage(_types().THRIFT_SERVICE_TAG);
+      },
+      send: message => {
+        this.sendMessage(_types().THRIFT_SERVICE_TAG, message);
+      }
+    }, this._tunnelManager);
     const observable = reliableSocketTransport.onMessage();
     observable.subscribe({
       // Must use arrow function so that `this` is bound correctly.
@@ -103,18 +131,24 @@ class BigDigClient {
     return this._transport.onClose(callback);
   }
 
-  async createTunnel(localPort, remotePort, isReverse = false, useIPv4 = false) {
-    if (!isReverse) {
-      return this._tunnelManager.createTunnel(localPort, remotePort, useIPv4);
+  async createTunnel(localPort, remotePort, options = {}) {
+    if (!options.isReverse) {
+      return this._tunnelManager.createTunnel(localPort, remotePort, options.useIPv4);
     } else {
-      return this._tunnelManager.createReverseTunnel(localPort, remotePort, useIPv4);
+      return this._tunnelManager.createReverseTunnel(localPort, remotePort, options.useIPv4);
     }
+  }
+
+  getOrCreateThriftClient(serviceConfig) {
+    return this._thriftClientManager.createThriftClient(serviceConfig);
   }
 
   close() {
     this._logger.info('close called');
 
     this._tunnelManager.close();
+
+    this._thriftClientManager.close();
 
     if (!this.isClosed()) {
       this.sendMessage(_BigDigServer().CLOSE_TAG, '');

@@ -5,16 +5,6 @@ Object.defineProperty(exports, "__esModule", {
 });
 exports.MultiRootChangedFilesView = void 0;
 
-function _nuclideVcsBase() {
-  const data = require("../nuclide-vcs-base");
-
-  _nuclideVcsBase = function () {
-    return data;
-  };
-
-  return data;
-}
-
 function _openInDiffView() {
   const data = require("../commons-atom/open-in-diff-view");
 
@@ -99,7 +89,7 @@ class MultiRootChangedFilesView extends React.PureComponent {
     super(props);
 
     this._handleAddFile = (filePath, analyticsSource = DEFAULT_ANALYTICS_SOURCE_KEY) => {
-      (0, _nuclideVcsBase().addPath)(filePath);
+      this.props.onClickAdd(filePath);
       (0, _nuclideAnalytics().track)(`${ANALYTICS_PREFIX}-add-file`, {
         source: analyticsSource,
         surface: this._getAnalyticsSurface()
@@ -107,7 +97,7 @@ class MultiRootChangedFilesView extends React.PureComponent {
     };
 
     this._handleDeleteFile = (filePath, analyticsSource = DEFAULT_ANALYTICS_SOURCE_KEY) => {
-      (0, _nuclideVcsBase().confirmAndDeletePath)(filePath);
+      this.props.onClickDelete(filePath);
       (0, _nuclideAnalytics().track)(`${ANALYTICS_PREFIX}-delete-file`, {
         source: analyticsSource,
         surface: this._getAnalyticsSurface()
@@ -115,7 +105,7 @@ class MultiRootChangedFilesView extends React.PureComponent {
     };
 
     this._handleForgetFile = (filePath, analyticsSource = DEFAULT_ANALYTICS_SOURCE_KEY) => {
-      (0, _nuclideVcsBase().forgetPath)(filePath);
+      this.props.onClickForget(filePath);
       (0, _nuclideAnalytics().track)(`${ANALYTICS_PREFIX}-forget-file`, {
         source: analyticsSource,
         surface: this._getAnalyticsSurface()
@@ -132,7 +122,8 @@ class MultiRootChangedFilesView extends React.PureComponent {
 
     this._handleRevertFile = (filePath, analyticsSource = DEFAULT_ANALYTICS_SOURCE_KEY) => {
       const {
-        getRevertTargetRevision
+        getRevertTargetRevision,
+        onClickRevert
       } = this.props;
       let targetRevision = null;
 
@@ -140,7 +131,7 @@ class MultiRootChangedFilesView extends React.PureComponent {
         targetRevision = getRevertTargetRevision();
       }
 
-      (0, _nuclideVcsBase().confirmAndRevertPath)(filePath, targetRevision);
+      onClickRevert(filePath, targetRevision);
       (0, _nuclideAnalytics().track)(`${ANALYTICS_PREFIX}-revert-file`, {
         source: analyticsSource,
         surface: this._getAnalyticsSurface()
@@ -198,8 +189,7 @@ class MultiRootChangedFilesView extends React.PureComponent {
           onFileChosen: onFileChosen,
           onForgetFile: this._handleForgetFile,
           onMarkFileResolved: onMarkFileResolved,
-          onOpenFileInDiffView: this._handleOpenFileInDiffView,
-          openInDiffViewOption: openInDiffViewOption || false,
+          onOpenFileInDiffView: openInDiffViewOption ? this._handleOpenFileInDiffView : null,
           onRevertFile: this._handleRevertFile,
           rootPath: root,
           selectedFile: selectedFile,

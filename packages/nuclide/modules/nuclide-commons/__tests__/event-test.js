@@ -24,11 +24,12 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  *
  *  strict-local
  * @format
+ * @emails oncall+nuclide
  */
 describe('attachEvent', () => {
   describe('the returned disposable', () => {
     it("doesn't remove other listeners when disposed multiple times", () => {
-      const foo = jasmine.createSpy('foo');
+      const foo = jest.fn();
       const emitter = new _events.default();
       const d1 = (0, _event().attachEvent)(emitter, 'event', foo);
       (0, _event().attachEvent)(emitter, 'event', foo);
@@ -67,17 +68,15 @@ describe('observableFromSubscribeFunction', () => {
     expect(callback).not.toBeNull();
   });
   it('should send events to the observable stream', async () => {
-    await (async () => {
-      const result = (0, _event().observableFromSubscribeFunction)(subscribeFunction).take(2).toArray().toPromise();
+    const result = (0, _event().observableFromSubscribeFunction)(subscribeFunction).take(2).toArray().toPromise();
 
-      if (!(callback != null)) {
-        throw new Error("Invariant violation: \"callback != null\"");
-      }
+    if (!(callback != null)) {
+      throw new Error("Invariant violation: \"callback != null\"");
+    }
 
-      callback(1);
-      callback(2);
-      expect((await result)).toEqual([1, 2]);
-    })();
+    callback(1);
+    callback(2);
+    expect((await result)).toEqual([1, 2]);
   });
   it('should properly unsubscribe and resubscribe', () => {
     const observable = (0, _event().observableFromSubscribeFunction)(subscribeFunction);

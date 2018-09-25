@@ -137,6 +137,7 @@ function computeDisplayPaths(filePaths, maxDepth = 5) {
 }
 
 const FILE_CHANGES_INITIAL_PAGE_SIZE = 100;
+const GENERATED_TYPE_PRIORITY = ['manual', 'partial', 'generated'];
 
 class ChangedFilesList extends React.Component {
   constructor(props) {
@@ -174,7 +175,14 @@ class ChangedFilesList extends React.Component {
         fileStatus: (0, _nullthrows().default)(fileStatuses.get(filePath)),
         generatedType
       };
-    }).sort((change1, change2) => _nuclideUri().default.basename(change1.filePath).localeCompare(_nuclideUri().default.basename(change2.filePath)));
+    }).sort((change1, change2) => {
+      // Generated files always go after manually edited files
+      if (change1.generatedType !== change2.generatedType) {
+        return GENERATED_TYPE_PRIORITY.indexOf(change1.generatedType) - GENERATED_TYPE_PRIORITY.indexOf(change2.generatedType);
+      }
+
+      return _nuclideUri().default.basename(change1.filePath).localeCompare(_nuclideUri().default.basename(change2.filePath));
+    });
     const rootClassName = (0, _classnames().default)('list-nested-item', {
       collapsed: this.state.isCollapsed
     });

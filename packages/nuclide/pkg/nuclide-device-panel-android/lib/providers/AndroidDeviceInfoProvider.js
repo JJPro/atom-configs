@@ -33,7 +33,7 @@ class AndroidDeviceInfoProvider {
   }
 
   fetch(host, device) {
-    return (0, _utils().getAdbServiceByNuclideUri)(host).getDeviceInfo(device.name).refCount().map(props => {
+    return (0, _utils().getAdbServiceByNuclideUri)(host).getDeviceInfo(device.identifier).refCount().map(props => {
       const infoMap = new Map();
 
       for (const [key, value] of props) {

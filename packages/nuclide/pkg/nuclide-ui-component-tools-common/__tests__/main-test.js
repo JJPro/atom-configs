@@ -21,7 +21,7 @@ function _uiComponentAst() {
 }
 
 function _common() {
-  const data = require("../__mocks__/common");
+  const data = require("../__fixtures__/common");
 
   _common = function () {
     return data;
@@ -39,6 +39,7 @@ function _common() {
  *
  *  strict-local
  * @format
+ * @emails oncall+nuclide
  */
 describe('getComponentNameFromUri', () => {
   it('returns null', () => {

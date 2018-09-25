@@ -144,7 +144,6 @@ const updateConfigGet = () => {
     let defaultValue;
 
     if (!options.sources || options.sources.length === 0) {
-      // $FlowIgnore
       defaultValue = getValueAtKeyPath(atom.config.defaultSettings, keyPath);
     }
 
@@ -169,8 +168,7 @@ const updateConfigGet = () => {
     const source = options.source ? options.source : undefined;
     const settingsToChange = // $FlowFixMe(>=0.68.0) Flow suppress (T27187857)
     source === atom.config.projectFile ? 'projectSettings' : 'settings';
-    const defaultValue = getValueAtKeyPath( // $FlowIgnore
-    atom.config.defaultSettings, keyPath);
+    const defaultValue = getValueAtKeyPath(atom.config.defaultSettings, keyPath);
 
     if (isEqual(defaultValue, value)) {
       if (keyPath != null) {

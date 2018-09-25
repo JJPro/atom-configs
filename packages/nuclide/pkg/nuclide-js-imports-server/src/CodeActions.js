@@ -86,7 +86,7 @@ function _lspUtils() {
  * @format
  */
 const CODE_ACTIONS_LIMIT = 10;
-const FLOW_DIAGNOSTIC_SOURCE = 'Flow';
+const FLOW_DIAGNOSTIC_SOURCES = ['Flow', 'Flow: InferError'];
 
 class CodeActions {
   constructor(autoImportsManager, importFormatter) {
@@ -103,10 +103,10 @@ class CodeActions {
 exports.CodeActions = CodeActions;
 
 function diagnosticToCommands(autoImportsManager, importFormatter, diagnostic, fileWithDiagnostic) {
-  if (diagnostic.source === _Diagnostics().DIAGNOSTIC_SOURCE || diagnostic.source === FLOW_DIAGNOSTIC_SOURCE) {
+  if (diagnostic.source === _Diagnostics().DIAGNOSTIC_SOURCE || FLOW_DIAGNOSTIC_SOURCES.includes(diagnostic.source)) {
     return (0, _collection().arrayFlatten)(autoImportsManager.getSuggestedImportsForRange(fileWithDiagnostic, diagnostic.range).filter(suggestedImport => {
       // For Flow's diagnostics, only fire for missing types (exact match)
-      if (diagnostic.source === FLOW_DIAGNOSTIC_SOURCE) {
+      if (FLOW_DIAGNOSTIC_SOURCES.includes(diagnostic.source)) {
         if (suggestedImport.symbol.type !== 'type') {
           return false;
         }

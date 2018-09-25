@@ -21,6 +21,7 @@ function _() {
  *
  *  strict-local
  * @format
+ * @emails oncall+nuclide
  */
 describe('serverStatusUpdatesToBusyMessages', () => {
   it('should work', async () => {

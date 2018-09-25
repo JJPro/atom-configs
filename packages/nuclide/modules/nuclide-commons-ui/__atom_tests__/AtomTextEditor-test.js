@@ -50,6 +50,7 @@ function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj;
  *
  *  strict-local
  * @format
+ * @emails oncall+nuclide
  */
 describe('nuclide-ui-atom-text-editor', () => {
   describe('when its `path` is set', () => {

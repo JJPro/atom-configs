@@ -63,13 +63,26 @@ function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj;
  * @format
  */
 class DiagnosticUpdater {
-  constructor(store) {
+  constructor(store, messageRangeTracker) {
+    this._getMessagesSupportedByMessageRangeTracker = state => {
+      const messages = Selectors().getMessages(state);
+      return this._updateMessageRangeFromAtomRange(messages);
+    };
+
+    this._getFileMessageUpdatesSupportedByMessageRangeTracker = (filePath, state) => {
+      const currentState = state ? state : this._store.getState();
+      const diagnosticsMessages = Selectors().getFileMessageUpdates(currentState, filePath);
+      return Object.assign({}, diagnosticsMessages, {
+        messages: this._updateMessageRangeFromAtomRange(diagnosticsMessages.messages)
+      });
+    };
+
     this.getMessages = () => {
-      return Selectors().getMessages(this._store.getState());
+      return this._getMessagesSupportedByMessageRangeTracker(this._store.getState());
     };
 
     this.getFileMessageUpdates = filePath => {
-      return Selectors().getFileMessageUpdates(this._store.getState(), filePath);
+      return this._getFileMessageUpdatesSupportedByMessageRangeTracker(filePath, this._store.getState());
     };
 
     this.observeMessages = callback => {
@@ -79,11 +92,15 @@ class DiagnosticUpdater {
     this.observeFileMessages = (filePath, callback) => {
       return new (_UniversalDisposable().default)( // TODO: As a potential perf improvement, we could cache so the mapping only happens once.
       // Whether that's worth it depends on how often this is actually called with the same path.
-      this._states.distinctUntilChanged((a, b) => a.messages === b.messages).map(state => Selectors().getFileMessageUpdates(state, filePath)).distinctUntilChanged((a, b) => (0, _collection().arrayEqual)(a.messages, b.messages)).subscribe(callback));
+      this._states.distinctUntilChanged((a, b) => a.messages === b.messages).map(state => this._getFileMessageUpdatesSupportedByMessageRangeTracker(filePath, state)).distinctUntilChanged((a, b) => (0, _collection().arrayEqual)(a.messages, b.messages)).subscribe(callback));
     };
 
     this.observeCodeActionsForMessage = callback => {
       return new (_UniversalDisposable().default)(this._states.map(state => state.codeActionsForMessage).distinctUntilChanged().subscribe(callback));
+    };
+
+    this.observeDescriptions = callback => {
+      return new (_UniversalDisposable().default)(this._states.map(state => state.descriptions).distinctUntilChanged().subscribe(callback));
     };
 
     this.observeSupportedMessageKinds = callback => {
@@ -106,10 +123,29 @@ class DiagnosticUpdater {
       this._store.dispatch(Actions().fetchCodeActions(editor, messages));
     };
 
+    this.fetchDescriptions = messages => {
+      this._store.dispatch(Actions().fetchDescriptions(messages));
+    };
+
     this._store = store; // $FlowIgnore: Flow doesn't know about Symbol.observable
 
     this._states = _RxMin.Observable.from(store);
-    this._allMessageUpdates = this._states.map(Selectors().getMessages).distinctUntilChanged();
+    this._messageRangeTracker = messageRangeTracker;
+    this._allMessageUpdates = this._states.distinctUntilChanged((a, b) => a.messages === b.messages).map(this._getMessagesSupportedByMessageRangeTracker).distinctUntilChanged((a, b) => (0, _collection().arrayEqual)(a, b));
+  } // Following two helper function is to keep track of messages whose marker may
+  // already shifted lines when an update is triggered. In that case, we replace
+  // the message.range with the range we get from atom
+  // wrapper on Selectors.getMessages
+
+
+  _updateMessageRangeFromAtomRange(messages) {
+    return messages.map(message => {
+      const range = this._messageRangeTracker.getCurrentRange(message);
+
+      return range ? Object.assign({}, message, {
+        range
+      }) : message;
+    });
   }
 
 }

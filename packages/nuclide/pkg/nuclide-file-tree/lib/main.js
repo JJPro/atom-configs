@@ -1,5 +1,15 @@
 "use strict";
 
+function Actions() {
+  const data = _interopRequireWildcard(require("./redux/Actions"));
+
+  Actions = function () {
+    return data;
+  };
+
+  return data;
+}
+
 function _nuclideUri() {
   const data = _interopRequireDefault(require("../../../modules/nuclide-commons/nuclideUri"));
 
@@ -90,16 +100,6 @@ function _FileTreeSidebarComponent() {
   return data;
 }
 
-function _FileTreeActions() {
-  const data = _interopRequireDefault(require("./FileTreeActions"));
-
-  _FileTreeActions = function () {
-    return data;
-  };
-
-  return data;
-}
-
 function _FileTreeContextMenu() {
   const data = _interopRequireDefault(require("./FileTreeContextMenu"));
 
@@ -111,7 +111,7 @@ function _FileTreeContextMenu() {
 }
 
 function Selectors() {
-  const data = _interopRequireWildcard(require("./FileTreeSelectors"));
+  const data = _interopRequireWildcard(require("./redux/Selectors"));
 
   Selectors = function () {
     return data;
@@ -174,16 +174,6 @@ function _registerCommands() {
   return data;
 }
 
-function _FileTreeStore() {
-  const data = _interopRequireDefault(require("./FileTreeStore"));
-
-  _FileTreeStore = function () {
-    return data;
-  };
-
-  return data;
-}
-
 function _ProjectSelectionManager() {
   const data = _interopRequireDefault(require("./ProjectSelectionManager"));
 
@@ -194,9 +184,19 @@ function _ProjectSelectionManager() {
   return data;
 }
 
-function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) { var desc = Object.defineProperty && Object.getOwnPropertyDescriptor ? Object.getOwnPropertyDescriptor(obj, key) : {}; if (desc.get || desc.set) { Object.defineProperty(newObj, key, desc); } else { newObj[key] = obj[key]; } } } } newObj.default = obj; return newObj; } }
+function _createStore() {
+  const data = _interopRequireDefault(require("./redux/createStore"));
+
+  _createStore = function () {
+    return data;
+  };
+
+  return data;
+}
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) { var desc = Object.defineProperty && Object.getOwnPropertyDescriptor ? Object.getOwnPropertyDescriptor(obj, key) : {}; if (desc.get || desc.set) { Object.defineProperty(newObj, key, desc); } else { newObj[key] = obj[key]; } } } } newObj.default = obj; return newObj; } }
 
 /**
  * Copyright (c) 2015-present, Facebook, Inc.
@@ -239,20 +239,17 @@ class Activation {
       typeof item.destroy === 'function') {
         item.destroy();
       }
-    }), () => {
-      this._actions.dispose();
-    });
-    this._store = new (_FileTreeStore().default)();
-    this._actions = new (_FileTreeActions().default)(this._store);
+    }));
     const initialState = state == null ? null : state.tree;
+    this._store = (0, _createStore().default)();
 
     if (initialState != null) {
-      this._store.loadData(initialState);
+      this._store.dispatch(Actions().loadData(initialState));
     }
 
-    this._disposables.add((0, _registerCommands().default)(this._store, this._actions));
+    this._disposables.add((0, _registerCommands().default)(this._store));
 
-    this._actions.updateRootDirectories();
+    this._store.dispatch(Actions().updateRootDirectories());
 
     this._contextMenu = new (_FileTreeContextMenu().default)(this._store);
     this._restored = state.restored === true;
@@ -271,12 +268,14 @@ class Activation {
         return;
       }
 
-      this._actions.setUsePrefixNav(usePrefixNav);
+      this._store.dispatch(Actions().setUsePrefixNav(usePrefixNav));
     }), _featureConfig().default.observeAsStream(_Constants().REVEAL_FILE_ON_SWITCH_SETTING).switchMap(shouldReveal => {
       return shouldReveal ? this._currentActiveFilePath() : _RxMin.Observable.empty();
-    }).subscribe(filePath => this._actions.revealFilePath(filePath,
-    /* showIfHidden */
-    false)), atom.config.observe(ignoredNamesSetting, ignoredNames => {
+    }).subscribe(filePath => {
+      this._store.dispatch(Actions().revealFilePath(filePath,
+      /* showIfHidden */
+      false));
+    }), atom.config.observe(ignoredNamesSetting, ignoredNames => {
       let normalizedIgnoredNames;
 
       if (ignoredNames === '') {
@@ -287,24 +286,24 @@ class Activation {
         normalizedIgnoredNames = ignoredNames;
       }
 
-      this._actions.setIgnoredNames(normalizedIgnoredNames);
+      this._store.dispatch(Actions().setIgnoredNames(normalizedIgnoredNames));
     }), _featureConfig().default.observe(hideIgnoredNamesSetting, hideIgnoredNames => {
-      this._actions.setHideIgnoredNames(hideIgnoredNames);
+      this._store.dispatch(Actions().setHideIgnoredNames(hideIgnoredNames));
     }), _featureConfig().default.observe(hideVcsIgnoredPathsSetting, hideVcsIgnoredPaths => {
-      this._actions.setHideVcsIgnoredPaths(hideVcsIgnoredPaths);
+      this._store.dispatch(Actions().setHideVcsIgnoredPaths(hideVcsIgnoredPaths));
     }), atom.config.observe(excludeVcsIgnoredPathsSetting, excludeVcsIgnoredPaths => {
-      this._actions.setExcludeVcsIgnoredPaths(excludeVcsIgnoredPaths);
+      this._store.dispatch(Actions().setExcludeVcsIgnoredPaths(excludeVcsIgnoredPaths));
     }), atom.config.observe(allowPendingPaneItems, usePreviewTabs => {
       // config is void during startup, signifying no config yet
       if (usePreviewTabs == null) {
         return;
       }
 
-      this._actions.setUsePreviewTabs(usePreviewTabs);
+      this._store.dispatch(Actions().setUsePreviewTabs(usePreviewTabs));
     }), _featureConfig().default.observe(autoExpandSingleChild, value => {
-      this._actions.setAutoExpandSingleChild(value === true);
+      this._store.dispatch(Actions().setAutoExpandSingleChild(value === true));
     }), _featureConfig().default.observe(focusEditorOnFileSelection, value => {
-      this._actions.setFocusEditorOnFileSelection(value);
+      this._store.dispatch(Actions().setFocusEditorOnFileSelection(value));
     }), atom.commands.add('atom-workspace', 'tree-view:toggle-focus', () => {
       const component = this._fileTreeComponent;
 
@@ -380,17 +379,17 @@ class Activation {
       this._cwdApiSubscription.dispose();
     }
 
-    this._actions.setCwdApi(cwdApi);
+    this._store.dispatch(Actions().setCwdApi(cwdApi));
 
-    this._cwdApiSubscription = new (_UniversalDisposable().default)(() => this._actions.setCwdApi(null));
+    this._cwdApiSubscription = new (_UniversalDisposable().default)(() => this._store.dispatch(Actions().setCwdApi(null)));
     return this._cwdApiSubscription;
   }
 
   consumeRemoteProjectsService(service) {
-    this._actions.setRemoteProjectsService(service);
+    this._store.dispatch(Actions().setRemoteProjectsService(service));
 
     return new (_UniversalDisposable().default)(() => {
-      this._actions.setRemoteProjectsService(null);
+      this._store.dispatch(Actions().setRemoteProjectsService(null));
     });
   }
 
@@ -400,7 +399,7 @@ class Activation {
 
   serialize() {
     return {
-      tree: Selectors().serialize(this._store),
+      tree: Selectors().serialize(this._store.getState()),
       restored: true,
       // Scrap our serialization when docks become available. Technically, we only need to scrap
       // the "restored" value, but this is simpler.
@@ -411,12 +410,12 @@ class Activation {
   }
 
   consumeWorkingSetsStore(workingSetsStore) {
-    this._actions.updateWorkingSetsStore(workingSetsStore);
+    this._store.dispatch(Actions().updateWorkingSetsStore(workingSetsStore));
 
-    this._actions.updateWorkingSet(workingSetsStore.getCurrent());
+    this._store.dispatch(Actions().updateWorkingSet(workingSetsStore.getCurrent()));
 
     const currentSubscription = workingSetsStore.subscribeToCurrent(currentWorkingSet => {
-      this._actions.updateWorkingSet(currentWorkingSet);
+      this._store.dispatch(Actions().updateWorkingSet(currentWorkingSet));
     });
 
     this._disposables.add(currentSubscription);
@@ -430,15 +429,15 @@ class Activation {
       const openUris = atom.workspace.getTextEditors().filter(te => te.getPath() != null && te.getPath() !== '').map(te => te.getPath());
       const openFilesWorkingSet = new (_nuclideWorkingSetsCommon().WorkingSet)(openUris);
 
-      this._actions.updateOpenFilesWorkingSet(openFilesWorkingSet);
+      this._store.dispatch(Actions().updateOpenFilesWorkingSet(openFilesWorkingSet));
     }));
 
     return new (_UniversalDisposable().default)(() => {
-      this._actions.updateWorkingSetsStore(null);
+      this._store.dispatch(Actions().updateWorkingSetsStore(null));
 
-      this._actions.updateWorkingSet(new (_nuclideWorkingSetsCommon().WorkingSet)());
+      this._store.dispatch(Actions().updateWorkingSet(new (_nuclideWorkingSetsCommon().WorkingSet)()));
 
-      this._actions.updateOpenFilesWorkingSet(new (_nuclideWorkingSetsCommon().WorkingSet)());
+      this._store.dispatch(Actions().updateOpenFilesWorkingSet(new (_nuclideWorkingSetsCommon().WorkingSet)()));
 
       this._disposables.remove(currentSubscription);
 
@@ -464,14 +463,14 @@ class Activation {
   }
 
   provideProjectSelectionManagerForFileTree() {
-    return new (_ProjectSelectionManager().default)(this._store, this._actions);
+    return new (_ProjectSelectionManager().default)(this._store);
   }
 
   provideFileTreeAdditionalLogFilesProvider() {
     return {
       id: 'nuclide-file-tree',
       getAdditionalLogFiles: expire => {
-        const fileTreeState = Selectors().collectDebugState(this._store);
+        const fileTreeState = Selectors().collectDebugState(this._store.getState());
 
         try {
           return Promise.resolve([{
@@ -491,8 +490,7 @@ class Activation {
   _createView() {
     // Currently, we assume that only one will be created.
     this._fileTreeComponent = (0, _viewableFromReactElement().viewableFromReactElement)(React.createElement(_FileTreeSidebarComponent().default, {
-      store: this._store,
-      actions: this._actions
+      store: this._store
     }));
     return this._fileTreeComponent;
   }
@@ -529,6 +527,11 @@ class Activation {
 
   deserializeFileTreeSidebarComponent() {
     return this._fileTreeComponent || this._createView();
+  } // Exported for testing
+
+
+  __getStore() {
+    return this._store;
   }
 
 }

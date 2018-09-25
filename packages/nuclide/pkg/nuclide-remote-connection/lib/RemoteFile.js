@@ -15,6 +15,16 @@ function _UniversalDisposable() {
   return data;
 }
 
+function _loadingNotification() {
+  const data = _interopRequireDefault(require("../../commons-atom/loading-notification"));
+
+  _loadingNotification = function () {
+    return data;
+  };
+
+  return data;
+}
+
 function _passesGK() {
   const data = _interopRequireDefault(require("../../commons-node/passesGK"));
 
@@ -71,7 +81,9 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  * 
  * @format
  */
-const logger = (0, _log4js().getLogger)('nuclide-remote-connection');
+const logger = (0, _log4js().getLogger)('nuclide-remote-connection'); // Warn if a file takes too long to save.
+
+const LONG_FILE_WRITE_MS = 10000;
 /* Mostly implements https://atom.io/docs/api/latest/File */
 
 class RemoteFile {
@@ -465,11 +477,10 @@ class RemoteFile {
         throw new Error('end() called without a callback');
       }
 
-      this._getFileSystemService().writeFileBuffer(this._path, Buffer.concat(writeData, writeLength)).then(() => cb(), err => {
+      (0, _loadingNotification().default)(this._getFileSystemService().writeFileBuffer(this._path, Buffer.concat(writeData, writeLength)), `File ${_nuclideUri().default.nuclideUriToDisplayString(this._path)} ` + 'is taking an unexpectedly long time to save, please be patient...', LONG_FILE_WRITE_MS).then(() => cb(), err => {
         stream.emit('error', err);
         cb();
       });
-
       originalEnd.call(stream);
     };
 

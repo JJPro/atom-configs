@@ -23,6 +23,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  *
  *  strict
  * @format
+ * @emails oncall+nuclide
  */
 describe('SharedObservableCache', () => {
   it('creates and deletes observables on demand', () => {

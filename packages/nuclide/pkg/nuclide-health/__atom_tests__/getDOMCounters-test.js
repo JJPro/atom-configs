@@ -33,6 +33,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  *
  *  strict
  * @format
+ * @emails oncall+nuclide
  */
 if (!(_electron.remote != null)) {
   throw new Error("Invariant violation: \"remote != null\"");

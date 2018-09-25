@@ -22,13 +22,14 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  *
  * 
  * @format
+ * @emails oncall+nuclide
  */
 const sleep = n => new Promise(resolve => setTimeout(resolve, n));
 
 describe('debounce()', () => {
   it('only calls function once after time advances', async () => {
     jest.useRealTimers();
-    const timerCallback = jasmine.createSpy('timerCallback');
+    const timerCallback = jest.fn();
     const debouncedFunc = (0, _debounce().default)(timerCallback, 10, false);
     debouncedFunc();
     expect(timerCallback).not.toHaveBeenCalled();
@@ -37,7 +38,7 @@ describe('debounce()', () => {
   });
   it('disposes', () => {
     jest.useFakeTimers();
-    const timerCallback = jasmine.createSpy('timerCallback');
+    const timerCallback = jest.fn();
     const debouncedFunc = (0, _debounce().default)(timerCallback, 100, false);
     debouncedFunc();
     expect(timerCallback).not.toHaveBeenCalled();

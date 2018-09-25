@@ -21,6 +21,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  *
  *  strict
  * @format
+ * @emails oncall+nuclide
  */
 it('waits', async () => {
   let condition = false;

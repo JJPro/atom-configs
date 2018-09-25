@@ -26,6 +26,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  *
  *  strict-local
  * @format
+ * @emails oncall+nuclide
  */
 // eslint-disable-next-line nuclide-internal/prefer-nuclide-uri
 const FEATURE_PACKAGE_PATH = _path.default.join(__dirname, '../__mocks__/fixtures', 'feature-package');

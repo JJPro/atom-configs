@@ -55,6 +55,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  *
  * 
  * @format
+ * @emails oncall+nuclide
  */
 jest.setTimeout(35000); // Disable buckd so it doesn't linger around after the test.
 

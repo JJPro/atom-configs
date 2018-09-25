@@ -42,6 +42,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  *
  * 
  * @format
+ * @emails oncall+nuclide
  */
 const grammar = 'testgrammar';
 describe('TextCallbackContainer', () => {
@@ -205,22 +206,20 @@ describe('TextEventDispatcher', () => {
     expect(callback).toHaveBeenCalledWith(fakeTextEditor2);
   });
   it('should register simultaneous open events as pending', async () => {
-    await (async () => {
-      const callback = jest.fn(); // Initially, both fakeTextEditor/fakeTextEditor2 are opened.
+    const callback = jest.fn(); // Initially, both fakeTextEditor/fakeTextEditor2 are opened.
 
-      textEventDispatcher.onFileChange([grammar], callback); // Open events need a tick to process.
+    textEventDispatcher.onFileChange([grammar], callback); // Open events need a tick to process.
 
-      await (0, _promise().sleep)(0); // Only fakeTextEditor should have opened; the other one should be pending.
+    await (0, _promise().sleep)(0); // Only fakeTextEditor should have opened; the other one should be pending.
 
-      expect(callback).toHaveBeenCalledWith(fakeTextEditor);
-      expect(callback).not.toHaveBeenCalledWith(fakeTextEditor2); // Prevent the next open event from being debounced.
+    expect(callback).toHaveBeenCalledWith(fakeTextEditor);
+    expect(callback).not.toHaveBeenCalledWith(fakeTextEditor2); // Prevent the next open event from being debounced.
 
-      await (0, _promise().sleep)(100); // Switching to fakeTextEditor2 should now trigger its pending open event.
+    await (0, _promise().sleep)(100); // Switching to fakeTextEditor2 should now trigger its pending open event.
 
-      activeEditor = fakeTextEditor2;
-      paneSwitchCallbacks.forEach(f => f());
-      expect(callback).toHaveBeenCalledWith(fakeTextEditor2);
-    })();
+    activeEditor = fakeTextEditor2;
+    paneSwitchCallbacks.forEach(f => f());
+    expect(callback).toHaveBeenCalledWith(fakeTextEditor2);
   });
   it('should always dispatch to clients that request all changes', () => {
     const callback = jest.fn();

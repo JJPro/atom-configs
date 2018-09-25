@@ -37,30 +37,10 @@ function _PanelComponentScroller() {
   return data;
 }
 
-function _FileTreeActions() {
-  const data = _interopRequireDefault(require("../lib/FileTreeActions"));
-
-  _FileTreeActions = function () {
-    return data;
-  };
-
-  return data;
-}
-
 function _FileTreeHelpers() {
   const data = _interopRequireDefault(require("../lib/FileTreeHelpers"));
 
   _FileTreeHelpers = function () {
-    return data;
-  };
-
-  return data;
-}
-
-function _FileTreeStore() {
-  const data = _interopRequireDefault(require("../lib/FileTreeStore"));
-
-  _FileTreeStore = function () {
     return data;
   };
 
@@ -128,9 +108,19 @@ function _ChangedFilesList() {
 }
 
 function Selectors() {
-  const data = _interopRequireWildcard(require("../lib/FileTreeSelectors"));
+  const data = _interopRequireWildcard(require("../lib/redux/Selectors"));
 
   Selectors = function () {
+    return data;
+  };
+
+  return data;
+}
+
+function Actions() {
+  const data = _interopRequireWildcard(require("../lib/redux/Actions"));
+
+  Actions = function () {
     return data;
   };
 
@@ -196,10 +186,10 @@ class OpenFilesListComponent extends React.PureComponent {
 
   _onMouseDown(entry, event) {
     event.stopPropagation();
-    const rootNode = Selectors().getRootForPath(this.props.store, entry.uri);
+    const rootNode = Selectors().getRootForPath(this.props.store.getState(), entry.uri);
 
     if (_FileTreeHelpers().default.getSelectionMode(event) === 'single-select' && !entry.isSelected && rootNode != null) {
-      this.props.actions.setTargetNode(rootNode.rootUri, entry.uri);
+      this.props.store.dispatch(Actions().setTargetNode(rootNode.rootUri, entry.uri));
       this.setState({
         selectedUri: entry.uri
       });

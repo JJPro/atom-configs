@@ -32,6 +32,7 @@ function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj;
  *
  *  strict
  * @format
+ * @emails oncall+nuclide
  */
 describe('wordAtPositionFromBuffer', () => {
   it('matches a word in a buffer', () => {

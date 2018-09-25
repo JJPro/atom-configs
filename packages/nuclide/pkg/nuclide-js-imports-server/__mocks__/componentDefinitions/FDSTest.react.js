@@ -9,6 +9,13 @@
  * @format
  */
 'use strict';
+/* eslint-disable nuclide-internal/no-unresolved */
+
+/* eslint-disable nuclide-internal/no-commonjs */
+
+/* eslint-disable dependencies/case-sensitive */
+
+/* eslint-disable react/no-unused-prop-types */
 
 const React = require('React');
 
@@ -17,7 +24,8 @@ const React = require('React');
  *
  * Test!
  */
-class FDSTest extends React.PureComponent {}
+class FDSTest extends React.PureComponent {} // eslint-disable-next-line
+
 
 FDSTest.defaultProps = {
   type: 'regular',

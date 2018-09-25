@@ -10,7 +10,7 @@ exports.babelLocToRange = babelLocToRange;
 var _atom = require("atom");
 
 function babylon() {
-  const data = _interopRequireWildcard(require("babylon"));
+  const data = _interopRequireWildcard(require("@babel/parser"));
 
   babylon = function () {
     return data;

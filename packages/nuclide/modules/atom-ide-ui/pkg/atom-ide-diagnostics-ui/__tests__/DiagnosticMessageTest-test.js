@@ -20,6 +20,7 @@ function _DiagnosticsMessageText() {
  *
  *  strict-local
  * @format
+ * @emails oncall+nuclide
  */
 describe('DiagnosticsMessageText', () => {
   it('should leave text unchanged', () => {

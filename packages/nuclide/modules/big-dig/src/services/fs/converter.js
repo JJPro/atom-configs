@@ -47,17 +47,21 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 const logger = (0, _log4js().getLogger)('fs-thrift-server-handler');
 
 function convertToThriftFileStat(statData) {
-  const {
-    size,
-    atime,
-    mtime,
-    ctime
-  } = statData;
   const fileStat = new (_filesystem_types().default.FileStat)();
-  fileStat.fsize = size;
-  fileStat.atime = atime.toString();
-  fileStat.mtime = mtime.toString();
-  fileStat.ctime = ctime.toString();
+  fileStat.dev = statData.dev;
+  fileStat.mode = statData.mode;
+  fileStat.nlink = statData.nlink;
+  fileStat.uid = statData.uid;
+  fileStat.gid = statData.gid;
+  fileStat.rdev = statData.rdev;
+  fileStat.blksize = statData.blksize;
+  fileStat.ino = statData.ino;
+  fileStat.size = statData.size;
+  fileStat.blocks = statData.blocks;
+  fileStat.atime = statData.atime.toString();
+  fileStat.mtime = statData.mtime.toString();
+  fileStat.ctime = statData.ctime.toString();
+  fileStat.birthtime = statData.birthtime.toString();
   fileStat.ftype = toThriftFileType(statData);
   return fileStat;
 }
@@ -125,6 +129,7 @@ function createThriftErrorWithCode(errorCode, details = {}) {
 function convertToThriftFileEntry(fname, statData) {
   return {
     fname,
-    ftype: statData.ftype
+    ftype: statData.ftype,
+    fstat: statData
   };
 }

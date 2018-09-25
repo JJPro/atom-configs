@@ -12,7 +12,7 @@ exports.getOsType = getOsType;
 exports.isRunningInWindows = isRunningInWindows;
 exports.getOsVersion = getOsVersion;
 exports.getRuntimePath = getRuntimePath;
-exports.isRunningInTest = exports.OS_TYPE = void 0;
+exports.isRunningInTest = exports.NUCLIDE_VERSION_HEADER = exports.OS_TYPE = void 0;
 
 var _fs = _interopRequireDefault(require("fs"));
 
@@ -20,6 +20,16 @@ function _once() {
   const data = _interopRequireDefault(require("./once"));
 
   _once = function () {
+    return data;
+  };
+
+  return data;
+}
+
+function _semver() {
+  const data = _interopRequireDefault(require("semver"));
+
+  _semver = function () {
     return data;
   };
 
@@ -60,6 +70,21 @@ const OS_TYPE = {
   WIN64: 'win64',
   LINUX: 'linux',
   OSX: 'darwin'
+};
+exports.OS_TYPE = OS_TYPE;
+const getMinorNuclideVersion = (0, _once().default)(() => {
+  const nuclideVersion = getNuclideVersion();
+
+  const semVersion = _semver().default.parse(nuclideVersion);
+
+  if (!(semVersion != null)) {
+    throw new Error("Invariant violation: \"semVersion != null\"");
+  }
+
+  return `${semVersion.major}.${semVersion.minor}`;
+});
+const NUCLIDE_VERSION_HEADER = {
+  'Nuclide-Version': getMinorNuclideVersion()
 }; // Prior to Atom v1.7.0, `atom.inSpecMode` had a chance of performing an IPC call that could be
 // expensive depending on how much work the other process was doing. Because this value will not
 // change during run time, memoize the value to ensure the IPC call is performed only once.
@@ -69,8 +94,14 @@ const OS_TYPE = {
 //
 // [1]: https://github.com/atom/atom/blob/v1.6.2/src/window-load-settings-helpers.coffee#L10-L14
 
-exports.OS_TYPE = OS_TYPE;
+exports.NUCLIDE_VERSION_HEADER = NUCLIDE_VERSION_HEADER;
 const isRunningInTest = (0, _once().default)(() => {
+  try {
+    if (typeof jest === 'object') {
+      return true;
+    }
+  } catch (e) {}
+
   if (typeof atom === 'object') {
     return atom.inSpecMode();
   } else {

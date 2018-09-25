@@ -63,6 +63,26 @@ function _FileTreeHelpers() {
   return data;
 }
 
+function Actions() {
+  const data = _interopRequireWildcard(require("../lib/redux/Actions"));
+
+  Actions = function () {
+    return data;
+  };
+
+  return data;
+}
+
+function _reactRedux() {
+  const data = require("react-redux");
+
+  _reactRedux = function () {
+    return data;
+  };
+
+  return data;
+}
+
 function _nuclideVcsBase() {
   const data = require("../../nuclide-vcs-base");
 
@@ -84,7 +104,7 @@ function _LoadingSpinner() {
 }
 
 function _VirtualizedFileTree() {
-  const data = require("./VirtualizedFileTree");
+  const data = _interopRequireDefault(require("./VirtualizedFileTree"));
 
   _VirtualizedFileTree = function () {
     return data;
@@ -137,26 +157,6 @@ function _LockableHeightComponent() {
   const data = require("./LockableHeightComponent");
 
   _LockableHeightComponent = function () {
-    return data;
-  };
-
-  return data;
-}
-
-function _FileTreeActions() {
-  const data = _interopRequireDefault(require("../lib/FileTreeActions"));
-
-  _FileTreeActions = function () {
-    return data;
-  };
-
-  return data;
-}
-
-function _FileTreeStore() {
-  const data = _interopRequireDefault(require("../lib/FileTreeStore"));
-
-  _FileTreeStore = function () {
     return data;
   };
 
@@ -306,7 +306,7 @@ function _reselect() {
 }
 
 function Selectors() {
-  const data = _interopRequireWildcard(require("../lib/FileTreeSelectors"));
+  const data = _interopRequireWildcard(require("../lib/redux/Selectors"));
 
   Selectors = function () {
     return data;
@@ -379,19 +379,19 @@ class FileTreeSidebarComponent extends React.Component {
     };
 
     this._processExternalUpdate = () => {
-      const shouldRenderToolbar = !Selectors().isEmpty(this.props.store);
-      const openFilesUris = Selectors().getOpenFilesWorkingSet(this.props.store).getAbsoluteUris();
-      const uncommittedFileChanges = Selectors().getFileChanges(this.props.store);
-      const generatedOpenChangedFiles = Selectors().getGeneratedOpenChangedFiles(this.props.store);
-      const isCalculatingChanges = Selectors().getIsCalculatingChanges(this.props.store);
+      const shouldRenderToolbar = !Selectors().isEmpty(this.props.store.getState());
+      const openFilesUris = Selectors().getOpenFilesWorkingSet(this.props.store.getState()).getAbsoluteUris();
+      const uncommittedFileChanges = Selectors().getFileChanges(this.props.store.getState());
+      const generatedOpenChangedFiles = Selectors().getGeneratedOpenChangedFiles(this.props.store.getState());
+      const isCalculatingChanges = Selectors().getIsCalculatingChanges(this.props.store.getState());
       const title = this.getTitle();
       const path = this.getPath();
-      const workingSetsStore = Selectors().getWorkingSetsStore(this.props.store);
-      const filter = Selectors().getFilter(this.props.store);
-      const filterFound = Selectors().getFilterFound(this.props.store);
-      const foldersExpanded = Selectors().getFoldersExpanded(this.props.store);
-      const uncommittedChangesExpanded = Selectors().getUncommittedChangesExpanded(this.props.store);
-      const openFilesExpanded = Selectors().getOpenFilesExpanded(this.props.store);
+      const workingSetsStore = Selectors().getWorkingSetsStore(this.props.store.getState());
+      const filter = Selectors().getFilter(this.props.store.getState());
+      const filterFound = Selectors().getFilterFound(this.props.store.getState());
+      const foldersExpanded = Selectors().getFoldersExpanded(this.props.store.getState());
+      const uncommittedChangesExpanded = Selectors().getUncommittedChangesExpanded(this.props.store.getState());
+      const openFilesExpanded = Selectors().getOpenFilesExpanded(this.props.store.getState());
       this.setState({
         shouldRenderToolbar,
         openFilesUris,
@@ -422,16 +422,16 @@ class FileTreeSidebarComponent extends React.Component {
         });
       }
 
-      this.props.actions.setFoldersExpanded(!isCollapsed);
+      this.props.store.dispatch(Actions().setFoldersExpanded(!isCollapsed));
     };
 
     this._handleOpenFilesExpandedChange = isCollapsed => {
-      this.props.actions.setOpenFilesExpanded(!isCollapsed);
+      this.props.store.dispatch(Actions().setOpenFilesExpanded(!isCollapsed));
     };
 
     this._handleUncommittedFilesExpandedChange = isCollapsed => {
       (0, _nuclideAnalytics().track)('filetree-uncommitted-file-changes-toggle');
-      this.props.actions.setUncommittedChangesExpanded(!isCollapsed);
+      this.props.store.dispatch(Actions().setUncommittedChangesExpanded(!isCollapsed));
     };
 
     this._handleUncommittedChangesKindDownArrow = event => {
@@ -464,11 +464,6 @@ class FileTreeSidebarComponent extends React.Component {
       event.stopPropagation();
     };
 
-    this._handleScroll = scrollTop => {
-      // Do not store in state to not cause extra rendering loops on update
-      this._scrollerScrollTop = scrollTop;
-    };
-
     this._getFilteredUncommittedFileChanges = (0, _reselect().createSelector)([state => state.uncommittedFileChanges], filterMultiRootFileChanges);
     this._emitter = new _atom.Emitter();
     this.state = {
@@ -488,18 +483,17 @@ class FileTreeSidebarComponent extends React.Component {
       path: 'No Current Working Directory',
       title: 'File Tree',
       isFileTreeHovered: false,
-      workingSetsStore: Selectors().getWorkingSetsStore(this.props.store),
-      filter: Selectors().getFilter(this.props.store),
-      filterFound: Selectors().getFilterFound(this.props.store),
-      foldersExpanded: Selectors().getFoldersExpanded(this.props.store),
-      uncommittedChangesExpanded: Selectors().getUncommittedChangesExpanded(this.props.store),
-      openFilesExpanded: Selectors().getOpenFilesExpanded(this.props.store)
+      workingSetsStore: Selectors().getWorkingSetsStore(this.props.store.getState()),
+      filter: Selectors().getFilter(this.props.store.getState()),
+      filterFound: Selectors().getFilterFound(this.props.store.getState()),
+      foldersExpanded: Selectors().getFoldersExpanded(this.props.store.getState()),
+      uncommittedChangesExpanded: Selectors().getUncommittedChangesExpanded(this.props.store.getState()),
+      openFilesExpanded: Selectors().getOpenFilesExpanded(this.props.store.getState())
     };
     this._showOpenConfigValues = (0, _observable().cacheWhileSubscribed)(_featureConfig().default.observeAsStream(_Constants().SHOW_OPEN_FILE_CONFIG_KEY));
     this._showUncommittedConfigValue = (0, _observable().cacheWhileSubscribed)(_featureConfig().default.observeAsStream(_Constants().SHOW_UNCOMMITTED_CHANGES_CONFIG_KEY));
     this._showUncommittedKindConfigValue = _FileTreeHelpers().default.observeUncommittedChangesKindConfigKey();
     this._scrollerElements = new _RxMin.Subject();
-    this._scrollerScrollTop = 0;
     this._scrollerRef = null;
     this._disposables = new (_UniversalDisposable().default)(this._emitter, this._subscribeToResizeEvents());
   }
@@ -513,7 +507,10 @@ class FileTreeSidebarComponent extends React.Component {
 
     this._processExternalUpdate();
 
-    this._disposables.add(this.props.store.subscribe(this._processExternalUpdate), observeAllModifiedStatusChanges().let((0, _observable().toggle)(this._showOpenConfigValues)).subscribe(() => this._setModifiedUris()), this._monitorActiveUri(), this._showOpenConfigValues.subscribe(showOpenFiles => this.setState({
+    this._disposables.add((0, _event().observableFromSubscribeFunction)(cb => new (_UniversalDisposable().default)(this.props.store.subscribe(cb))) // $FlowFixMe
+    .throttle(() => _observable().nextAnimationFrame).subscribe(() => {
+      this._processExternalUpdate();
+    }), observeAllModifiedStatusChanges().let((0, _observable().toggle)(this._showOpenConfigValues)).subscribe(() => this._setModifiedUris()), this._monitorActiveUri(), this._showOpenConfigValues.subscribe(showOpenFiles => this.setState({
       showOpenFiles
     })), this._showUncommittedConfigValue.subscribe(showUncommittedChanges => this.setState({
       showUncommittedChanges
@@ -562,7 +559,7 @@ class FileTreeSidebarComponent extends React.Component {
         atom.commands.dispatch(atom.views.getView(atom.workspace), 'tree-view:reveal-active-file');
       }
 
-      this.props.actions.clearFilter();
+      this.props.store.dispatch(Actions().clearFilter());
     }
   }
 
@@ -597,8 +594,7 @@ class FileTreeSidebarComponent extends React.Component {
     }), this.state.foldersExpanded && React.createElement(_FileTreeToolbarComponent().FileTreeToolbarComponent, {
       key: "toolbar",
       workingSetsStore: workingSetsStore,
-      store: this.props.store,
-      actions: this.props.actions
+      store: this.props.store
     }));
   }
 
@@ -614,7 +610,23 @@ class FileTreeSidebarComponent extends React.Component {
       selectedFile: this.state.activeUri,
       hideEmptyFolders: true,
       onFileChosen: this._onFileChosen,
-      openInDiffViewOption: true
+      openInDiffViewOption: true,
+      onClickAdd: uri => {
+        const repo = (0, _nuclideVcsBase().repositoryForPath)(uri);
+        (0, _nuclideVcsBase().addPath)(repo, uri);
+      },
+      onClickDelete: uri => {
+        const repo = (0, _nuclideVcsBase().repositoryForPath)(uri);
+        (0, _nuclideVcsBase().confirmAndDeletePath)(repo, uri);
+      },
+      onClickForget: uri => {
+        const repo = (0, _nuclideVcsBase().repositoryForPath)(uri);
+        (0, _nuclideVcsBase().forgetPath)(repo, uri);
+      },
+      onClickRevert: uri => {
+        const repo = (0, _nuclideVcsBase().repositoryForPath)(uri);
+        (0, _nuclideVcsBase().confirmAndRevertPath)(repo, uri);
+      }
     }));
     const showDropdown = Array.from(this.state.uncommittedFileChanges.keys()).some(path => {
       const repo = (0, _nuclideVcsBase().repositoryForPath)(path);
@@ -672,8 +684,7 @@ All the changes across your entire stacked diff.
       modifiedUris: this.state.modifiedUris,
       generatedTypes: this.state.generatedOpenChangedFiles,
       activeUri: this.state.activeUri,
-      store: this.props.store,
-      actions: this.props.actions
+      store: this.props.store
     }) : null;
     return React.createElement(_LockableHeightComponent().LockableHeight, {
       isLocked: this.state.isFileTreeHovered
@@ -705,21 +716,19 @@ All the changes across your entire stacked diff.
     const openFilesSection = this.state.showOpenFiles && this.state.openFilesUris.length > 0 ? this._renderOpenFilesSection() : null;
     const foldersCaption = uncommittedChangesSection != null || openFilesSection != null ? this._renderFoldersCaption() : null; // Include `tabIndex` so this component can be focused by calling its native `focus` method.
 
-    return React.createElement("div", {
+    return React.createElement(_reactRedux().Provider, {
+      store: this.props.store
+    }, React.createElement("div", {
       className: "nuclide-file-tree-toolbar-container",
       onFocus: this._handleFocus,
       tabIndex: 0
-    }, uncommittedChangesSection, openFilesSection, foldersCaption, toolbar, this.state.foldersExpanded && React.createElement(_VirtualizedFileTree().VirtualizedFileTree, {
+    }, uncommittedChangesSection, openFilesSection, foldersCaption, toolbar, this.state.foldersExpanded && React.createElement(_VirtualizedFileTree().default, {
       ref: this._setScrollerRef,
       onMouseEnter: this._handleFileTreeHovered,
       onMouseLeave: this._handleFileTreeUnhovered,
-      onScroll: this._handleScroll,
       height: this.state.scrollerHeight,
-      width: this.state.scrollerWidth,
-      initialScrollTop: this._scrollerScrollTop,
-      store: this.props.store,
-      actions: this.props.actions
-    }));
+      width: this.state.scrollerWidth
+    })));
   }
 
   _onFileChosen(filePath) {
@@ -801,7 +810,7 @@ All the changes across your entire stacked diff.
   }
 
   getTitle() {
-    const cwdKey = Selectors().getCwdKey(this.props.store);
+    const cwdKey = Selectors().getCwdKey(this.props.store.getState());
 
     if (cwdKey == null) {
       return 'File Tree';
@@ -813,7 +822,7 @@ All the changes across your entire stacked diff.
 
 
   getPath() {
-    const cwdKey = Selectors().getCwdKey(this.props.store);
+    const cwdKey = Selectors().getCwdKey(this.props.store.getState());
 
     if (cwdKey == null) {
       return 'No Current Working Directory';

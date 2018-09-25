@@ -33,10 +33,10 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  *
  * 
  * @format
+ * @emails oncall+nuclide
  */
 const attachToDom = el => {
-  const workspaceElement = atom.views.getView(atom.workspace); // Attach the workspace to the DOM so focus can be determined in tests below.
-
+  // Attach the workspace to the DOM so focus can be determined in tests below.
   const testContainer = document.createElement('div');
 
   if (!document.body) {

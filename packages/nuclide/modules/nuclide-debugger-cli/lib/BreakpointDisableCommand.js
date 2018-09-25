@@ -5,6 +5,16 @@ Object.defineProperty(exports, "__esModule", {
 });
 exports.default = void 0;
 
+function _BreakpointCommandUtils() {
+  const data = require("./BreakpointCommandUtils");
+
+  _BreakpointCommandUtils = function () {
+    return data;
+  };
+
+  return data;
+}
+
 /**
  * Copyright (c) 2017-present, Facebook, Inc.
  * All rights reserved.
@@ -17,20 +27,27 @@ exports.default = void 0;
  * @format
  */
 class BreakpointDisableCommand {
-  constructor(debug) {
+  constructor(con, debug) {
     this.name = 'disable';
-    this.helpText = '[index]: temporarily disables a breakpoint.';
+    this.helpText = "[index | 'all']: temporarily disables a breakpoint, or all breakpoints. With no arguments, disables the current breakpoint.";
+    this._console = con;
     this._debugger = debug;
   }
 
   async execute(args) {
-    let index = -1;
+    const bpt = (0, _BreakpointCommandUtils().breakpointFromArgList)(this._debugger, args, this.name);
 
-    if (args.length !== 1 || isNaN(index = parseInt(args[0], 10))) {
-      throw new Error("Format is 'breakpoint disable index'");
+    if (bpt == null) {
+      await this._debugger.setAllBreakpointsEnabled(false);
+
+      this._console.outputLine('All breakpoins disabled.');
+
+      return;
     }
 
-    await this._debugger.setBreakpointEnabled(index, false);
+    await this._debugger.setBreakpointEnabled(bpt, false);
+
+    this._console.outputLine(`Breakpoint #${bpt.index} disabled.`);
   }
 
 }

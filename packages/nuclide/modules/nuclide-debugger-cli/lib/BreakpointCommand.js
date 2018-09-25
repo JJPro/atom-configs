@@ -5,10 +5,10 @@ Object.defineProperty(exports, "__esModule", {
 });
 exports.default = void 0;
 
-function _BreakpointDeleteCommand() {
-  const data = _interopRequireDefault(require("./BreakpointDeleteCommand"));
+function _BreakpointClearCommand() {
+  const data = _interopRequireDefault(require("./BreakpointClearCommand"));
 
-  _BreakpointDeleteCommand = function () {
+  _BreakpointClearCommand = function () {
     return data;
   };
 
@@ -39,6 +39,16 @@ function _BreakpointListCommand() {
   const data = _interopRequireDefault(require("./BreakpointListCommand"));
 
   _BreakpointListCommand = function () {
+    return data;
+  };
+
+  return data;
+}
+
+function _BreakpointToggleCommand() {
+  const data = _interopRequireDefault(require("./BreakpointToggleCommand"));
+
+  _BreakpointToggleCommand = function () {
     return data;
   };
 
@@ -85,7 +95,7 @@ class BreakpointCommand {
     this.name = 'breakpoint';
     this.helpText = 'Sets a breakpoint on the target.';
     this.detailedHelpText = `
-breakpoint [subcommand | [source-file:]line] | function-name()
+breakpoint [subcommand | [[o]nce] [source-file:]line] | [[o]nce] function-name()
 
 Sets a breakpoint, or operates on existing breakpoints.
 
@@ -110,23 +120,26 @@ file.
 
 The breakpoint command has several subcommands:
 
-* 'delete' will delete an existing breakpoint
+* 'clear' will delete an existing breakpoint
 * 'disable' will temporarily disable an existing breakpoint
 * 'enable' will re-enable an existing breakpoint
 * 'help' will give detailed information about the subcommands
 * 'list' will list all existing breakpoints
+* 'toggle' will toggle the enabled state of an existing breakpoint
   `;
     this._console = con;
     this._debugger = debug;
     this._dispatcher = new (_CommandDispatcher().default)(new Map());
 
-    this._dispatcher.registerCommand(new (_BreakpointDeleteCommand().default)(debug));
+    this._dispatcher.registerCommand(new (_BreakpointClearCommand().default)(con, debug));
 
-    this._dispatcher.registerCommand(new (_BreakpointDisableCommand().default)(debug));
+    this._dispatcher.registerCommand(new (_BreakpointDisableCommand().default)(con, debug));
 
-    this._dispatcher.registerCommand(new (_BreakpointEnableCommand().default)(debug));
+    this._dispatcher.registerCommand(new (_BreakpointEnableCommand().default)(con, debug));
 
     this._dispatcher.registerCommand(new (_BreakpointListCommand().default)(con, debug));
+
+    this._dispatcher.registerCommand(new (_BreakpointToggleCommand().default)(con, debug));
 
     this._dispatcher.registerCommand(new (_HelpCommand().default)(con, this._dispatcher));
   }
@@ -140,21 +153,30 @@ The breakpoint command has several subcommands:
       return;
     }
 
-    await this._dispatcher.executeTokenizedLine(args);
+    const error = await this._dispatcher.executeTokenizedLine(args);
+
+    if (error != null) {
+      throw error;
+    }
   }
 
   async _trySettingBreakpoint(args) {
-    const breakpointSpec = args[0];
+    let breakpointSpec = args[0];
+    const once = 'once'.startsWith(breakpointSpec);
+
+    if (once) {
+      breakpointSpec = args[1];
+    }
 
     if (breakpointSpec == null) {
-      return this._setBreakpointHere();
+      return this._setBreakpointHere(once);
     }
 
     const linePattern = /^(\d+)$/;
     const lineMatch = breakpointSpec.match(linePattern);
 
     if (lineMatch != null) {
-      return this._setBreakpointHere(parseInt(lineMatch[1], 10));
+      return this._setBreakpointHere(once, parseInt(lineMatch[1], 10));
     }
 
     const sourceBreakPattern = /^(.+):(\d+)$/;
@@ -162,14 +184,14 @@ The breakpoint command has several subcommands:
 
     if (sourceMatch != null) {
       const [, path, line] = sourceMatch;
-      return this._debugger.setSourceBreakpoint(path, parseInt(line, 10));
+      return this._debugger.setSourceBreakpoint(path, parseInt(line, 10), once);
     }
 
     const functionBreakpointPattern = /^(.+)\(\)/;
     const functionMatch = breakpointSpec.match(functionBreakpointPattern);
 
     if (functionMatch != null) {
-      return this._debugger.setFunctionBreakpoint(functionMatch[1]);
+      return this._debugger.setFunctionBreakpoint(functionMatch[1], once);
     }
 
     return null;
@@ -183,7 +205,7 @@ The breakpoint command has several subcommands:
     }
   }
 
-  async _setBreakpointHere(line) {
+  async _setBreakpointHere(once, line) {
     const frame = await this._debugger.getCurrentStackFrame();
 
     if (frame == null) {
@@ -194,7 +216,7 @@ The breakpoint command has several subcommands:
       throw new Error('Cannot set breakpoint here, current stack frame has no source.');
     }
 
-    const result = await this._debugger.setSourceBreakpoint(frame.source.path, line == null ? frame.line : line);
+    const result = await this._debugger.setSourceBreakpoint(frame.source.path, line == null ? frame.line : line, once);
     return result;
   }
 

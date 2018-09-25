@@ -98,15 +98,15 @@ class ServerLanguageService {
     }).publish();
   }
 
-  async rename(fileVersion, position, newName) {
+  rename(fileVersion, position, newName) {
     const filePath = fileVersion.filePath;
-    const buffer = await (0, _nuclideOpenFilesRpc().getBufferAtVersion)(fileVersion);
+    return _RxMin.Observable.fromPromise((0, _nuclideOpenFilesRpc().getBufferAtVersion)(fileVersion)).concatMap(buffer => {
+      if (buffer == null) {
+        return _RxMin.Observable.of(null);
+      }
 
-    if (buffer == null) {
-      return null;
-    }
-
-    return this._service.rename(filePath, buffer, position, newName);
+      return this._service.rename(filePath, buffer, position, newName);
+    }).publish();
   }
 
   getCoverage(filePath) {
@@ -265,6 +265,14 @@ class ServerLanguageService {
   }
 
   async clickStatus(fileVersion, id, button) {}
+
+  async sendLspRequest(filePath, method, params) {}
+
+  async sendLspNotification(filePath, method, params) {}
+
+  observeLspNotifications(notificationMethod) {
+    return _RxMin.Observable.empty().publish();
+  }
 
   dispose() {
     this._service.dispose();

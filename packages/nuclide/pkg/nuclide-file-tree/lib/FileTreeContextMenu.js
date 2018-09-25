@@ -55,16 +55,6 @@ function _FileTreeConstants() {
   return data;
 }
 
-function _FileTreeStore() {
-  const data = _interopRequireDefault(require("./FileTreeStore"));
-
-  _FileTreeStore = function () {
-    return data;
-  };
-
-  return data;
-}
-
 function _FileTreeHelpers() {
   const data = _interopRequireDefault(require("../../nuclide-file-tree/lib/FileTreeHelpers"));
 
@@ -76,7 +66,7 @@ function _FileTreeHelpers() {
 }
 
 function Selectors() {
-  const data = _interopRequireWildcard(require("./FileTreeSelectors"));
+  const data = _interopRequireWildcard(require("./redux/Selectors"));
 
   Selectors = function () {
     return data;
@@ -205,13 +195,14 @@ class FileTreeContextMenu {
     this._disposables.add(this._contextMenu);
 
     const shouldDisplaySetToCurrentWorkingRootOption = () => {
-      const node = Selectors().getSingleSelectedNode(this._store);
-      return node != null && node.isContainer && Selectors().hasCwd(this._store) && !node.isCwd;
+      const node = Selectors().getSingleSelectedNode(this._store.getState());
+      return node != null && node.isContainer && Selectors().hasCwd(this._store.getState()) && !node.isCwd;
     };
 
     this._addContextMenuItemGroup([{
       label: 'Set to Current Working Root',
       command: 'tree-view:set-current-working-root',
+      after: ['project-find:show-in-current-directory', 'tree-view:search-in-directory'],
       shouldDisplay: shouldDisplaySetToCurrentWorkingRootOption
     }], WORKING_ROOT_PRIORITY, this._contextMenu);
 
@@ -227,7 +218,7 @@ class FileTreeContextMenu {
       label: 'New',
       parent: this._contextMenu,
       shouldDisplay: e => {
-        return Selectors().getSingleSelectedNode(this._store) != null;
+        return Selectors().getSingleSelectedNode(this._store.getState()) != null;
       }
     });
 
@@ -269,7 +260,7 @@ class FileTreeContextMenu {
       label: 'Source Control',
       parent: this._contextMenu,
       shouldDisplay: e => {
-        return !this._sourceControlMenu.isEmpty() && !Selectors().getSelectedNodes(this._store).isEmpty();
+        return !this._sourceControlMenu.isEmpty() && !Selectors().getSelectedNodes(this._store.getState()).isEmpty();
       }
     });
 
@@ -293,7 +284,7 @@ class FileTreeContextMenu {
       label: 'Rename',
       command: 'tree-view:rename-selection',
       shouldDisplay: () => {
-        const node = Selectors().getSingleSelectedNode(this._store); // For now, rename does not apply to root nodes.
+        const node = Selectors().getSingleSelectedNode(this._store.getState()); // For now, rename does not apply to root nodes.
 
         return node != null && !node.isRoot;
       }
@@ -386,12 +377,17 @@ class FileTreeContextMenu {
     {
       label: `Show in ${getFileManagerName()}`,
       command: 'file:show-in-file-manager',
+      after: ['file:copy-full-path'],
+      before: ['project-find:show-in-current-directory', 'tree-view:search-in-directory'],
       shouldDisplay: event => {
         const path = (0, _getElementFilePath().default)(event.target);
         return path != null && !_nuclideUri().default.isRemote(path);
       }
     }, // $FlowFixMe (v0.54.1 <)
     {
+      // Note: This can be superceeded by
+      // `project-find:show-in-current-directory` from
+      // https://github.com/atom/find-and-replace
       label: 'Search in Directory',
       command: 'tree-view:search-in-directory',
       shouldDisplay: () => {
@@ -433,6 +429,18 @@ class FileTreeContextMenu {
     }
 
     return this._addItemToMenu(originalItem, this._contextMenu, ADD_PROJECT_MENU_PRIORITY + priority);
+  }
+  /**
+   * @param priority must be an integer in the range [0, 1000).
+   */
+
+
+  addItemToModifyFileMenu(originalItem, priority) {
+    if (priority < 0 || priority >= PRIORITY_GROUP_SIZE) {
+      throw new Error(`Illegal priority value: ${priority}`);
+    }
+
+    return this._addItemToMenu(originalItem, this._contextMenu, MODIFY_FILE_MENU_PRIORITY + priority);
   }
 
   addItemToNewMenu(originalItem, priority) {
@@ -478,11 +486,11 @@ class FileTreeContextMenu {
   }
 
   getSelectedNodes() {
-    return Selectors().getTargetNodes(this._store);
+    return Selectors().getTargetNodes(this._store.getState());
   }
 
   getSingleSelectedNode() {
-    return Selectors().getSingleTargetNode(this._store);
+    return Selectors().getSingleTargetNode(this._store.getState());
   }
 
   dispose() {

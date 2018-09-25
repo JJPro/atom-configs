@@ -38,57 +38,52 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  *
  *  strict-local
  * @format
+ * @emails oncall+nuclide
  */
 describe('commons-node/stream', () => {
   it('observeStream', async () => {
-    await (async () => {
-      const input = ['foo\nbar', '\n', '\nba', 'z', '\nblar'];
-      const stream = new _stream2.default.PassThrough();
-      const promise = (0, _stream().observeStream)(stream).toArray().toPromise();
-      input.forEach(value => {
-        stream.write(value, 'utf8');
-      });
-      stream.end();
-      const output = await promise;
-      expect(output.join('')).toEqual(input.join(''));
-    })();
+    const input = ['foo\nbar', '\n', '\nba', 'z', '\nblar'];
+    const stream = new _stream2.default.PassThrough();
+    const promise = (0, _stream().observeStream)(stream).toArray().toPromise();
+    input.forEach(value => {
+      stream.write(value, 'utf8');
+    });
+    stream.end();
+    const output = await promise;
+    expect(output.join('')).toEqual(input.join(''));
   });
   it('observeStream - error', async () => {
-    await (async () => {
-      const stream = new _stream2.default.PassThrough();
-      const input = ['foo\nbar', '\n', '\nba', 'z', '\nblar'];
-      const output = [];
-      const promise = new Promise((resolve, reject) => {
-        (0, _stream().observeStream)(stream).subscribe(v => output.push(v), e => resolve(e), () => {});
-      });
-      const error = new Error('Had an error');
-      input.forEach(value => {
-        stream.write(value, 'utf8');
-      });
-      stream.emit('error', error);
-      const result = await promise;
-      expect(output).toEqual(input);
-      expect(result).toBe(error);
-    })();
+    const stream = new _stream2.default.PassThrough();
+    const input = ['foo\nbar', '\n', '\nba', 'z', '\nblar'];
+    const output = [];
+    const promise = new Promise((resolve, reject) => {
+      (0, _stream().observeStream)(stream).subscribe(v => output.push(v), e => resolve(e), () => {});
+    });
+    const error = new Error('Had an error');
+    input.forEach(value => {
+      stream.write(value, 'utf8');
+    });
+    stream.emit('error', error);
+    const result = await promise;
+    expect(output).toEqual(input);
+    expect(result).toBe(error);
   });
   it('writeToStream', async () => {
-    await (async () => {
-      const tempPath = await _fsPromise().default.tempfile();
+    const tempPath = await _fsPromise().default.tempfile();
 
-      const fixturePath = _path.default.resolve(__dirname, '../__mocks__/fixtures/lyrics');
+    const fixturePath = _path.default.resolve(__dirname, '../__mocks__/fixtures/lyrics');
 
-      const stream = _fs.default.createWriteStream(tempPath, {
-        highWaterMark: 10
-      }); // Read faster than we write to test buffering
+    const stream = _fs.default.createWriteStream(tempPath, {
+      highWaterMark: 10
+    }); // Read faster than we write to test buffering
 
 
-      const observable = (0, _stream().observeRawStream)(_fs.default.createReadStream(fixturePath, {
-        highWaterMark: 100
-      }));
-      await (0, _stream().writeToStream)(observable, stream).toPromise();
-      const writtenFile = await _fsPromise().default.readFile(tempPath);
-      const fixtureFile = await _fsPromise().default.readFile(fixturePath);
-      expect(writtenFile).toEqual(fixtureFile);
-    })();
+    const observable = (0, _stream().observeRawStream)(_fs.default.createReadStream(fixturePath, {
+      highWaterMark: 100
+    }));
+    await (0, _stream().writeToStream)(observable, stream).toPromise();
+    const writtenFile = await _fsPromise().default.readFile(tempPath);
+    const fixtureFile = await _fsPromise().default.readFile(fixturePath);
+    expect(writtenFile).toEqual(fixtureFile);
   });
 });

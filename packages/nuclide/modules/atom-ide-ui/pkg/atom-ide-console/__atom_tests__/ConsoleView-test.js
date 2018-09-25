@@ -38,6 +38,7 @@ function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj;
  *
  * 
  * @format
+ * @emails oncall+nuclide
  */
 describe('ConsoleView', () => {
   it('focuses the filter when "/" is pressed inside the console-scroll-pane-wrapper div', () => {
@@ -62,7 +63,9 @@ describe('ConsoleView', () => {
       selectedSourceIds: [],
       sources: [],
       updateFilter: () => {},
-      watchEditor: null
+      watchEditor: null,
+      selectedSeverities: new Set(['error', 'warning', 'info']),
+      toggleSeverity: () => {}
     }));
 
     const workspaceEl = atom.views.getView(atom.workspace);

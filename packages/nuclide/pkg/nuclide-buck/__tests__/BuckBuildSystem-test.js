@@ -21,6 +21,7 @@ function _BuckBuildSystem() {
  *
  *  strict-local
  * @format
+ * @emails oncall+nuclide
  */
 describe('BuckBuildSystem', () => {
   let buckBuildSystem;
@@ -29,36 +30,34 @@ describe('BuckBuildSystem', () => {
   });
   describe('_consumeEventStream', () => {
     it("doesn't swallow log messages", async () => {
-      await (async () => {
-        const result = await buckBuildSystem._consumeEventStream(_RxMin.Observable.from([{
-          type: 'log',
-          message: 'test',
+      const result = await buckBuildSystem._consumeEventStream(_RxMin.Observable.from([{
+        type: 'log',
+        message: 'test',
+        level: 'error'
+      }, {
+        type: 'log',
+        message: 'test2',
+        level: 'warning'
+      }, {
+        type: 'progress',
+        progress: 1
+      }]), '').toArray().toPromise();
+      expect(result).toEqual([{
+        type: 'message',
+        message: {
+          text: 'test',
           level: 'error'
-        }, {
-          type: 'log',
-          message: 'test2',
+        }
+      }, {
+        type: 'message',
+        message: {
+          text: 'test2',
           level: 'warning'
-        }, {
-          type: 'progress',
-          progress: 1
-        }]), '').toArray().toPromise();
-        expect(result).toEqual([{
-          type: 'message',
-          message: {
-            text: 'test',
-            level: 'error'
-          }
-        }, {
-          type: 'message',
-          message: {
-            text: 'test2',
-            level: 'warning'
-          }
-        }, {
-          type: 'progress',
-          progress: 1
-        }]);
-      })();
+        }
+      }, {
+        type: 'progress',
+        progress: 1
+      }]);
     });
     it('emits diagnostics', async () => {
       const diagnostics = [];

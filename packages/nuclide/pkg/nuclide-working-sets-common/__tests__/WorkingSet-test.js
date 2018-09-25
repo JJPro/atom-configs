@@ -19,6 +19,7 @@ function _WorkingSet() {
  *
  *  strict-local
  * @format
+ * @emails oncall+nuclide
  */
 describe('WorkingSet', () => {
   describe('- Empty set', () => {

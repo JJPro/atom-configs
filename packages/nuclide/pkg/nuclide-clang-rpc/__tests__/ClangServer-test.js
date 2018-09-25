@@ -77,6 +77,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  *
  *  strict-local
  * @format
+ * @emails oncall+nuclide
  */
 const TEST_FILE = _nuclideUri().default.join(__dirname, '../__mocks__', 'fixtures', 'cpp_buck_project', 'test.cpp');
 
@@ -98,7 +99,7 @@ describe('ClangServer', () => {
       throw new Error("Invariant violation: \"response\"");
     }
 
-    expect(JSON.stringify(response, null, 2).replace(/file\"\:\s+.*test\.cpp/g, 'file": "<REPLACED>')).toMatchSnapshot();
+    expect(JSON.stringify(response, null, 2).replace(/file":\s+.*test\.cpp/g, 'file": "<REPLACED>')).toMatchSnapshot();
     response = await service.get_completions(FILE_CONTENTS, 4, 7, 7, 'f');
 
     if (!response) {
@@ -158,65 +159,61 @@ describe('ClangServer', () => {
     expect(response).toMatchSnapshot();
   });
   it('gracefully handles server crashes', async () => {
-    await (async () => {
-      const serverArgs = (0, _findClangServerArgs().default)();
-      const server = new (_ClangServer().default)(TEST_FILE, FILE_CONTENTS, serverArgs, serverFlags);
-      let response = await server.compile(FILE_CONTENTS);
-      expect(response).not.toBe(null);
-      const {
-        _process
-      } = server._rpcProcess;
+    const serverArgs = (0, _findClangServerArgs().default)();
+    const server = new (_ClangServer().default)(TEST_FILE, FILE_CONTENTS, serverArgs, serverFlags);
+    let response = await server.compile(FILE_CONTENTS);
+    expect(response).not.toBe(null);
+    const {
+      _process
+    } = server._rpcProcess;
 
-      if (!_process) {
-        throw new Error("Invariant violation: \"_process\"");
-      }
+    if (!_process) {
+      throw new Error("Invariant violation: \"_process\"");
+    }
 
-      _process.kill(); // This request should fail, but cleanup should occur.
+    _process.kill(); // This request should fail, but cleanup should occur.
 
 
-      let thrown = false;
+    let thrown = false;
 
-      try {
-        response = await server.compile(FILE_CONTENTS);
-      } catch (e) {
-        thrown = true;
-      }
+    try {
+      response = await server.compile(FILE_CONTENTS);
+    } catch (e) {
+      thrown = true;
+    }
 
-      expect(thrown).toBe(true); // The next request should work as expected.
+    expect(thrown).toBe(true); // The next request should work as expected.
 
-      const service = await server.getService();
-      response = await service.get_declaration(FILE_CONTENTS, 4, 2);
-      expect(response).not.toBe(null);
-    })();
+    const service = await server.getService();
+    response = await service.get_declaration(FILE_CONTENTS, 4, 2);
+    expect(response).not.toBe(null);
   });
   it('supports get_local_references', async () => {
-    await (async () => {
-      const file = _nuclideUri().default.join(__dirname, '../__mocks__', 'fixtures', 'cpp_buck_project', 'references.cpp');
+    const file = _nuclideUri().default.join(__dirname, '../__mocks__', 'fixtures', 'cpp_buck_project', 'references.cpp');
 
-      const fileContents = _fs.default.readFileSync(file).toString('utf8');
+    const fileContents = _fs.default.readFileSync(file).toString('utf8');
 
-      const serverArgs = (0, _findClangServerArgs().default)();
-      const server = new (_ClangServer().default)(file, fileContents, serverArgs, serverFlags);
-      const service = await server.getService();
-      const compileResponse = await server.compile(fileContents);
+    const serverArgs = (0, _findClangServerArgs().default)();
+    const server = new (_ClangServer().default)(file, fileContents, serverArgs, serverFlags);
+    const service = await server.getService();
+    const compileResponse = await server.compile(fileContents);
 
-      if (!(compileResponse != null)) {
-        throw new Error("Invariant violation: \"compileResponse != null\"");
-      }
+    if (!(compileResponse != null)) {
+      throw new Error("Invariant violation: \"compileResponse != null\"");
+    }
 
-      expect(compileResponse.diagnostics).toEqual([]); // param var1
+    expect(compileResponse.diagnostics).toEqual([]); // param var1
 
-      expect((await service.get_local_references(fileContents, 1, 24))).toMatchSnapshot(); // var2 (from a reference)
+    expect((await service.get_local_references(fileContents, 1, 24))).toMatchSnapshot(); // var2 (from a reference)
 
-      expect((await service.get_local_references(fileContents, 4, 9))).toMatchSnapshot(); // var3
+    expect((await service.get_local_references(fileContents, 4, 9))).toMatchSnapshot(); // var3
 
-      expect((await service.get_local_references(fileContents, 2, 26))).toMatchSnapshot(); // inner var1
+    expect((await service.get_local_references(fileContents, 2, 26))).toMatchSnapshot(); // inner var1
 
-      expect((await service.get_local_references(fileContents, 6, 11))).toMatchSnapshot(); // nothing
+    expect((await service.get_local_references(fileContents, 6, 11))).toMatchSnapshot(); // nothing
 
-      expect((await service.get_local_references(fileContents, 0, 0))).toBe(null);
-      expect((await service.get_local_references(fileContents, 11, 0))).toBe(null);
-    })();
+    expect((await service.get_local_references(fileContents, 0, 0))).toBe(null);
+    expect((await service.get_local_references(fileContents, 11, 0))).toBe(null);
   });
   it('tracks server status', async () => {
     const serverArgs = (0, _findClangServerArgs().default)();

@@ -2,8 +2,6 @@
 
 var _fs = _interopRequireDefault(require("fs"));
 
-var _path = _interopRequireDefault(require("path"));
-
 function _temp() {
   const data = _interopRequireDefault(require("temp"));
 
@@ -56,6 +54,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  *
  * 
  * @format
+ * @emails oncall+nuclide
  */
 _temp().default.track();
 
@@ -63,27 +62,19 @@ describe('fsPromise test suite', () => {
   describe('findNearestFile()', () => {
     let dirPath = null;
     beforeEach(async () => {
-      await (async () => {
-        dirPath = await (0, _testHelpers().generateFixture)('nearest_test', new Map([['.some_file', 'just some file'], ['nested_dir/.another_file', 'just another file']]));
-      })();
+      dirPath = await (0, _testHelpers().generateFixture)('nearest_test', new Map([['.some_file', 'just some file'], ['nested_dir/.another_file', 'just another file']]));
     });
     it('find the file if given the exact directory', async () => {
-      await (async () => {
-        const foundPath = await _fsPromise().default.findNearestFile('.some_file', dirPath);
-        expect(foundPath).toBe(dirPath);
-      })();
+      const foundPath = await _fsPromise().default.findNearestFile('.some_file', dirPath);
+      expect(foundPath).toBe(dirPath);
     });
     it('find the file if given a nested directory', async () => {
-      await (async () => {
-        const foundPath = await _fsPromise().default.findNearestFile('.some_file', _nuclideUri().default.join(dirPath, 'nested_dir'));
-        expect(foundPath).toBe(dirPath);
-      })();
+      const foundPath = await _fsPromise().default.findNearestFile('.some_file', _nuclideUri().default.join(dirPath, 'nested_dir'));
+      expect(foundPath).toBe(dirPath);
     });
     it('does not find the file if not existing', async () => {
-      await (async () => {
-        const foundPath = await _fsPromise().default.findNearestFile('non-existent.txt', _nuclideUri().default.join(dirPath, 'nested_dir'));
-        expect(foundPath).toBe(null);
-      })();
+      const foundPath = await _fsPromise().default.findNearestFile('non-existent.txt', _nuclideUri().default.join(dirPath, 'nested_dir'));
+      expect(foundPath).toBe(null);
     });
   });
   describe('mv', () => {
@@ -175,49 +166,39 @@ describe('fsPromise test suite', () => {
   describe('findFurthestFile()', () => {
     let dirPath = null;
     beforeEach(async () => {
-      await (async () => {
-        dirPath = await (0, _testHelpers().generateFixture)('furthest_test', new Map([['0/.some_file', 'just a file'], ['0/1/.some_file', 'just b file'], // Skip one file to test consecutive vs non-consecutive.
-        // ['0/1/2', 'just c file'],
-        ['0/1/2/3/.some_file', 'just d file'], ['0/1/2/3/4/.some_file', 'just f file']]));
-      })();
+      dirPath = await (0, _testHelpers().generateFixture)('furthest_test', new Map([['0/.some_file', 'just a file'], ['0/1/.some_file', 'just b file'], // Skip one file to test consecutive vs non-consecutive.
+      // ['0/1/2', 'just c file'],
+      ['0/1/2/3/.some_file', 'just d file'], ['0/1/2/3/4/.some_file', 'just f file']]));
     });
     it('find the file if given the exact directory', async () => {
-      await (async () => {
-        const expectedPath = _nuclideUri().default.join(dirPath, '0');
+      const expectedPath = _nuclideUri().default.join(dirPath, '0');
 
-        const foundPath = await _fsPromise().default.findFurthestFile('.some_file', expectedPath);
-        expect(foundPath).toBe(expectedPath);
-      })();
+      const foundPath = await _fsPromise().default.findFurthestFile('.some_file', expectedPath);
+      expect(foundPath).toBe(expectedPath);
     });
     it('finds the furthest file if given a nested directory', async () => {
-      await (async () => {
-        const expectedPath = _nuclideUri().default.join(dirPath, '0');
+      const expectedPath = _nuclideUri().default.join(dirPath, '0');
 
-        const startPath = _nuclideUri().default.join(dirPath, '0/1/2/3/4');
+      const startPath = _nuclideUri().default.join(dirPath, '0/1/2/3/4');
 
-        const foundPath = await _fsPromise().default.findFurthestFile('.some_file', startPath);
-        expect(foundPath).toBe(expectedPath);
-      })();
+      const foundPath = await _fsPromise().default.findFurthestFile('.some_file', startPath);
+      expect(foundPath).toBe(expectedPath);
     });
     it('terminates search as soon as file is not found if given the stopOnMissing flag', async () => {
-      await (async () => {
-        const expectedPath = _nuclideUri().default.join(dirPath, '0/1/2/3');
+      const expectedPath = _nuclideUri().default.join(dirPath, '0/1/2/3');
 
-        const startPath = _nuclideUri().default.join(dirPath, '0/1/2/3/4');
+      const startPath = _nuclideUri().default.join(dirPath, '0/1/2/3/4');
 
-        const foundPath = await _fsPromise().default.findFurthestFile('.some_file', startPath, true
-        /* stopOnMissing */
-        );
-        expect(foundPath).toBe(expectedPath);
-      })();
+      const foundPath = await _fsPromise().default.findFurthestFile('.some_file', startPath, true
+      /* stopOnMissing */
+      );
+      expect(foundPath).toBe(expectedPath);
     });
     it('does not find the file if not existing', async () => {
-      await (async () => {
-        const startPath = _nuclideUri().default.join(dirPath, '0/1/2/3/4');
+      const startPath = _nuclideUri().default.join(dirPath, '0/1/2/3/4');
 
-        const foundPath = await _fsPromise().default.findFurthestFile('non-existent.txt', startPath);
-        expect(foundPath).toBe(null);
-      })();
+      const foundPath = await _fsPromise().default.findFurthestFile('non-existent.txt', startPath);
+      expect(foundPath).toBe(null);
     });
   });
   describe('getCommonAncestorDirectory', () => {
@@ -234,21 +215,17 @@ describe('fsPromise test suite', () => {
       pathToWriteFile = _nuclideUri().default.join(tempDir, 'test');
     });
     it('can write to a file', async () => {
-      await (async () => {
-        await _fsPromise().default.writeFileAtomic(pathToWriteFile, "I'm a little teapot.\n");
-        expect(_fs.default.readFileSync(pathToWriteFile).toString()).toEqual("I'm a little teapot.\n"); // eslint-disable-next-line no-bitwise
+      await _fsPromise().default.writeFileAtomic(pathToWriteFile, "I'm a little teapot.\n");
+      expect(_fs.default.readFileSync(pathToWriteFile).toString()).toEqual("I'm a little teapot.\n"); // eslint-disable-next-line no-bitwise
 
-        expect(_fs.default.statSync(pathToWriteFile).mode & 0o777).toEqual(0o666 & ~process.umask() // eslint-disable-line no-bitwise
-        );
-      })();
+      expect(_fs.default.statSync(pathToWriteFile).mode & 0o777).toEqual(0o666 & ~process.umask() // eslint-disable-line no-bitwise
+      );
     });
     it('calls mkdirp', async () => {
-      await (async () => {
-        const subPath = _nuclideUri().default.join(pathToWriteFile, 'test');
+      const subPath = _nuclideUri().default.join(pathToWriteFile, 'test');
 
-        await _fsPromise().default.writeFileAtomic(subPath, 'test1234\n');
-        expect(_fs.default.readFileSync(subPath).toString()).toEqual('test1234\n');
-      })();
+      await _fsPromise().default.writeFileAtomic(subPath, 'test1234\n');
+      expect(_fs.default.readFileSync(subPath).toString()).toEqual('test1234\n');
     });
     it('preserves permissions on files', async () => {
       _fs.default.writeFileSync(pathToWriteFile, 'test');
@@ -264,19 +241,17 @@ describe('fsPromise test suite', () => {
       expect(stat.mode & 0o777).toEqual(0o700);
     });
     it('errors if file cannot be written', async () => {
-      await (async () => {
-        let err;
+      let err;
 
-        try {
-          await _fsPromise().default.writeFileAtomic(pathToWriteFile + '/that/is/missing/', 'something');
-        } catch (e) {
-          err = e;
-        }
+      try {
+        await _fsPromise().default.writeFileAtomic(pathToWriteFile + '/that/is/missing/', 'something');
+      } catch (e) {
+        err = e;
+      }
 
-        if (!(err != null)) {
-          throw new Error('Expected an error');
-        }
-      })();
+      if (!(err != null)) {
+        throw new Error('Expected an error');
+      }
     });
   });
 });

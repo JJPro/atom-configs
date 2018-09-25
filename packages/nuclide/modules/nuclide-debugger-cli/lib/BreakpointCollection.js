@@ -16,7 +16,7 @@ function _collection() {
 }
 
 function _Breakpoint() {
-  const data = _interopRequireDefault(require("./Breakpoint"));
+  const data = _interopRequireWildcard(require("./Breakpoint"));
 
   _Breakpoint = function () {
     return data;
@@ -37,6 +37,8 @@ function _nullthrows() {
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
+function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) { var desc = Object.defineProperty && Object.getOwnPropertyDescriptor ? Object.getOwnPropertyDescriptor(obj, key) : {}; if (desc.get || desc.set) { Object.defineProperty(newObj, key, desc); } else { newObj[key] = obj[key]; } } } } newObj.default = obj; return newObj; } }
+
 /**
  * Copyright (c) 2017-present, Facebook, Inc.
  * All rights reserved.
@@ -52,9 +54,20 @@ class BreakpointCollection {
   constructor() {
     this._breakpoints = new Map();
     this._nextIndex = 1;
+    this._allowOnceState = false;
   }
 
-  addSourceBreakpoint(path, line) {
+  enableOnceState() {
+    this._allowOnceState = true;
+
+    this._breakpoints.forEach(breakpoint => breakpoint.enableSupportsOnce());
+  }
+
+  supportsOnceState() {
+    return this._allowOnceState;
+  }
+
+  addSourceBreakpoint(path, line, once) {
     this._breakpoints.forEach((breakpoint, index) => {
       if (breakpoint.path === path && breakpoint.line === line) {
         throw new Error(`There is already a breakpoint (#${index}) here.`);
@@ -63,16 +76,20 @@ class BreakpointCollection {
 
     const index = this._allocateIndex();
 
-    const breakpoint = new (_Breakpoint().default)(index);
+    const breakpoint = new (_Breakpoint().default)(index, this._allowOnceState);
     breakpoint.setPath(path);
     breakpoint.setLine(line);
+
+    if (once) {
+      breakpoint.setState(_Breakpoint().BreakpointState.ONCE);
+    }
 
     this._breakpoints.set(index, breakpoint);
 
     return index;
   }
 
-  addFunctionBreakpoint(func) {
+  addFunctionBreakpoint(func, once) {
     this._breakpoints.forEach((breakpoint, index) => {
       if (breakpoint.func === func) {
         throw new Error(`There is already a breakpoint (#${index}) here.`);
@@ -81,8 +98,12 @@ class BreakpointCollection {
 
     const index = this._allocateIndex();
 
-    const breakpoint = new (_Breakpoint().default)(index);
+    const breakpoint = new (_Breakpoint().default)(index, this._allowOnceState);
     breakpoint.setFunc(func);
+
+    if (once) {
+      breakpoint.setState(_Breakpoint().BreakpointState.ONCE);
+    }
 
     this._breakpoints.set(index, breakpoint);
 
@@ -90,11 +111,11 @@ class BreakpointCollection {
   }
 
   getAllEnabledBreakpointsForSource(path) {
-    return Array.from(this._breakpoints.values()).filter(x => x.path === path && x.line != null && x.func == null && x.enabled).map(_ => ({
+    return Array.from(this._breakpoints.values()).filter(x => x.path === path && x.line != null && x.func == null && x.isEnabled()).map(_ => ({
       index: _.index,
       id: _.id,
       verified: _.verified,
-      enabled: _.enabled,
+      enabled: true,
       path: (0, _nullthrows().default)(_.path),
       line: (0, _nullthrows().default)(_.line)
     }));
@@ -106,11 +127,11 @@ class BreakpointCollection {
   }
 
   getAllEnabledFunctionBreakpoints() {
-    return Array.from(this._breakpoints.values()).filter(x => x.func != null && x.enabled).map(x => ({
+    return Array.from(this._breakpoints.values()).filter(x => x.func != null && x.isEnabled()).map(x => ({
       index: x.index,
       id: x.id,
       verified: x.verified,
-      enabled: x.enabled,
+      enabled: true,
       path: x.path,
       line: x.line,
       func: (0, _nullthrows().default)(x.func)
@@ -141,8 +162,16 @@ class BreakpointCollection {
     return Array.from(this._breakpoints.values());
   }
 
+  getAllBreakpointPaths() {
+    return Array.from(new Set(Array.from(this._breakpoints.values()).filter(bp => bp.path != null).map(bp => (0, _nullthrows().default)(bp.path))));
+  }
+
   deleteBreakpoint(index) {
     this._breakpoints.delete(index);
+  }
+
+  deleteAllBreakpoints() {
+    this._breakpoints = new Map();
   }
 
   setBreakpointId(index, id) {

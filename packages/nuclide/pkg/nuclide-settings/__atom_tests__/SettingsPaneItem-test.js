@@ -41,6 +41,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  *
  * 
  * @format
+ * @emails oncall+nuclide
  */
 // TODO: T30807047 make it an e2e test
 describe.skip('SettingsPaneItem', () => {
@@ -56,7 +57,6 @@ describe.skip('SettingsPaneItem', () => {
       throw new Error("Invariant violation: \"settingsViewEl != null\"");
     }
 
-    console.log(settingsViewEl.innerHTML);
     expect(settingsViewEl.contains(document.activeElement)).toBe(true);
   });
 });

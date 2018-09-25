@@ -22,6 +22,7 @@ var _atom = require("atom");
  *
  *  strict-local
  * @format
+ * @emails oncall+nuclide
  */
 const sampleOutlineView = [{
   tokenizedText: [{

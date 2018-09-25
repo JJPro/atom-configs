@@ -20,25 +20,27 @@ function Immutable() {
   return data;
 }
 
-function _nuclideWorkingSetsCommon() {
-  const data = require("../../nuclide-working-sets-common");
+function _createStore() {
+  const data = _interopRequireDefault(require("../lib/redux/createStore"));
 
-  _nuclideWorkingSetsCommon = function () {
+  _createStore = function () {
     return data;
   };
 
   return data;
 }
 
-function _FileTreeSelectionManager() {
-  const data = require("../lib/FileTreeSelectionManager");
+function Selectors() {
+  const data = _interopRequireWildcard(require("../lib/redux/Selectors"));
 
-  _FileTreeSelectionManager = function () {
+  Selectors = function () {
     return data;
   };
 
   return data;
 }
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) { var desc = Object.defineProperty && Object.getOwnPropertyDescriptor ? Object.getOwnPropertyDescriptor(obj, key) : {}; if (desc.get || desc.set) { Object.defineProperty(newObj, key, desc); } else { newObj[key] = obj[key]; } } } } newObj.default = obj; return newObj; } }
 
@@ -51,34 +53,21 @@ function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj;
  *
  *  strict-local
  * @format
+ * @emails oncall+nuclide
  */
-const CONF = {
-  vcsStatuses: Immutable().Map(),
-  fileChanges: Immutable().Map(),
-  workingSet: new (_nuclideWorkingSetsCommon().WorkingSet)(),
-  editedWorkingSet: new (_nuclideWorkingSetsCommon().WorkingSet)(),
-  hideIgnoredNames: true,
-  hideVcsIgnoredPaths: true,
-  excludeVcsIgnoredPaths: true,
-  ignoredPatterns: Immutable().Set(),
-  repositories: Immutable().Set(),
-  usePreviewTabs: true,
-  focusEditorOnFileSelection: false,
-  isEditingWorkingSet: false,
-  openFilesWorkingSet: new (_nuclideWorkingSetsCommon().WorkingSet)(),
-  reposByRoot: {},
-  selectionManager: new (_FileTreeSelectionManager().FileTreeSelectionManager)(() => {})
-};
 describe('FileTreeNode', () => {
+  let store;
+  beforeEach(() => {
+    store = (0, _createStore().default)();
+  });
   it('properly sets the default properties', () => {
     const node = new (_FileTreeNode().FileTreeNode)({
       uri: '/abc/def',
       rootUri: '/abc/'
-    }, CONF);
+    }, Selectors().getConf(store.getState()));
     expect(node.uri).toBe('/abc/def');
     expect(node.rootUri).toBe('/abc/');
     expect(node.isExpanded).toBe(false);
-    expect(node.isSelected()).toBe(false);
     expect(node.isLoading).toBe(false);
     expect(node.isCwd).toBe(false);
     expect(node.children.isEmpty()).toBe(true);
@@ -91,15 +80,13 @@ describe('FileTreeNode', () => {
       uri: '/abc/def',
       rootUri: '/abc/',
       isExpanded: true,
-      isSelected: true,
       isLoading: true,
       isCwd: true,
       children
-    }, CONF);
+    }, Selectors().getConf(store.getState()));
     expect(node.uri).toBe('/abc/def');
     expect(node.rootUri).toBe('/abc/');
     expect(node.isExpanded).toBe(true);
-    expect(node.isSelected()).toBe(true);
     expect(node.isLoading).toBe(true);
     expect(node.isCwd).toBe(true);
     expect(node.children).toBe(children);
@@ -110,7 +97,7 @@ describe('FileTreeNode', () => {
     const node = new (_FileTreeNode().FileTreeNode)({
       uri: '/abc/def/ghi',
       rootUri: '/abc/'
-    }, CONF); // Derived
+    }, Selectors().getConf(store.getState())); // Derived
 
     expect(node.name).toBe('ghi');
     expect(node.relativePath).toBe('def/ghi');
@@ -126,11 +113,11 @@ describe('FileTreeNode', () => {
     const child1 = new (_FileTreeNode().FileTreeNode)({
       uri: '/abc/def/ghi1',
       rootUri: '/abc/'
-    }, CONF);
+    }, Selectors().getConf(store.getState()));
     const child2 = new (_FileTreeNode().FileTreeNode)({
       uri: '/abc/def/ghi2',
       rootUri: '/abc/'
-    }, CONF);
+    }, Selectors().getConf(store.getState()));
     const children = Immutable().OrderedMap([[child1.name, child1], [child2.name, child2]]);
     const node = new (_FileTreeNode().FileTreeNode)({
       uri: '/abc/def',
@@ -140,11 +127,9 @@ describe('FileTreeNode', () => {
       isLoading: false,
       isCwd: true,
       children
-    }, CONF);
+    }, Selectors().getConf(store.getState()));
     expect(node.isExpanded).toBe(true);
     let updatedNode = node.setIsExpanded(true);
-    expect(updatedNode).toBe(node);
-    updatedNode = node.setIsSelected(false);
     expect(updatedNode).toBe(node);
     updatedNode = node.setIsLoading(false);
     expect(updatedNode).toBe(node);
@@ -152,9 +137,7 @@ describe('FileTreeNode', () => {
     expect(updatedNode).toBe(node);
     updatedNode = node.setChildren(Immutable().OrderedMap(children));
     expect(updatedNode).toBe(node);
-    updatedNode = node.setRecursive(null, child => child.setIsSelected(false));
-    expect(updatedNode).toBe(node);
-    updatedNode = node.updateChild(child1.setIsSelected(false));
+    updatedNode = node.setRecursive(null, child => child.setIsLoading(false));
     expect(updatedNode).toBe(node);
     updatedNode = node.set({
       isExpanded: true,
@@ -163,7 +146,7 @@ describe('FileTreeNode', () => {
       children
     });
     expect(updatedNode).toBe(node);
-    updatedNode = node.updateChild(child2.setIsSelected(true));
+    updatedNode = node.updateChild(child2.setIsExpanded(false));
     expect(updatedNode).toBe(node);
   });
   it('finds nodes', () => {
@@ -171,11 +154,11 @@ describe('FileTreeNode', () => {
     const nodeABC = new (_FileTreeNode().FileTreeNode)({
       uri: '/r/A/B/C/',
       rootUri
-    }, CONF);
+    }, Selectors().getConf(store.getState()));
     const nodeABD = new (_FileTreeNode().FileTreeNode)({
       uri: '/r/A/B/D/',
       rootUri
-    }, CONF);
+    }, Selectors().getConf(store.getState()));
 
     let children = _FileTreeNode().FileTreeNode.childrenFromArray([nodeABC, nodeABD]);
 
@@ -183,23 +166,23 @@ describe('FileTreeNode', () => {
       uri: '/r/A/B/',
       rootUri,
       children
-    }, CONF);
+    }, Selectors().getConf(store.getState()));
     children = _FileTreeNode().FileTreeNode.childrenFromArray([nodeAB]);
     const nodeA = new (_FileTreeNode().FileTreeNode)({
       uri: '/r/A/',
       rootUri,
       children
-    }, CONF);
+    }, Selectors().getConf(store.getState()));
     const nodeB = new (_FileTreeNode().FileTreeNode)({
       uri: '/r/B/',
       rootUri
-    }, CONF);
+    }, Selectors().getConf(store.getState()));
     children = _FileTreeNode().FileTreeNode.childrenFromArray([nodeA, nodeB]);
     const root = new (_FileTreeNode().FileTreeNode)({
       uri: '/r/',
       rootUri,
       children
-    }, CONF);
+    }, Selectors().getConf(store.getState()));
     expect(root.find('/r/')).toBe(root);
     expect(root.find('/r/A/')).toBe(nodeA);
     expect(root.find('/r/B/')).toBe(nodeB);

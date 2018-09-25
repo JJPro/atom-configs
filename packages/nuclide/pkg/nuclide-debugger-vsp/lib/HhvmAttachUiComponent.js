@@ -111,8 +111,7 @@ class AttachUiComponent extends React.Component {
 
     this._handlePathsDropdownChange = newIndex => {
       this.setState({
-        selectedPathIndex: newIndex,
-        pathMenuItems: this._getPathMenuItems()
+        selectedPathIndex: newIndex
       });
     };
 
@@ -136,7 +135,7 @@ class AttachUiComponent extends React.Component {
     this._handleAttachButtonClick = this._handleAttachButtonClick.bind(this);
     this.state = {
       selectedPathIndex: 0,
-      pathMenuItems: this._getPathMenuItems(),
+      pathMenuItems: _expected().Expect.pending(),
       attachPort: null,
       attachType: 'webserver',
       attachTargets: _expected().Expect.pending()
@@ -148,22 +147,18 @@ class AttachUiComponent extends React.Component {
   }
 
   componentDidMount() {
-    (0, _nuclideDebuggerCommon().deserializeDebuggerConfig)(...this._getSerializationArgs(), (transientSettings, savedSettings) => {
-      const savedPath = this.state.pathMenuItems.find(item => item.label === savedSettings.selectedPath);
-
-      if (savedPath != null) {
+    this._disposables.add(_RxMin.Observable.fromPromise(this._getPathMenuItems()).subscribe(pathMenuItems => {
+      (0, _nuclideDebuggerCommon().deserializeDebuggerConfig)(...this._getSerializationArgs(), (transientSettings, savedSettings) => {
+        const items = pathMenuItems.getOrDefault([]);
+        const savedPath = items.find(item => item.label === savedSettings.selectedPath);
+        const savedIndex = items.indexOf(savedPath);
         this.setState({
-          // TODO: (wbinnssmith) T30771435 this setState depends on current state
-          // and should use an updater function rather than an object
-          // eslint-disable-next-line react/no-access-state-in-setstate
-          selectedPathIndex: this.state.pathMenuItems.indexOf(savedPath)
+          selectedPathIndex: savedIndex < 0 ? 0 : savedIndex,
+          attachType: savedSettings.attachType != null ? savedSettings.attachType : 'webserver'
         });
-      }
-
-      this.setState({
-        attachType: savedSettings.attachType != null ? savedSettings.attachType : 'webserver'
       });
-    });
+    }));
+
     this.props.configIsValidChanged(this._debugButtonShouldEnable());
 
     this._disposables.add(atom.commands.add('atom-workspace', {
@@ -188,7 +183,8 @@ class AttachUiComponent extends React.Component {
   }
 
   _debugButtonShouldEnable() {
-    return this.state.attachType === 'webserver' || this.state.attachPort != null;
+    const selectedPath = !this.state.pathMenuItems.isPending && !this.state.pathMenuItems.isError ? this.state.pathMenuItems.value[this.state.selectedPathIndex] : null;
+    return this.state.attachType === 'webserver' && selectedPath != null || this.state.attachPort != null;
   }
 
   async _refreshTargetList() {
@@ -227,6 +223,7 @@ class AttachUiComponent extends React.Component {
       }
     }
 
+    const pathMenuItems = this.state.pathMenuItems.isPending || this.state.pathMenuItems.isError ? [] : this.state.pathMenuItems.value;
     return React.createElement("div", {
       className: "block"
     }, React.createElement("div", {
@@ -244,13 +241,15 @@ class AttachUiComponent extends React.Component {
       className: "input-label nuclide-ui-radiogroup-label"
     }, React.createElement("b", null, "Attach to webserver")), React.createElement("div", {
       className: "debugger-php-launch-attach-ui-select-project"
-    }, React.createElement("label", null, "Selected Project Directory: "), React.createElement(_Dropdown().Dropdown, {
+    }, React.createElement("label", null, "Selected Project Directory: "), pathMenuItems.length > 0 ? React.createElement(_Dropdown().Dropdown, {
       className: "inline-block debugger-connection-box",
-      options: this.state.pathMenuItems,
+      options: pathMenuItems.map(item => Object.assign({}, item, {
+        disabled: false
+      })),
       onChange: this._handlePathsDropdownChange,
       value: this.state.selectedPathIndex,
       disabled: this.state.attachType !== 'webserver'
-    })), React.createElement("div", null, React.createElement("input", {
+    }) : React.createElement("div", null, this.state.pathMenuItems.isPending ? 'Loading project roots...' : 'No Hack roots found! Try adding a directory that contains your .hhconfig file to the file tree!')), React.createElement("div", null, React.createElement("input", {
       className: "input-radio",
       type: "radio",
       checked: this.state.attachType === 'script',
@@ -287,26 +286,56 @@ class AttachUiComponent extends React.Component {
     return match != null && match.length >= 3 ? parseInt(match[2], 10) : null;
   }
 
-  _getPathMenuItems() {
-    const connections = _nuclideRemoteConnection().RemoteConnection.getByHostname(_nuclideUri().default.getHostname(this.props.targetUri));
+  async _getPathMenuItems() {
+    const connections = _nuclideRemoteConnection().RemoteConnection.getByHostname(_nuclideUri().default.isRemote(this.props.targetUri) ? _nuclideUri().default.getHostname(this.props.targetUri) : 'local');
 
-    return connections.map((connection, index) => {
-      const pathToProject = connection.getPath();
-      return {
-        label: pathToProject,
-        value: index
-      };
+    const pathMenuItems = [];
+
+    if (_nuclideUri().default.isRemote(this.props.targetUri)) {
+      // $FlowIgnore filter ensures not null
+      pathMenuItems.push(...(await Promise.all(connections.map(async (connection, index) => {
+        const pathToProject = connection.getPath();
+        const fsSvc = (0, _nuclideRemoteConnection().getFileSystemServiceByNuclideUri)(connection.getUri());
+
+        if ((await fsSvc.findNearestAncestorNamed('.hhconfig', pathToProject)) != null) {
+          return {
+            label: pathToProject,
+            value: index
+          };
+        }
+
+        return null;
+      }))).filter(p => p != null));
+    } else {
+      const fsSvc = (0, _nuclideRemoteConnection().getFileSystemServiceByNuclideUri)(this.props.targetUri);
+      await Promise.all(atom.project.getPaths().filter(p => _nuclideUri().default.isLocal(p)).map(async path => {
+        if ((await fsSvc.findNearestAncestorNamed('.hhconfig', path)) != null) {
+          pathMenuItems.push({
+            label: path,
+            value: pathMenuItems.length
+          });
+        }
+      }));
+    } // Flow missing that pathMenuItems[i] is never null due to the filter above.
+
+
+    const val = _expected().Expect.value([...pathMenuItems]);
+
+    this.setState({
+      pathMenuItems: val
     });
+    return val;
   }
 
   async _handleAttachButtonClick() {
     // Start a debug session with the user-supplied information.
     const {
       hostname
-    } = _nuclideUri().default.parseRemoteUri(this.props.targetUri);
-
-    const selectedPath = this.state.attachType === 'webserver' ? this.state.pathMenuItems[this.state.selectedPathIndex].label : '/';
-    await this.props.startAttachProcessConfig(_nuclideUri().default.createRemoteUri(hostname, selectedPath), this.state.attachPort, this.state.attachType === 'webserver');
+    } = _nuclideUri().default.isRemote(this.props.targetUri) ? _nuclideUri().default.parseRemoteUri(this.props.targetUri) : {
+      hostname: ''
+    };
+    const selectedPath = this.state.attachType === 'webserver' && !this.state.pathMenuItems.isPending && !this.state.pathMenuItems.isError ? this.state.pathMenuItems.value[this.state.selectedPathIndex].label : '/';
+    await this.props.startAttachProcessConfig(_nuclideUri().default.isRemote(this.props.targetUri) ? _nuclideUri().default.createRemoteUri(hostname, selectedPath) : 'local', this.state.attachPort, this.state.attachType === 'webserver');
     (0, _nuclideDebuggerCommon().serializeDebuggerConfig)(...this._getSerializationArgs(), {
       selectedPath,
       attachType: this.state.attachType

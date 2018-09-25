@@ -68,6 +68,16 @@ function _nuclideUri() {
   return data;
 }
 
+function _analytics() {
+  const data = require("../../nuclide-commons/analytics");
+
+  _analytics = function () {
+    return data;
+  };
+
+  return data;
+}
+
 function _utils() {
   const data = require("./utils");
 
@@ -95,23 +105,28 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 function observeAndroidDevices(host) {
   const serviceUri = _nuclideUri().default.isRemote(host) ? _nuclideUri().default.createRemoteUri(_nuclideUri().default.getHostname(host), '/') : '';
   return pollersForUris.getOrCreate(serviceUri, () => {
-    let fetching = false;
-    return _RxMin.Observable.interval(2000).startWith(0).filter(() => !fetching).switchMap(() => {
-      fetching = true;
-      return _RxMin.Observable.fromPromise((0, _utils().getAdbServiceByNuclideUri)(serviceUri).getDeviceList()).map(devices => _expected().Expect.value(devices)).catch(err => {
-        const logger = (0, _log4js().getLogger)('nuclide-adb');
+    return _RxMin.Observable.interval(2000).startWith(0).exhaustMap(() => {
+      const service = (0, _utils().getAdbServiceByNuclideUri)(serviceUri);
 
-        if (err.stack.startsWith('TimeoutError')) {
-          logger.debug('Error polling for devices: ' + err.message);
-        } else {
-          logger.warn('Error polling for devices: ' + err.message);
-        }
+      if (service == null) {
+        // Gracefully handle a lost remote connection
+        return _RxMin.Observable.of(_expected().Expect.pending());
+      }
 
-        return _RxMin.Observable.of(_expected().Expect.error(new Error("Can't fetch Android devices.\n\n" + err.message)));
-      }).do(() => {
-        fetching = false;
+      return _RxMin.Observable.fromPromise(service.getDeviceList()).map(devices => _expected().Expect.value(devices)).catch(error => {
+        const message = error.code !== 'ENOENT' ? error.message : "'adb' not found in $PATH.";
+        return _RxMin.Observable.of(_expected().Expect.error(new Error("Can't fetch Android devices. " + message)));
       });
-    }).distinctUntilChanged((a, b) => (0, _expected().expectedEqual)(a, b, (v1, v2) => (0, _collection().arrayEqual)(v1, v2, _shallowequal().default), (e1, e2) => e1.message === e2.message)).publishReplay(1).refCount();
+    }).distinctUntilChanged((a, b) => (0, _expected().expectedEqual)(a, b, (v1, v2) => (0, _collection().arrayEqual)(v1, v2, _shallowequal().default), (e1, e2) => e1.message === e2.message)).do(value => {
+      if (value.isError) {
+        const logger = (0, _log4js().getLogger)('nuclide-adb');
+        logger.warn(value.error.message);
+        (0, _analytics().track)('nuclide-adb:device-poller:error', {
+          error: value.error,
+          host: serviceUri
+        });
+      }
+    }).publishReplay(1).refCount();
   });
 } // This is a convenient way for any device panel plugins of type Android to get from Device to
 // to the strongly typed AdbDevice.

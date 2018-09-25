@@ -43,6 +43,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  *
  *  strict-local
  * @format
+ * @emails oncall+nuclide
  */
 const FIXTURE_DIR = _nuclideUri().default.resolve(__dirname, '../__mocks__');
 

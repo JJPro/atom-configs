@@ -62,7 +62,20 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  * 
  * @format
  */
-const clangProviders = new Set();
+const clangProviders = new Set(); // Matches string defined in fb-cquery/lib/main.js.
+
+const USE_CQUERY_CONFIG = 'fb-cquery.use-cquery'; // If true, skip calling to clang service for given path.
+
+async function checkCqueryOverride(path) {
+  let cqueryBlacklist = async _ => false;
+
+  try {
+    // $FlowFB
+    cqueryBlacklist = require("./fb-cquery-blacklist").default;
+  } catch (exc) {}
+
+  return _featureConfig().default.get(USE_CQUERY_CONFIG) === true && !(await cqueryBlacklist(path));
+}
 
 function getServerSettings() {
   const config = _featureConfig().default.get('nuclide-clang');
@@ -104,10 +117,8 @@ async function findSourcePath(path) {
 }
 
 async function getClangProvidersForSource(_src) {
-  const src = await findSourcePath(_src); // $FlowFixMe(>=0.55.0) Flow suppress
-
-  return (0, _collection().arrayCompact)(( // $FlowFixMe(>=0.55.0) Flow suppress
-  await Promise.all([...clangProviders].map(async provider => {
+  const src = await findSourcePath(_src);
+  return (0, _collection().arrayCompact)((await Promise.all([...clangProviders].map(async provider => {
     if (await provider.supportsSource(src)) {
       return provider;
     }
@@ -127,9 +138,6 @@ async function getClangRequestSettings(src) {
 const clangServices = new WeakSet(); // eslint-disable-next-line nuclide-internal/no-commonjs
 
 module.exports = {
-  getServerSettings,
-  getClangRequestSettings,
-
   registerClangProvider(provider) {
     clangProviders.add(provider);
     return new (_UniversalDisposable().default)(() => clangProviders.delete(provider));
@@ -142,7 +150,7 @@ module.exports = {
   async getDiagnostics(editor) {
     const src = editor.getPath();
 
-    if (src == null) {
+    if (src == null || (await checkCqueryOverride(src))) {
       return null;
     }
 
@@ -166,7 +174,7 @@ module.exports = {
   async getCompletions(editor, prefix) {
     const src = editor.getPath();
 
-    if (src == null) {
+    if (src == null || (await checkCqueryOverride(src))) {
       return null;
     }
 
@@ -186,7 +194,7 @@ module.exports = {
   async getDeclaration(editor, line, column) {
     const src = editor.getPath();
 
-    if (src == null) {
+    if (src == null || (await checkCqueryOverride(src))) {
       return null;
     }
 
@@ -198,7 +206,7 @@ module.exports = {
   async getDeclarationInfo(editor, line, column) {
     const src = editor.getPath();
 
-    if (src == null) {
+    if (src == null || (await checkCqueryOverride(src))) {
       return Promise.resolve(null);
     }
 
@@ -215,7 +223,7 @@ module.exports = {
   async getOutline(editor) {
     const src = editor.getPath();
 
-    if (src == null) {
+    if (src == null || (await checkCqueryOverride(src))) {
       return Promise.resolve();
     }
 
@@ -227,7 +235,7 @@ module.exports = {
   async getLocalReferences(editor, line, column) {
     const src = editor.getPath();
 
-    if (src == null) {
+    if (src == null || (await checkCqueryOverride(src))) {
       return Promise.resolve(null);
     }
 

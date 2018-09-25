@@ -41,6 +41,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  *
  * 
  * @format
+ * @emails oncall+nuclide
  */
 const sleep = n => new Promise(r => setTimeout(r, n));
 
@@ -74,7 +75,6 @@ describe.skip('Health', () => {
     await atom.packages.activatePackage(_nuclideUri().default.join(__dirname, '..'));
   });
   it('contains stats after its first refresh', async () => {
-    let element;
     let pane;
     let item;
     openHealthPane();
@@ -94,7 +94,7 @@ describe.skip('Health', () => {
     }
 
     expect(item.getTitle()).toEqual('Health');
-    element = atom.views.getView(item);
+    const element = atom.views.getView(item);
     await (0, _waits_for().default)(() => element.innerHTML.trim() !== '');
     expect(element.innerHTML).toContain('Stats');
     expect(element.innerHTML).toContain('CPU');

@@ -1,15 +1,5 @@
 "use strict";
 
-function _simpleTextBuffer() {
-  const data = require("simple-text-buffer");
-
-  _simpleTextBuffer = function () {
-    return data;
-  };
-
-  return data;
-}
-
 function _astToOutline() {
   const data = require("../lib/astToOutline");
 
@@ -181,6 +171,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  *
  * 
  * @format
+ * @emails oncall+nuclide
  */
 describe('astToOutline', () => {
   it('should provide a class outline', () => {

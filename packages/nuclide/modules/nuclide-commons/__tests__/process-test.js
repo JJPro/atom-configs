@@ -26,16 +26,6 @@ var _child_process = _interopRequireDefault(require("child_process"));
 
 var _RxMin = require("rxjs/bundles/Rx.min.js");
 
-function _waits_for() {
-  const data = _interopRequireDefault(require("../../../jest/waits_for"));
-
-  _waits_for = function () {
-    return data;
-  };
-
-  return data;
-}
-
 function _process() {
   const data = require("../process");
 
@@ -58,6 +48,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  *
  * 
  * @format
+ * @emails oncall+nuclide
  */
 jest.mock("../performanceNow");
 beforeEach(() => {
@@ -80,15 +71,13 @@ describe('commons-node/process', () => {
   });
   describe('process.killProcess', () => {
     it('should only kill the process when `killTree` is false', async () => {
-      await (async () => {
-        const proc = {
-          kill: jasmine.createSpy()
-        };
-        jest.spyOn(console, 'log'); // suppress log printing
+      const proc = {
+        kill: jest.fn()
+      };
+      jest.spyOn(console, 'log'); // suppress log printing
 
-        await (0, _process().killProcess)(proc, false);
-        expect(proc.kill).toHaveBeenCalled();
-      })();
+      await (0, _process().killProcess)(proc, false);
+      expect(proc.kill).toHaveBeenCalled();
     });
     it('should kill the process tree when `killTree` is true', async () => {
       // Create a tree that's more than level child deep.
@@ -103,20 +92,18 @@ describe('commons-node/process', () => {
       expect(process.kill.mock.calls.length).toBeGreaterThan(2);
     });
     it('should kill the process tree on windows when `killTree` is true', async () => {
-      await (async () => {
-        const proc = {
-          pid: 123
-        };
-        jest.spyOn(console, 'log'); // suppress log printing
+      const proc = {
+        pid: 123
+      };
+      jest.spyOn(console, 'log'); // suppress log printing
 
-        Object.defineProperty(process, 'platform', {
-          value: 'win32'
-        });
-        jest.spyOn(_child_process.default, 'exec');
-        await (0, _process().killProcess)(proc, true);
-        expect(_child_process.default.exec.mock.calls).toHaveLength(1);
-        expect(_child_process.default.exec.mock.calls[0][0]).toBe(`taskkill /pid ${proc.pid} /T /F`);
-      })();
+      Object.defineProperty(process, 'platform', {
+        value: 'win32'
+      });
+      jest.spyOn(_child_process.default, 'exec');
+      await (0, _process().killProcess)(proc, true);
+      expect(_child_process.default.exec.mock.calls).toHaveLength(1);
+      expect(_child_process.default.exec.mock.calls[0][0]).toBe(`taskkill /pid ${proc.pid} /T /F`);
     });
   });
   describe('process.parsePsOutput', () => {
@@ -169,60 +156,54 @@ describe('commons-node/process', () => {
   });
   describe('getOutputStream', () => {
     it('captures stdout, stderr and exitCode', async () => {
-      await (async () => {
-        const child = _child_process.default.spawn(process.execPath, ['-e', 'console.error("stderr"); console.log("std out"); process.exit(0);']);
+      const child = _child_process.default.spawn(process.execPath, ['-e', 'console.error("stderr"); console.log("std out"); process.exit(0);']);
 
-        const results = await (0, _process().getOutputStream)(child).toArray().toPromise();
-        expect(results).toEqual([{
-          kind: 'stderr',
-          data: 'stderr\n'
-        }, {
-          kind: 'stdout',
-          data: 'std out\n'
-        }, {
-          kind: 'exit',
-          exitCode: 0,
-          signal: null
-        }]);
-      })();
+      const results = await (0, _process().getOutputStream)(child).toArray().toPromise();
+      expect(results).toEqual([{
+        kind: 'stderr',
+        data: 'stderr\n'
+      }, {
+        kind: 'stdout',
+        data: 'std out\n'
+      }, {
+        kind: 'exit',
+        exitCode: 0,
+        signal: null
+      }]);
     });
     it('errors on nonzero exit codes by default', async () => {
-      await (async () => {
-        const child = _child_process.default.spawn(process.execPath, ['-e', 'console.error("stderr"); console.log("std out"); process.exit(42);']);
+      const child = _child_process.default.spawn(process.execPath, ['-e', 'console.error("stderr"); console.log("std out"); process.exit(42);']);
 
-        const results = await (0, _process().getOutputStream)(child).materialize().toArray().toPromise();
-        expect(results.map(notification => notification.kind)).toEqual(['N', 'N', 'E']);
-        const {
-          error
-        } = results[2];
-        expect(error.name).toBe('ProcessExitError');
-        expect(error.exitCode).toBe(42);
-        expect(error.stderr).toBe('stderr\n');
-      })();
+      const results = await (0, _process().getOutputStream)(child).materialize().toArray().toPromise();
+      expect(results.map(notification => notification.kind)).toEqual(['N', 'N', 'E']);
+      const {
+        error
+      } = results[2];
+      expect(error.name).toBe('ProcessExitError');
+      expect(error.exitCode).toBe(42);
+      expect(error.stderr).toBe('stderr\n');
     });
     it('accumulates the first `exitErrorBufferSize` bytes of stderr for the exit error', async () => {
-      await (async () => {
-        let error;
+      let error;
 
-        const child = _child_process.default.spawn(process.execPath, ['-e', 'console.error("stderr"); process.exit(42);']);
+      const child = _child_process.default.spawn(process.execPath, ['-e', 'console.error("stderr"); process.exit(42);']);
 
-        try {
-          await (0, _process().getOutputStream)(child, {
-            exitErrorBufferSize: 2,
-            isExitError: () => true
-          }).toArray().toPromise();
-        } catch (err) {
-          error = err;
-        }
+      try {
+        await (0, _process().getOutputStream)(child, {
+          exitErrorBufferSize: 2,
+          isExitError: () => true
+        }).toArray().toPromise();
+      } catch (err) {
+        error = err;
+      }
 
-        expect(error).toBeDefined();
+      expect(error).toBeDefined();
 
-        if (!(error != null)) {
-          throw new Error("Invariant violation: \"error != null\"");
-        }
+      if (!(error != null)) {
+        throw new Error("Invariant violation: \"error != null\"");
+      }
 
-        expect(error.stderr).toBe('st');
-      })();
+      expect(error.stderr).toBe('st');
     });
   });
   describe('spawn', () => {
@@ -269,28 +250,26 @@ describe('commons-node/process', () => {
       }).toPromise();
     });
     it('leaves an error handler when you unsubscribe', async () => {
-      await (async () => {
-        jest.spyOn(console, 'log'); // suppress log printing
+      jest.spyOn(console, 'log'); // suppress log printing
 
-        let resolve;
-        const promise = new Promise(r => {
-          resolve = r;
-        });
-        const sub = (0, _process().spawn)('cat', undefined, {
-          dontLogInNuclide: true
-        }) // If we subscribe synchronously, and it emits synchronously, `sub` won't have been
-        // assigned yet in our `subscribe()` callback, so we use the async scheduler.
-        .subscribeOn(_RxMin.Scheduler.async).subscribe(proc => {
-          // As soon as we have a process, unsubscribe. This will happen before the error is
-          // thrown.
-          sub.unsubscribe(); // Make sure that the error handler is still registered. If it isn't, and the process
-          // errors, node will consider the error unhandled and we'll get a redbox.
+      let resolve;
+      const promise = new Promise(r => {
+        resolve = r;
+      });
+      const sub = (0, _process().spawn)('cat', undefined, {
+        dontLogInNuclide: true
+      }) // If we subscribe synchronously, and it emits synchronously, `sub` won't have been
+      // assigned yet in our `subscribe()` callback, so we use the async scheduler.
+      .subscribeOn(_RxMin.Scheduler.async).subscribe(proc => {
+        // As soon as we have a process, unsubscribe. This will happen before the error is
+        // thrown.
+        sub.unsubscribe(); // Make sure that the error handler is still registered. If it isn't, and the process
+        // errors, node will consider the error unhandled and we'll get a redbox.
 
-          expect(proc.listenerCount('error')).toBe(1);
-          resolve();
-        });
-        await promise;
-      })();
+        expect(proc.listenerCount('error')).toBe(1);
+        resolve();
+      });
+      await promise;
     });
     it('can be retried', async () => {
       jest.spyOn(console, 'log'); // suppress log printing
@@ -316,113 +295,101 @@ describe('commons-node/process', () => {
       expect(_child_process.default.spawn.mock.calls).toHaveLength(3);
     });
     it('can be timed out', async () => {
-      await (async () => {
-        let error;
-        let proc;
+      let error;
+      let proc;
 
-        try {
-          await (0, _process().spawn)('sleep', ['10000'], {
-            timeout: 1
-          }).do(p => {
-            proc = p;
-            jest.spyOn(proc, 'kill');
-          }).toPromise();
-        } catch (err) {
-          error = err;
-        }
+      try {
+        await (0, _process().spawn)('sleep', ['10000'], {
+          timeout: 1
+        }).do(p => {
+          proc = p;
+          jest.spyOn(proc, 'kill');
+        }).toPromise();
+      } catch (err) {
+        error = err;
+      }
 
-        if (!(proc != null)) {
-          throw new Error("Invariant violation: \"proc != null\"");
-        }
+      if (!(proc != null)) {
+        throw new Error("Invariant violation: \"proc != null\"");
+      }
 
-        if (!(error != null)) {
-          throw new Error("Invariant violation: \"error != null\"");
-        }
+      if (!(error != null)) {
+        throw new Error("Invariant violation: \"error != null\"");
+      }
 
-        expect(error.name).toBe('ProcessTimeoutError');
-        expect(proc.kill).toHaveBeenCalled();
-      })();
+      expect(error.name).toBe('ProcessTimeoutError');
+      expect(proc.kill).toHaveBeenCalled();
     });
   });
   describe('observeProcess', () => {
     it('errors when the process does', async () => {
-      await (async () => {
-        jest.spyOn(console, 'log'); // suppress log printing
+      jest.spyOn(console, 'log'); // suppress log printing
 
-        const processStream = (0, _process().observeProcess)('fakeCommand', []);
-        let error;
+      const processStream = (0, _process().observeProcess)('fakeCommand', []);
+      let error;
 
-        try {
-          await processStream.toPromise();
-        } catch (err) {
-          error = err;
-        }
+      try {
+        await processStream.toPromise();
+      } catch (err) {
+        error = err;
+      }
 
-        expect(error).toBeDefined();
+      expect(error).toBeDefined();
 
-        if (!error) {
-          throw new Error("Invariant violation: \"error\"");
-        }
+      if (!error) {
+        throw new Error("Invariant violation: \"error\"");
+      }
 
-        expect(error.code).toBe('ENOENT');
-        expect(error.message).toBe('spawn fakeCommand ENOENT');
-      })();
+      expect(error.code).toBe('ENOENT');
+      expect(error.message).toBe('spawn fakeCommand ENOENT');
     });
     it('errors on nonzero exit codes by default', async () => {
-      await (async () => {
-        const results = await (0, _process().observeProcess)(process.execPath, ['-e', 'console.error("stderr"); console.log("std out"); process.exit(42);']).materialize().toArray().toPromise();
-        expect(results.map(notification => notification.kind)).toEqual(['N', 'N', 'E']);
-        const {
-          error
-        } = results[2];
-        expect(error.name).toBe('ProcessExitError');
-        expect(error.exitCode).toBe(42);
-        expect(error.stderr).toBe('stderr\n');
-      })();
+      const results = await (0, _process().observeProcess)(process.execPath, ['-e', 'console.error("stderr"); console.log("std out"); process.exit(42);']).materialize().toArray().toPromise();
+      expect(results.map(notification => notification.kind)).toEqual(['N', 'N', 'E']);
+      const {
+        error
+      } = results[2];
+      expect(error.name).toBe('ProcessExitError');
+      expect(error.exitCode).toBe(42);
+      expect(error.stderr).toBe('stderr\n');
     });
     it("doesn't get an exit message when there's an exit error", async () => {
-      await (async () => {
-        const results = await (0, _process().observeProcess)(process.execPath, ['-e', 'process.exit(42);']).materialize().toArray().toPromise();
-        expect(results.length).toBe(1);
-        expect(results[0].kind).toBe('E');
-      })();
+      const results = await (0, _process().observeProcess)(process.execPath, ['-e', 'process.exit(42);']).materialize().toArray().toPromise();
+      expect(results.length).toBe(1);
+      expect(results[0].kind).toBe('E');
     });
     it('accumulates the first `exitErrorBufferSize` bytes of stderr for the exit error', async () => {
-      await (async () => {
-        let error;
+      let error;
 
-        try {
-          await (0, _process().observeProcess)(process.execPath, ['-e', 'console.error("stderr"); process.exit(42);'], {
-            exitErrorBufferSize: 2,
-            isExitError: () => true
-          }).toArray().toPromise();
-        } catch (err) {
-          error = err;
-        }
+      try {
+        await (0, _process().observeProcess)(process.execPath, ['-e', 'console.error("stderr"); process.exit(42);'], {
+          exitErrorBufferSize: 2,
+          isExitError: () => true
+        }).toArray().toPromise();
+      } catch (err) {
+        error = err;
+      }
 
-        expect(error).toBeDefined();
+      expect(error).toBeDefined();
 
-        if (!(error != null)) {
-          throw new Error("Invariant violation: \"error != null\"");
-        }
+      if (!(error != null)) {
+        throw new Error("Invariant violation: \"error != null\"");
+      }
 
-        expect(error.stderr).toBe('st');
-      })();
+      expect(error.stderr).toBe('st');
     });
   });
   describe('observeProcessRaw', () => {
     it("doesn't split on line breaks", async () => {
       jest.spyOn(console, 'log'); // suppress log printing
 
-      await (async () => {
-        const event = await (0, _process().observeProcessRaw)(process.execPath, ['-e', 'process.stdout.write("stdout1\\nstdout2\\n"); process.exit(1)']).take(1).toPromise();
+      const event = await (0, _process().observeProcessRaw)(process.execPath, ['-e', 'process.stdout.write("stdout1\\nstdout2\\n"); process.exit(1)']).take(1).toPromise();
 
-        if (!(event.kind === 'stdout')) {
-          throw new Error("Invariant violation: \"event.kind === 'stdout'\"");
-        }
+      if (!(event.kind === 'stdout')) {
+        throw new Error("Invariant violation: \"event.kind === 'stdout'\"");
+      }
 
-        expect(event.data).toBe('stdout1\nstdout2\n');
-      })();
+      expect(event.data).toBe('stdout1\nstdout2\n');
     });
   });
   describe('runCommand', () => {
@@ -496,59 +463,51 @@ describe('commons-node/process', () => {
       await expect(cmd.toPromise()).rejects.toThrow('failed with exit code 1');
     });
     it('includes stdout and stderr in ProcessExitErrors', async () => {
-      await (async () => {
-        let error;
+      let error;
 
-        try {
-          await (0, _process().runCommand)(process.execPath, ['-e', 'process.stderr.write("oopsy"); process.stdout.write("daisy"); process.exit(1)']).toPromise();
-        } catch (err) {
-          error = err;
-        }
+      try {
+        await (0, _process().runCommand)(process.execPath, ['-e', 'process.stderr.write("oopsy"); process.stdout.write("daisy"); process.exit(1)']).toPromise();
+      } catch (err) {
+        error = err;
+      }
 
-        if (!(error != null)) {
-          throw new Error("Invariant violation: \"error != null\"");
-        }
+      if (!(error != null)) {
+        throw new Error("Invariant violation: \"error != null\"");
+      }
 
-        expect(error.name).toBe('ProcessExitError');
-        expect(error.stderr).toBe('oopsy');
-        expect(error.stdout).toBe('daisy');
-      })();
+      expect(error.name).toBe('ProcessExitError');
+      expect(error.stderr).toBe('oopsy');
+      expect(error.stdout).toBe('daisy');
     });
     it('accumulates the stderr if the process exits with a non-zero code', async () => {
-      await (async () => {
-        let error;
+      let error;
 
-        try {
-          await (0, _process().runCommand)(process.execPath, ['-e', 'process.stderr.write("oopsy"); process.exit(1)']).toPromise();
-        } catch (err) {
-          error = err;
-        }
+      try {
+        await (0, _process().runCommand)(process.execPath, ['-e', 'process.stderr.write("oopsy"); process.exit(1)']).toPromise();
+      } catch (err) {
+        error = err;
+      }
 
-        if (!(error != null)) {
-          throw new Error("Invariant violation: \"error != null\"");
-        }
+      if (!(error != null)) {
+        throw new Error("Invariant violation: \"error != null\"");
+      }
 
-        expect(error.stderr).toBe('oopsy');
-      })();
+      expect(error.stderr).toBe('oopsy');
     }); // Previously we had a bug where we mutated the seed and subsequent subscriptions would use the
     // mutated value.
 
     it("doesn't share a mutable seed (regression test)", async () => {
-      await (async () => {
-        const observable = (0, _process().runCommand)(process.execPath, ['-e', 'process.stdout.write("hello"); process.exit(0)']);
-        await observable.toPromise();
-        expect((await observable.toPromise())).toBe('hello');
-      })();
+      const observable = (0, _process().runCommand)(process.execPath, ['-e', 'process.stdout.write("hello"); process.exit(0)']);
+      await observable.toPromise();
+      expect((await observable.toPromise())).toBe('hello');
     });
     describe('checkOutput compatibility', () => {
       if (origPlatform !== 'win32') {
         it('returns stdout of the running process', async () => {
-          await (async () => {
-            const val = await (0, _process().runCommand)('echo', ['-n', 'foo'], {
-              env: process.env
-            }).toPromise();
-            expect(val).toEqual('foo');
-          })();
+          const val = await (0, _process().runCommand)('echo', ['-n', 'foo'], {
+            env: process.env
+          }).toPromise();
+          expect(val).toEqual('foo');
         });
         it('throws an error if the exit code !== 0', async () => {
           await expect((0, _process().runCommand)(process.execPath, ['-e', 'process.exit(1)']).toPromise()).rejects.toThrow('failed with exit code 1');
@@ -567,41 +526,35 @@ describe('commons-node/process', () => {
     }
 
     it('sends the stdin to the process', async () => {
-      await (async () => {
-        const output = await (0, _process().runCommandDetailed)('cat', [], {
-          input: 'hello'
-        }).toPromise();
-        expect(output.stdout).toBe('hello');
-      })();
+      const output = await (0, _process().runCommandDetailed)('cat', [], {
+        input: 'hello'
+      }).toPromise();
+      expect(output.stdout).toBe('hello');
     });
     it('enforces maxBuffer', async () => {
-      await (async () => {
-        let error;
+      let error;
 
-        try {
-          await (0, _process().runCommandDetailed)('yes', [], {
-            maxBuffer: 100
-          }).toPromise();
-        } catch (err) {
-          error = err;
-        }
+      try {
+        await (0, _process().runCommandDetailed)('yes', [], {
+          maxBuffer: 100
+        }).toPromise();
+      } catch (err) {
+        error = err;
+      }
 
-        if (!(error != null)) {
-          throw new Error("Invariant violation: \"error != null\"");
-        }
+      if (!(error != null)) {
+        throw new Error("Invariant violation: \"error != null\"");
+      }
 
-        expect(error.message).toContain('maxBuffer');
-      })();
+      expect(error.message).toContain('maxBuffer');
     });
     it('returns stdout, stderr, and the exit code of the running process', async () => {
-      await (async () => {
-        const val = await (0, _process().runCommandDetailed)(process.execPath, ['-e', 'process.stdout.write("out"); process.stderr.write("err"); process.exit(0)']).toPromise();
-        expect(val).toEqual({
-          stdout: 'out',
-          stderr: 'err',
-          exitCode: 0
-        });
-      })();
+      const val = await (0, _process().runCommandDetailed)(process.execPath, ['-e', 'process.stdout.write("out"); process.stderr.write("err"); process.exit(0)']).toPromise();
+      expect(val).toEqual({
+        stdout: 'out',
+        stderr: 'err',
+        exitCode: 0
+      });
     });
     it("throws an error if the process can't be spawned", async () => {
       let error;
@@ -636,21 +589,19 @@ describe('commons-node/process', () => {
       expect(error.exitCode).toBe(1);
     });
     it('accumulates the stderr if the process exits with a non-zero code', async () => {
-      await (async () => {
-        let error;
+      let error;
 
-        try {
-          await (0, _process().runCommandDetailed)(process.execPath, ['-e', 'process.stderr.write("oopsy"); process.exit(1)']).toPromise();
-        } catch (err) {
-          error = err;
-        }
+      try {
+        await (0, _process().runCommandDetailed)(process.execPath, ['-e', 'process.stderr.write("oopsy"); process.exit(1)']).toPromise();
+      } catch (err) {
+        error = err;
+      }
 
-        if (!(error != null)) {
-          throw new Error("Invariant violation: \"error != null\"");
-        }
+      if (!(error != null)) {
+        throw new Error("Invariant violation: \"error != null\"");
+      }
 
-        expect(error.stderr).toBe('oopsy');
-      })();
+      expect(error.stderr).toBe('oopsy');
     });
   });
   describe('exitEventToMessage', () => {
@@ -682,16 +633,16 @@ describe('commons-node/process', () => {
     });
     it('adds listeners', () => {
       (0, _process().preventStreamsFromThrowing)(proc);
-      expect(proc.stdin.addListener).toHaveBeenCalledWith('error', jasmine.any(Function));
-      expect(proc.stdout.addListener).toHaveBeenCalledWith('error', jasmine.any(Function));
-      expect(proc.stderr.addListener).toHaveBeenCalledWith('error', jasmine.any(Function));
+      expect(proc.stdin.addListener).toHaveBeenCalledWith('error', expect.any(Function));
+      expect(proc.stdout.addListener).toHaveBeenCalledWith('error', expect.any(Function));
+      expect(proc.stderr.addListener).toHaveBeenCalledWith('error', expect.any(Function));
     });
     it('removes listeners when disposed', () => {
       const disposable = (0, _process().preventStreamsFromThrowing)(proc);
       disposable.dispose();
-      expect(proc.stdin.removeListener).toHaveBeenCalledWith('error', jasmine.any(Function));
-      expect(proc.stdout.removeListener).toHaveBeenCalledWith('error', jasmine.any(Function));
-      expect(proc.stderr.removeListener).toHaveBeenCalledWith('error', jasmine.any(Function));
+      expect(proc.stdin.removeListener).toHaveBeenCalledWith('error', expect.any(Function));
+      expect(proc.stdout.removeListener).toHaveBeenCalledWith('error', expect.any(Function));
+      expect(proc.stderr.removeListener).toHaveBeenCalledWith('error', expect.any(Function));
     });
   });
   describe('logStreamErrors', () => {
@@ -740,10 +691,8 @@ describe('commons-node/process', () => {
   describe('scriptifyCommand', () => {
     if (process.platform === 'linux') {
       it('escapes correctly on linux', async () => {
-        await (async () => {
-          const output = await (0, _process().runCommand)(...(0, _process().scriptifyCommand)('echo', ['a\\b c\\\\d e\\\\\\f g\\\\\\\\h "dubs" \'singles\'', 'one   two'])).toPromise();
-          expect(output.trim()).toBe('a\\b c\\\\d e\\\\\\f g\\\\\\\\h "dubs" \'singles\' one   two');
-        })();
+        const output = await (0, _process().runCommand)(...(0, _process().scriptifyCommand)('echo', ['a\\b c\\\\d e\\\\\\f g\\\\\\\\h "dubs" \'singles\'', 'one   two'])).toPromise();
+        expect(output.trim()).toBe('a\\b c\\\\d e\\\\\\f g\\\\\\\\h "dubs" \'singles\' one   two');
       });
     }
   });

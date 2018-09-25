@@ -34,6 +34,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  *
  * 
  * @format
+ * @emails oncall+nuclide
  */
 describe('ActiveEditorRegistry', () => {
   let activeEditorRegistry = null;
@@ -57,26 +58,24 @@ describe('ActiveEditorRegistry', () => {
   }
 
   beforeEach(async () => {
-    await (async () => {
-      activeEditors = new _RxMin.Subject();
-      editorChanges = new _RxMin.Subject();
-      editorSaves = new _RxMin.Subject();
-      shouldProviderError = false;
-      resultFunction = jest.fn().mockImplementation(async () => {
-        if (shouldProviderError) {
-          throw new Error('baaaaad');
-        }
-      });
-      config = {};
-      eventSources = {
-        activeEditors,
-        changesForEditor: () => editorChanges,
-        savesForEditor: () => editorSaves
-      };
-      initializeService();
-      editor1 = await atom.workspace.open();
-      editor2 = await atom.workspace.open();
-    })();
+    activeEditors = new _RxMin.Subject();
+    editorChanges = new _RxMin.Subject();
+    editorSaves = new _RxMin.Subject();
+    shouldProviderError = false;
+    resultFunction = jest.fn().mockImplementation(async () => {
+      if (shouldProviderError) {
+        throw new Error('baaaaad');
+      }
+    });
+    config = {};
+    eventSources = {
+      activeEditors,
+      changesForEditor: () => editorChanges,
+      savesForEditor: () => editorSaves
+    };
+    initializeService();
+    editor1 = await atom.workspace.open();
+    editor2 = await atom.workspace.open();
   });
   describe('when there is a provider', () => {
     let provider = null;
@@ -88,42 +87,38 @@ describe('ActiveEditorRegistry', () => {
       activeEditorRegistry.consumeProvider(provider);
     });
     it('should create correct event stream during normal use', async () => {
-      await (async () => {
-        activeEditors.next(null);
-        await waitForNextTick();
-        activeEditors.next(editor1);
-        await waitForNextTick();
-        editorChanges.next(undefined);
-        await waitForNextTick();
-        activeEditors.next(editor2);
-        await (0, _testHelpers().expectObservableToStartWith)(eventNames, ['not-text-editor', 'pane-change', 'result', 'edit', 'result', 'pane-change', 'result']);
-        const fullEvents = await events.take(4).toArray().toPromise();
-        expect(fullEvents[1]).toEqual({
-          kind: 'pane-change',
-          editor: editor1
-        });
-        expect(fullEvents[2]).toEqual({
-          kind: 'result',
-          editor: editor1,
-          provider,
-          result: undefined
-        });
-        expect(fullEvents[3]).toEqual({
-          kind: 'edit',
-          editor: editor1
-        });
-      })();
+      activeEditors.next(null);
+      await waitForNextTick();
+      activeEditors.next(editor1);
+      await waitForNextTick();
+      editorChanges.next(undefined);
+      await waitForNextTick();
+      activeEditors.next(editor2);
+      await (0, _testHelpers().expectObservableToStartWith)(eventNames, ['not-text-editor', 'pane-change', 'result', 'edit', 'result', 'pane-change', 'result']);
+      const fullEvents = await events.take(4).toArray().toPromise();
+      expect(fullEvents[1]).toEqual({
+        kind: 'pane-change',
+        editor: editor1
+      });
+      expect(fullEvents[2]).toEqual({
+        kind: 'result',
+        editor: editor1,
+        provider,
+        result: undefined
+      });
+      expect(fullEvents[3]).toEqual({
+        kind: 'edit',
+        editor: editor1
+      });
     });
     it('should not emit save events when it is configured to respond to edit events', async () => {
-      await (async () => {
-        activeEditors.next(editor1);
-        await waitForNextTick();
-        editorChanges.next(undefined);
-        await waitForNextTick();
-        editorSaves.next(undefined);
-        await waitForNextTick();
-        await (0, _testHelpers().expectObservableToStartWith)(eventNames, ['pane-change', 'result', 'edit', 'result']);
-      })();
+      activeEditors.next(editor1);
+      await waitForNextTick();
+      editorChanges.next(undefined);
+      await waitForNextTick();
+      editorSaves.next(undefined);
+      await waitForNextTick();
+      await (0, _testHelpers().expectObservableToStartWith)(eventNames, ['pane-change', 'result', 'edit', 'result']);
     });
     describe('when configured to respond to save events', () => {
       beforeEach(() => {
@@ -136,20 +131,18 @@ describe('ActiveEditorRegistry', () => {
         });
       });
       it('should generate and respond to save events', async () => {
-        await (async () => {
-          activeEditors.next(editor1);
-          await waitForNextTick();
-          editorChanges.next(undefined);
-          await waitForNextTick();
-          editorSaves.next(undefined);
-          await waitForNextTick();
-          await (0, _testHelpers().expectObservableToStartWith)(eventNames, ['pane-change', 'result', 'save', 'result']);
-          const fullEvents = await events.take(3).toArray().toPromise();
-          expect(fullEvents[2]).toEqual({
-            kind: 'save',
-            editor: editor1
-          });
-        })();
+        activeEditors.next(editor1);
+        await waitForNextTick();
+        editorChanges.next(undefined);
+        await waitForNextTick();
+        editorSaves.next(undefined);
+        await waitForNextTick();
+        await (0, _testHelpers().expectObservableToStartWith)(eventNames, ['pane-change', 'result', 'save', 'result']);
+        const fullEvents = await events.take(3).toArray().toPromise();
+        expect(fullEvents[2]).toEqual({
+          kind: 'save',
+          editor: editor1
+        });
       });
     });
     describe('when given providers with different updateOnEdit settings', () => {
@@ -170,34 +163,30 @@ describe('ActiveEditorRegistry', () => {
         });
       });
       it('should generate and respond to the appropriate event', async () => {
-        await (async () => {
-          activeEditors.next(editor1);
-          await waitForNextTick();
-          editorChanges.next(undefined);
-          await waitForNextTick();
-          editorSaves.next(undefined);
-          await waitForNextTick();
-          activeEditors.next(editor2);
-          await waitForNextTick();
-          editorChanges.next(undefined);
-          await waitForNextTick();
-          editorSaves.next(undefined);
-          await waitForNextTick();
-          await (0, _testHelpers().expectObservableToStartWith)(eventNames, ['pane-change', 'result', 'edit', 'result', 'pane-change', 'result', 'save', 'result']);
-        })();
+        activeEditors.next(editor1);
+        await waitForNextTick();
+        editorChanges.next(undefined);
+        await waitForNextTick();
+        editorSaves.next(undefined);
+        await waitForNextTick();
+        activeEditors.next(editor2);
+        await waitForNextTick();
+        editorChanges.next(undefined);
+        await waitForNextTick();
+        editorSaves.next(undefined);
+        await waitForNextTick();
+        await (0, _testHelpers().expectObservableToStartWith)(eventNames, ['pane-change', 'result', 'edit', 'result', 'pane-change', 'result', 'save', 'result']);
       });
     });
     it("should produce the 'provider-error' event when a provider errors", async () => {
-      await (async () => {
-        shouldProviderError = true;
-        activeEditors.next(editor1);
-        await waitForNextTick();
-        await (0, _testHelpers().expectObservableToStartWith)(eventNames, ['pane-change', 'provider-error']);
-        expect((await events.elementAt(1).toPromise())).toEqual({
-          kind: 'provider-error',
-          provider
-        });
-      })();
+      shouldProviderError = true;
+      activeEditors.next(editor1);
+      await waitForNextTick();
+      await (0, _testHelpers().expectObservableToStartWith)(eventNames, ['pane-change', 'provider-error']);
+      expect((await events.elementAt(1).toPromise())).toEqual({
+        kind: 'provider-error',
+        provider
+      });
     });
     it('should immediately query a better provider', () => {
       const betterProvider = {
@@ -212,11 +201,9 @@ describe('ActiveEditorRegistry', () => {
   });
   describe('when there is no provider', () => {
     it("should produce the 'no-provider' result when there is no provider", async () => {
-      await (async () => {
-        activeEditors.next(editor1);
-        await waitForNextTick();
-        await (0, _testHelpers().expectObservableToStartWith)(eventNames, ['pane-change', 'no-provider']);
-      })();
+      activeEditors.next(editor1);
+      await waitForNextTick();
+      await (0, _testHelpers().expectObservableToStartWith)(eventNames, ['pane-change', 'no-provider']);
     });
   });
 });

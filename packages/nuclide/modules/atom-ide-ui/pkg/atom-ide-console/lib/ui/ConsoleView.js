@@ -146,6 +146,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  */
 // Maximum time (ms) for the console to try scrolling to the bottom.
 const MAXIMUM_SCROLLING_TIME = 3000;
+const DEFAULT_SCOPE_NAME = 'text.plain';
 let count = 0;
 
 class ConsoleView extends React.Component {
@@ -213,9 +214,11 @@ class ConsoleView extends React.Component {
     };
 
     this.state = {
-      unseenMessages: false
+      unseenMessages: false,
+      scopeName: DEFAULT_SCOPE_NAME
     };
     this._disposables = new (_UniversalDisposable().default)();
+    this._executorScopeDisposables = new (_UniversalDisposable().default)();
     this._isScrolledNearBottom = true;
     this._continuouslyScrollToBottom = false;
     this._id = count++;
@@ -248,6 +251,8 @@ class ConsoleView extends React.Component {
 
   componentWillUnmount() {
     this._disposables.dispose();
+
+    this._executorScopeDisposables.dispose();
   }
 
   componentDidUpdate(prevProps) {
@@ -302,6 +307,21 @@ class ConsoleView extends React.Component {
         unseenMessages: true
       });
     }
+
+    this._executorScopeDisposables.dispose();
+
+    this._executorScopeDisposables = new (_UniversalDisposable().default)();
+
+    for (const executor of nextProps.executors.values()) {
+      if (executor != null && executor.onDidChangeScopeName != null) {
+        this._executorScopeDisposables.add(executor.onDidChangeScopeName(() => {
+          const scopeName = executor.scopeName();
+          this.setState({
+            scopeName
+          });
+        }));
+      }
+    }
   }
 
   shouldComponentUpdate(nextProps, nextState) {
@@ -329,7 +349,9 @@ class ConsoleView extends React.Component {
       selectedSourceIds: this.props.selectedSourceIds,
       sources: this.props.sources,
       onFilterChange: this.props.updateFilter,
-      onSelectedSourcesChange: this.props.selectSources
+      onSelectedSourcesChange: this.props.selectSources,
+      selectedSeverities: this.props.selectedSeverities,
+      toggleSeverity: this.props.toggleSeverity
     }), React.createElement("div", {
       className: "console-body",
       id: 'console-font-size-' + this._id
@@ -384,7 +406,7 @@ class ConsoleView extends React.Component {
       className: "console-prompt"
     }, this._renderPromptButton(), React.createElement(_InputArea().default, {
       ref: component => this._inputArea = component,
-      scopeName: currentExecutor.scopeName,
+      scopeName: this.state.scopeName,
       onSubmit: this._executePrompt,
       history: this.props.history,
       watchEditor: this.props.watchEditor,

@@ -44,6 +44,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  *
  * 
  * @format
+ * @emails oncall+nuclide
  */
 describe('arePropertiesEqual', () => {
   it('correctly compares empty objects', () => {
@@ -103,7 +104,7 @@ describe('expectAsyncFailure', () => {
       const expectedMessage = 'I failed badly.';
 
       if (error.message !== expectedMessage) {
-        throw Error(`Expected '${expectedMessage}', but was ${error.message}.`);
+        throw new Error(`Expected '${expectedMessage}', but was ${error.message}.`);
       }
     }
 
@@ -118,7 +119,7 @@ describe('expectAsyncFailure', () => {
       const expectedMessage = 'I failed badly.';
 
       if (error.message !== expectedMessage) {
-        throw Error(`Expected '${expectedMessage}', but was ${error.message}.`);
+        throw new Error(`Expected '${expectedMessage}', but was ${error.message}.`);
       }
     }
 
@@ -128,20 +129,18 @@ describe('expectAsyncFailure', () => {
 });
 describe('generateFixture', () => {
   it('should create the directory hierarchy', async () => {
-    await (async () => {
-      const fixturePath = await (0, _testHelpers().generateFixture)('fixture-to-generate', new Map([['foo.js', undefined], ['bar/baz.txt', 'some text']]));
-      expect(_nuclideUri().default.isAbsolute(fixturePath)).toBe(true);
-      expect(_fs.default.statSync(fixturePath).isDirectory()).toBe(true);
+    const fixturePath = await (0, _testHelpers().generateFixture)('fixture-to-generate', new Map([['foo.js', undefined], ['bar/baz.txt', 'some text']]));
+    expect(_nuclideUri().default.isAbsolute(fixturePath)).toBe(true);
+    expect(_fs.default.statSync(fixturePath).isDirectory()).toBe(true);
 
-      const fooPath = _nuclideUri().default.join(fixturePath, 'foo.js');
+    const fooPath = _nuclideUri().default.join(fixturePath, 'foo.js');
 
-      const bazPath = _nuclideUri().default.join(fixturePath, 'bar/baz.txt');
+    const bazPath = _nuclideUri().default.join(fixturePath, 'bar/baz.txt');
 
-      expect(_fs.default.statSync(fooPath).isFile()).toBe(true);
-      expect(_fs.default.statSync(bazPath).isFile()).toBe(true);
-      expect(_fs.default.readFileSync(fooPath, 'utf8')).toBe('');
-      expect(_fs.default.readFileSync(bazPath, 'utf8')).toBe('some text');
-    })();
+    expect(_fs.default.statSync(fooPath).isFile()).toBe(true);
+    expect(_fs.default.statSync(bazPath).isFile()).toBe(true);
+    expect(_fs.default.readFileSync(fooPath, 'utf8')).toBe('');
+    expect(_fs.default.readFileSync(bazPath, 'utf8')).toBe('some text');
   });
   it('should work with lots of files', async () => {
     const files = new Map();
@@ -159,20 +158,16 @@ describe('generateFixture', () => {
     expect(fixtureFiles.length).toBe(3000);
   }, 20000);
   it('should work with no files', async () => {
-    await (async () => {
-      const fixturePath = await (0, _testHelpers().generateFixture)('fixture-empty', new Map());
-      expect(_nuclideUri().default.isAbsolute(fixturePath)).toBe(true);
-      expect(_fs.default.statSync(fixturePath).isDirectory()).toBe(true);
-      expect(_fs.default.readdirSync(fixturePath)).toEqual([]);
-    })();
+    const fixturePath = await (0, _testHelpers().generateFixture)('fixture-empty', new Map());
+    expect(_nuclideUri().default.isAbsolute(fixturePath)).toBe(true);
+    expect(_fs.default.statSync(fixturePath).isDirectory()).toBe(true);
+    expect(_fs.default.readdirSync(fixturePath)).toEqual([]);
   });
   it('works with no files arg', async () => {
-    await (async () => {
-      const fixturePath = await (0, _testHelpers().generateFixture)('fixture-empty');
-      expect(_nuclideUri().default.isAbsolute(fixturePath)).toBe(true);
-      expect(_fs.default.statSync(fixturePath).isDirectory()).toBe(true);
-      expect(_fs.default.readdirSync(fixturePath)).toEqual([]);
-    })();
+    const fixturePath = await (0, _testHelpers().generateFixture)('fixture-empty');
+    expect(_nuclideUri().default.isAbsolute(fixturePath)).toBe(true);
+    expect(_fs.default.statSync(fixturePath).isDirectory()).toBe(true);
+    expect(_fs.default.readdirSync(fixturePath)).toEqual([]);
   });
 });
 describe('Mocking Imports test suite', () => {

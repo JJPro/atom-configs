@@ -83,6 +83,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  *
  *  strict-local
  * @format
+ * @emails oncall+nuclide
  */
 jest.setTimeout(25000);
 let emitter;
@@ -109,19 +110,16 @@ const NODE_TEST_FILE = 'node_test_file';
 describe('FileWatcherService', () => {
   let statMock;
   let realpathMock;
-  let fsWatchSpy;
   let nodeTestDirPath;
   let nodeTestFilePath;
 
   const createNodeTestFile = async callback => {
-    await (async () => {
-      nodeTestDirPath = await (0, _testHelpers().generateFixture)('watchWithNodeTest', new Map([[NODE_TEST_FILE, null]]));
-      nodeTestFilePath = `${nodeTestDirPath}/${NODE_TEST_FILE}`;
+    nodeTestDirPath = await (0, _testHelpers().generateFixture)('watchWithNodeTest', new Map([[NODE_TEST_FILE, null]]));
+    nodeTestFilePath = `${nodeTestDirPath}/${NODE_TEST_FILE}`;
 
-      if (callback) {
-        callback();
-      }
-    })();
+    if (callback) {
+      callback();
+    }
   };
 
   beforeEach(async () => {
@@ -129,8 +127,8 @@ describe('FileWatcherService', () => {
     statMock = jest.spyOn(_fsPromise().default, 'stat').mockImplementation(path => ({
       isFile: () => path === TEST_FILE
     }));
-    realpathMock = jest.spyOn(_fsPromise().default, 'realpath').mockImplementation(x => x);
-    fsWatchSpy = jest.spyOn(_fs.default, 'watch');
+    realpathMock = jest.spyOn(_fsPromise().default, 'realpath').mockImplementation(x => Promise.resolve(x));
+    jest.spyOn(_fs.default, 'watch');
     await createNodeTestFile();
   });
   it('watches changes to files', async () => {
@@ -309,6 +307,32 @@ describe('FileWatcherService', () => {
     }
 
     await (0, _waits_for().default)(() => errorMock.mock.calls.length > 0 && errorMockWithNode.mock.calls.length > 0);
+  });
+  it('allows watching non-existant files', async () => {
+    const changes = [];
+    statMock.mockImplementation(() => {
+      // eslint-disable-next-line prefer-promise-reject-errors
+      return Promise.reject({
+        code: 'ENOENT'
+      });
+    });
+    const watch = (0, _FileWatcherService().watchDirectoryRecursive)(TEST_DIR).refCount();
+    watch.subscribe();
+    await watch.take(1).toPromise();
+    (0, _FileWatcherService().watchFile)(TEST_FILE).refCount().subscribe({
+      next: change => changes.push(change)
+    });
+    await (0, _promise().nextTick)();
+    emitter.emit('change', [{
+      name: 'file',
+      new: true,
+      exists: true,
+      mode: 0
+    }]);
+    expect(changes).toEqual([{
+      path: TEST_FILE,
+      type: 'change'
+    }]);
   });
   it('warns when you try to watch the wrong entity type', async () => {
     const warnSpy = jest.fn();

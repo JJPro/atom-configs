@@ -51,6 +51,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  *
  * 
  * @format
+ * @emails oncall+nuclide
  */
 const TEST_TARGET = '//test:target';
 
@@ -89,10 +90,9 @@ describe('LinkTreeLinter', () => {
     linkTreeLinter.observeMessages().subscribe(m => {
       messages = m;
     });
-    await (async () => {
-      await atom.workspace.open(file1);
-      await sleep(1000); // debounce delay
-    })();
+    await atom.workspace.open(file1);
+    await sleep(1000); // debounce delay
+
     await (0, _waits_for().default)(() => messages.length > 0, 'a diagnostic to appear');
     expect(messages.length).toBe(1);
     const message = messages[0];
@@ -115,24 +115,21 @@ describe('LinkTreeLinter', () => {
     solutions[0].apply();
     expect(messages).toEqual([]);
     expect(mockBuckTaskRunner.setBuildTarget).toHaveBeenCalledWith(TEST_TARGET);
-    await (async () => {
-      await atom.workspace.open(file2);
-      await sleep(1000); // debounce delay
-    })();
+    await atom.workspace.open(file2);
+    await sleep(1000); // debounce delay
+
     await (0, _waits_for().default)(() => messages.length > 0, 'a diagnostic to appear');
     expect(messages.length).toBe(1);
     {
-      const message = messages[0];
-      expect(message.location.file).toBe(file2);
-    }
-    {
-      // Finishing the Buck task should also dismiss the message.
-      // $FlowFixMe
-      onDidCompleteTask({
-        buildTarget: TEST_TARGET
-      });
-      expect(messages).toEqual([]);
-    }
+      const message1 = messages[0];
+      expect(message1.location.file).toBe(file2);
+    } // Finishing the Buck task should also dismiss the message.
+    // $FlowFixMe
+
+    onDidCompleteTask({
+      buildTarget: TEST_TARGET
+    });
+    expect(messages).toEqual([]);
     mockCwdApi.getCwd.mockRestore();
     await atom.workspace.open(file1);
     await sleep(1000); // debounce delay

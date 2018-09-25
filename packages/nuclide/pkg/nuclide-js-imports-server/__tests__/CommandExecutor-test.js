@@ -39,6 +39,7 @@ function _ImportFormatter() {
  *
  *  strict-local
  * @format
+ * @emails oncall+nuclide
  */
 function getProgramBody(src) {
   const ast = (0, _AutoImportsManager().parseFile)(src);

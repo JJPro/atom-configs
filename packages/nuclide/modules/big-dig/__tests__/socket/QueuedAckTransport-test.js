@@ -32,6 +32,7 @@ var _RxMin = require("rxjs/bundles/Rx.min.js");
  *
  * 
  * @format
+ * @emails oncall+nuclide
  */
 function makeUnreliableTransport(receiver = new _RxMin.Subject()) {
   let isClosed = false;

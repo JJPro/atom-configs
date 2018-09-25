@@ -41,12 +41,13 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  *
  *  strict-local
  * @format
+ * @emails oncall+nuclide
  */
 function createDummyExecutor(id) {
   return {
     id,
     name: id,
-    scopeName: 'text.plain',
+    scopeName: () => 'text.plain',
     send: code => {},
     output: _RxMin.Observable.create(observer => {})
   };
@@ -60,6 +61,7 @@ const baseAppState = {
   providers: new Map(),
   providerStatuses: new Map(),
   records: Immutable().List(),
+  incompleteRecords: Immutable().List(),
   history: []
 };
 describe('getCurrentExecutorId', () => {

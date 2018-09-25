@@ -49,30 +49,20 @@ function _WorkingSetNameAndSaveComponent() {
   return data;
 }
 
-function _FileTreeStore() {
-  const data = _interopRequireDefault(require("../lib/FileTreeStore"));
-
-  _FileTreeStore = function () {
-    return data;
-  };
-
-  return data;
-}
-
-function _FileTreeActions() {
-  const data = _interopRequireDefault(require("../lib/FileTreeActions"));
-
-  _FileTreeActions = function () {
-    return data;
-  };
-
-  return data;
-}
-
 function Selectors() {
-  const data = _interopRequireWildcard(require("../lib/FileTreeSelectors"));
+  const data = _interopRequireWildcard(require("../lib/redux/Selectors"));
 
   Selectors = function () {
+    return data;
+  };
+
+  return data;
+}
+
+function Actions() {
+  const data = _interopRequireWildcard(require("../lib/redux/Actions"));
+
+  Actions = function () {
     return data;
   };
 
@@ -146,7 +136,7 @@ class FileTreeToolbarComponent extends React.Component {
     };
 
     this._toggleWorkingSetEditMode = () => {
-      if (Selectors().isEditingWorkingSet(this.props.store)) {
+      if (Selectors().isEditingWorkingSet(this.props.store.getState())) {
         this._finishEditingWorkingSet();
       } else {
         this._startEditingWorkingSet(new (_nuclideWorkingSetsCommon().WorkingSet)());
@@ -154,13 +144,13 @@ class FileTreeToolbarComponent extends React.Component {
     };
 
     this._saveWorkingSet = name => {
-      const workingSetsStore = Selectors().getWorkingSetsStore(this.props.store);
+      const workingSetsStore = Selectors().getWorkingSetsStore(this.props.store.getState());
 
       if (!workingSetsStore) {
         throw new Error("Invariant violation: \"workingSetsStore\"");
       }
 
-      const editedWorkingSet = Selectors().getEditedWorkingSet(this.props.store);
+      const editedWorkingSet = Selectors().getEditedWorkingSet(this.props.store.getState());
 
       this._finishEditingWorkingSet();
 
@@ -169,13 +159,13 @@ class FileTreeToolbarComponent extends React.Component {
     };
 
     this._updateWorkingSet = (prevName, name) => {
-      const workingSetsStore = Selectors().getWorkingSetsStore(this.props.store);
+      const workingSetsStore = Selectors().getWorkingSetsStore(this.props.store.getState());
 
       if (!workingSetsStore) {
         throw new Error("Invariant violation: \"workingSetsStore\"");
       }
 
-      const editedWorkingSet = Selectors().getEditedWorkingSet(this.props.store);
+      const editedWorkingSet = Selectors().getEditedWorkingSet(this.props.store.getState());
 
       this._finishEditingWorkingSet();
 
@@ -237,16 +227,16 @@ class FileTreeToolbarComponent extends React.Component {
   }
 
   render() {
-    const workingSetsStore = Selectors().getWorkingSetsStore(this.props.store);
+    const workingSetsStore = Selectors().getWorkingSetsStore(this.props.store.getState());
     let shouldShowButtonLabel;
 
     if (workingSetsStore != null) {
       shouldShowButtonLabel = workingSetsStore.getDefinitions().length === 0;
     }
 
-    const workingSet = Selectors().getWorkingSet(this.props.store);
-    const editedWorkingSetIsEmpty = Selectors().isEditedWorkingSetEmpty(this.props.store);
-    const isEditingWorkingSet = Selectors().isEditingWorkingSet(this.props.store);
+    const workingSet = Selectors().getWorkingSet(this.props.store.getState());
+    const editedWorkingSetIsEmpty = Selectors().isEditedWorkingSetEmpty(this.props.store.getState());
+    const isEditingWorkingSet = Selectors().isEditingWorkingSet(this.props.store.getState());
     let selectWorkingSetButton;
 
     if (!this.state.definitionsAreEmpty && !isEditingWorkingSet) {
@@ -272,7 +262,7 @@ class FileTreeToolbarComponent extends React.Component {
     return React.createElement("div", {
       className: (0, _classnames().default)({
         'nuclide-file-tree-toolbar': true,
-        'nuclide-file-tree-toolbar-fader': workingSet.isEmpty() && !this.state.selectionIsActive && !Selectors().isEditingWorkingSet(this.props.store)
+        'nuclide-file-tree-toolbar-fader': workingSet.isEmpty() && !this.state.selectionIsActive && !Selectors().isEditingWorkingSet(this.props.store.getState())
       })
     }, React.createElement(_ButtonGroup().ButtonGroup, {
       className: "pull-right",
@@ -319,7 +309,7 @@ class FileTreeToolbarComponent extends React.Component {
   }
 
   _startEditingWorkingSet(workingSet) {
-    this.props.actions.startEditingWorkingSet(workingSet);
+    this.props.store.dispatch(Actions().startEditingWorkingSet(workingSet));
   }
 
   _finishEditingWorkingSet() {
@@ -327,7 +317,7 @@ class FileTreeToolbarComponent extends React.Component {
       isUpdatingExistingWorkingSet: false,
       updatedWorkingSetName: ''
     });
-    this.props.actions.finishEditingWorkingSet();
+    this.props.store.dispatch(Actions().finishEditingWorkingSet());
   }
 
 }

@@ -41,6 +41,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  *
  *  strict-local
  * @format
+ * @emails oncall+nuclide
  */
 describe('CounterService', () => {
   let testHelper;
@@ -104,35 +105,33 @@ describe('CounterService', () => {
     (0, _waits_for().default)(() => watchedCounters === 2, 'We have watched two counters get created.');
   });
   it('can subscribe/unsubscribe to the same observable multiple times.', async () => {
-    await (async () => {
-      if (!service) {
-        throw new Error("Invariant violation: \"service\"");
+    if (!service) {
+      throw new Error("Invariant violation: \"service\"");
+    }
+
+    const obs = service.Counter.watchNewCounters().refCount();
+    let watchedCounters1 = 0;
+    const sub1 = obs.subscribe(counter => {
+      sub1.unsubscribe();
+      ++watchedCounters1;
+    });
+    let watchedCounters2 = 0;
+    const sub2 = obs.subscribe(counter => {
+      ++watchedCounters2;
+
+      if (watchedCounters2 === 2) {
+        sub2.unsubscribe();
       }
+    }); // Create two services.
 
-      const obs = service.Counter.watchNewCounters().refCount();
-      let watchedCounters1 = 0;
-      const sub1 = obs.subscribe(counter => {
-        sub1.unsubscribe();
-        ++watchedCounters1;
-      });
-      let watchedCounters2 = 0;
-      const sub2 = obs.subscribe(counter => {
-        ++watchedCounters2;
-
-        if (watchedCounters2 === 2) {
-          sub2.unsubscribe();
-        }
-      }); // Create two services.
-
-      const counter1 = await service.Counter.createCounter(3);
-      await counter1.getCount();
-      const counter2 = await service.Counter.createCounter(5);
-      await counter2.getCount();
-      const counter3 = await service.Counter.createCounter(7);
-      await counter3.getCount();
-      expect(watchedCounters1).toBe(1);
-      expect(watchedCounters2).toBe(2);
-    })();
+    const counter1 = await service.Counter.createCounter(3);
+    await counter1.getCount();
+    const counter2 = await service.Counter.createCounter(5);
+    await counter2.getCount();
+    const counter3 = await service.Counter.createCounter(7);
+    await counter3.getCount();
+    expect(watchedCounters1).toBe(1);
+    expect(watchedCounters2).toBe(2);
   });
   afterEach(() => testHelper.stop());
 });

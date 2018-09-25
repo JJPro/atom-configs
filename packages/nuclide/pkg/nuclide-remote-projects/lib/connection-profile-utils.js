@@ -188,8 +188,7 @@ function getUniqueHostsForProfiles(profiles) {
 
 async function getIPsForHosts(hosts) {
   const promise_array = hosts.map(host => (0, _lookupPreferIpV().default)(host).catch(() => {}));
-  const values = await Promise.all(promise_array); // $FlowFixMe(>=0.55.0) Flow suppress
-
+  const values = await Promise.all(promise_array);
   return (0, _collection().arrayCompact)(values);
 }
 /**

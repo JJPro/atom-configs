@@ -38,6 +38,7 @@ function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj;
  *
  * 
  * @format
+ * @emails oncall+nuclide
  */
 describe('DiagnosticsView', () => {
   it('focuses the filter when "/" is pressed', () => {
@@ -48,6 +49,7 @@ describe('DiagnosticsView', () => {
       gotoMessageLocation: () => {},
       hiddenGroups: new Set(),
       onFilterByActiveTextEditorChange: () => {},
+      onDismissNux: () => {},
       isVisible: true,
       onShowTracesChange: () => {},
       onTextFilterChange: () => {},
@@ -56,6 +58,7 @@ describe('DiagnosticsView', () => {
       selectedMessage: null,
       showDirectoryColumn: false,
       showTraces: true,
+      showNuxContent: false,
       supportedMessageKinds: new Set(),
       textFilter: {
         text: 'test',

@@ -5,6 +5,7 @@ Object.defineProperty(exports, "__esModule", {
 });
 exports.removePrefixSink = removePrefixSink;
 exports.patternCounterSink = patternCounterSink;
+exports.createOutputSink = createOutputSink;
 
 /**
  * Copyright (c) 2017-present, Facebook, Inc.
@@ -14,14 +15,15 @@ exports.patternCounterSink = patternCounterSink;
  * LICENSE file in the root directory of this source tree. An additional grant
  * of patent rights can be found in the PATENTS file in the same directory.
  *
- *  strict
+ *  strict-local
  * @format
  */
-// Creates a pass-through Sink that skips over a literal prefix if present.
+const TMUX_CONTROLCONTROL_PREFIX = '\x1BP1000p'; // Creates a pass-through Sink that skips over a literal prefix if present.
 //
 // Parameters:
 //   prefix - literal prefix to match.
 //   next - next Sink in the data processing chain.
+
 function removePrefixSink(prefix, next) {
   let doneMatching = false;
   let matched = 0;
@@ -95,4 +97,26 @@ function patternCounterSink(pattern, notify, next) {
 
     next(data);
   };
+}
+
+function createOutputSink(terminal) {
+  let tmuxLines = 0;
+  let lines = 0;
+  let firstChar = null;
+  let warned = false;
+  return removePrefixSink(TMUX_CONTROLCONTROL_PREFIX, patternCounterSink('\n%', n => ++tmuxLines < 2, patternCounterSink('\n', n => ++lines < 2, data => {
+    if (firstChar == null && data.length > 0) {
+      firstChar = data.charAt(0);
+    }
+
+    if (firstChar === '%' && tmuxLines === lines && tmuxLines >= 2 && !warned) {
+      warned = true;
+      atom.notifications.addWarning('Tmux control protocol detected', {
+        detail: 'The terminal output looks like you might be using tmux with -C or -CC.  ' + 'Nuclide terminal can be used with tmux, but not with the -C or -CC options.  ' + 'In your ~/.bashrc or similar, you can avoid invocations of tmux -C (or -CC) ' + 'in Nuclide terminal by checking:\n' + '  if [ "$TERM_PROGRAM" != nuclide ]; then\n' + '    tmux -C ...\n' + '  fi',
+        dismissable: true
+      });
+    }
+
+    terminal.write(data);
+  })));
 }

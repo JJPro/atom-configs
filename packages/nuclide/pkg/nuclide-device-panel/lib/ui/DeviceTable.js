@@ -17,16 +17,6 @@ function _Table() {
   return data;
 }
 
-function _providers() {
-  const data = require("../providers");
-
-  _providers = function () {
-    return data;
-  };
-
-  return data;
-}
-
 function _DeviceTaskButton() {
   const data = require("./DeviceTaskButton");
 
@@ -98,40 +88,23 @@ class DeviceTable extends React.Component {
     }, _temp;
   }
 
-  _getActionsForDevice(device, actionProviders) {
-    const actions = [];
-
-    for (const provider of actionProviders) {
-      const deviceActions = provider.getActionsForDevice(device);
-
-      if (deviceActions.length > 0) {
-        actions.push(...deviceActions);
-      }
-    }
-
-    return actions;
-  }
-
   render() {
     const devices = this.props.devices.getOrDefault([]);
-    const actionProviders = (0, _providers().getProviders)().deviceAction;
-    const anyActions = devices.length > 0 && devices.find(device => this._getActionsForDevice(device, actionProviders).length > 0) != null;
-    const rows = devices.map(_device => {
-      const actions = this._getActionsForDevice(_device, actionProviders);
-
+    const anyTasks = Array.from(this.props.deviceTasks.values()).some(t => t.length > 0);
+    const rows = devices.map(device => {
+      const tasks = this.props.deviceTasks.get(device.identifier) || [];
       return {
         data: {
-          name: _device.displayName,
-          actions: actions.length === 0 ? null : React.createElement(_DeviceTaskButton().DeviceTaskButton, {
-            actions: actions,
-            device: _device,
+          name: device.displayName,
+          actions: tasks.length === 0 ? null : React.createElement(_DeviceTaskButton().DeviceTaskButton, {
+            tasks: tasks,
             icon: "device-mobile",
             title: "Device actions"
           })
         }
       };
     });
-    const columns = anyActions ? [{
+    const columns = anyTasks ? [{
       key: 'name',
       title: 'Devices',
       width: 0.7

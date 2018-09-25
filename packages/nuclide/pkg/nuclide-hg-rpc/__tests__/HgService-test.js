@@ -55,6 +55,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  *
  *  strict-local
  * @format
+ * @emails oncall+nuclide
  */
 const mockOutput = `
 [
@@ -126,56 +127,42 @@ describe('HgService', () => {
 
   const PATH_1 = _nuclideUri().default.join(TEST_WORKING_DIRECTORY, 'test1.js');
 
-  const PATH_2 = _nuclideUri().default.join(TEST_WORKING_DIRECTORY, 'test2.js');
-
-  function relativize(filePath) {
-    return _nuclideUri().default.relative(TEST_WORKING_DIRECTORY, filePath);
-  }
-
   describe('::createBookmark', () => {
     const BOOKMARK_NAME = 'fakey456';
     const BASE_REVISION = 'fakey123';
     it('calls the appropriate `hg` command to add', async () => {
-      await (async () => {
-        jest.spyOn(hgUtils(), 'hgAsyncExecute').mockImplementation(() => {});
-        await hgService.createBookmark(TEST_WORKING_DIRECTORY, BOOKMARK_NAME);
-        expect(hgUtils().hgAsyncExecute).toHaveBeenCalledWith(['bookmark', BOOKMARK_NAME], {
-          cwd: TEST_WORKING_DIRECTORY
-        });
-      })();
+      jest.spyOn(hgUtils(), 'hgAsyncExecute').mockImplementation(() => {});
+      await hgService.createBookmark(TEST_WORKING_DIRECTORY, BOOKMARK_NAME);
+      expect(hgUtils().hgAsyncExecute).toHaveBeenCalledWith(['bookmark', BOOKMARK_NAME], {
+        cwd: TEST_WORKING_DIRECTORY
+      });
     });
     it('calls the appropriate `hg` command to add with base revision', async () => {
-      await (async () => {
-        jest.spyOn(hgUtils(), 'hgAsyncExecute').mockImplementation(() => {});
-        await hgService.createBookmark(TEST_WORKING_DIRECTORY, BOOKMARK_NAME, BASE_REVISION);
-        expect(hgUtils().hgAsyncExecute).toHaveBeenCalledWith(['bookmark', '--rev', BASE_REVISION, BOOKMARK_NAME], {
-          cwd: TEST_WORKING_DIRECTORY
-        });
-      })();
+      jest.spyOn(hgUtils(), 'hgAsyncExecute').mockImplementation(() => {});
+      await hgService.createBookmark(TEST_WORKING_DIRECTORY, BOOKMARK_NAME, BASE_REVISION);
+      expect(hgUtils().hgAsyncExecute).toHaveBeenCalledWith(['bookmark', '--rev', BASE_REVISION, BOOKMARK_NAME], {
+        cwd: TEST_WORKING_DIRECTORY
+      });
     });
   });
   describe('::deleteBookmark', () => {
     const BOOKMARK_NAME = 'fakey456';
     it('calls the appropriate `hg` command to delete', async () => {
-      await (async () => {
-        jest.spyOn(hgUtils(), 'hgAsyncExecute').mockImplementation(() => {});
-        await hgService.deleteBookmark(TEST_WORKING_DIRECTORY, BOOKMARK_NAME);
-        expect(hgUtils().hgAsyncExecute).toHaveBeenCalledWith(['bookmarks', '--delete', BOOKMARK_NAME], {
-          cwd: TEST_WORKING_DIRECTORY
-        });
-      })();
+      jest.spyOn(hgUtils(), 'hgAsyncExecute').mockImplementation(() => {});
+      await hgService.deleteBookmark(TEST_WORKING_DIRECTORY, BOOKMARK_NAME);
+      expect(hgUtils().hgAsyncExecute).toHaveBeenCalledWith(['bookmarks', '--delete', BOOKMARK_NAME], {
+        cwd: TEST_WORKING_DIRECTORY
+      });
     });
   });
   describe('::renameBookmark', () => {
     const BOOKMARK_NAME = 'fakey456';
     it('calls the appropriate `hg` command to rename', async () => {
-      await (async () => {
-        jest.spyOn(hgUtils(), 'hgAsyncExecute').mockImplementation(() => {});
-        await hgService.renameBookmark(TEST_WORKING_DIRECTORY, BOOKMARK_NAME, 'fried-chicken');
-        expect(hgUtils().hgAsyncExecute).toHaveBeenCalledWith(['bookmarks', '--rename', BOOKMARK_NAME, 'fried-chicken'], {
-          cwd: TEST_WORKING_DIRECTORY
-        });
-      })();
+      jest.spyOn(hgUtils(), 'hgAsyncExecute').mockImplementation(() => {});
+      await hgService.renameBookmark(TEST_WORKING_DIRECTORY, BOOKMARK_NAME, 'fried-chicken');
+      expect(hgUtils().hgAsyncExecute).toHaveBeenCalledWith(['bookmarks', '--rename', BOOKMARK_NAME, 'fried-chicken'], {
+        cwd: TEST_WORKING_DIRECTORY
+      });
     });
   });
   describe('::fetchDiffInfo', () => {
@@ -252,10 +239,8 @@ describe('HgService', () => {
         expect(args.pop()).toBe('rename');
         wasCalled = true;
       });
-      await (async () => {
-        await hgService.rename(TEST_WORKING_DIRECTORY, ['file_1.txt'], 'file_2.txt');
-        expect(wasCalled).toBeTruthy();
-      })();
+      await hgService.rename(TEST_WORKING_DIRECTORY, ['file_1.txt'], 'file_2.txt');
+      expect(wasCalled).toBeTruthy();
     });
   });
   describe('::remove', () => {
@@ -268,10 +253,8 @@ describe('HgService', () => {
         expect(args.pop()).toBe('remove');
         wasCalled = true;
       });
-      await (async () => {
-        await hgService.remove(TEST_WORKING_DIRECTORY, ['file.txt']);
-        expect(wasCalled).toBeTruthy();
-      })();
+      await hgService.remove(TEST_WORKING_DIRECTORY, ['file.txt']);
+      expect(wasCalled).toBeTruthy();
     });
   });
   describe('::add', () => {
@@ -320,26 +303,20 @@ describe('HgService', () => {
     describe('::commit', () => {
       it('can commit changes', async () => {
         expectedArgs = ['commit', '-m', commitMessage];
-        await (async () => {
-          await hgService.commit(TEST_WORKING_DIRECTORY, commitMessage).refCount().toArray().toPromise();
-          expect(committedToHg).toBeTruthy();
-        })();
+        await hgService.commit(TEST_WORKING_DIRECTORY, commitMessage).refCount().toArray().toPromise();
+        expect(committedToHg).toBeTruthy();
       });
     });
     describe('::amend', () => {
       it('can amend changes with a message', async () => {
-        expectedArgs = ['amend', '-m', commitMessage];
-        await (async () => {
-          await hgService.amend(TEST_WORKING_DIRECTORY, commitMessage, _hgConstants().AmendMode.CLEAN).refCount().toArray().toPromise();
-          expect(committedToHg).toBeTruthy();
-        })();
+        expectedArgs = ['amend', '--no-rebase', '-m', commitMessage];
+        await hgService.amend(TEST_WORKING_DIRECTORY, commitMessage, _hgConstants().AmendMode.CLEAN).refCount().toArray().toPromise();
+        expect(committedToHg).toBeTruthy();
       });
       it('can amend changes without a message', async () => {
-        expectedArgs = ['amend'];
-        await (async () => {
-          await hgService.amend(TEST_WORKING_DIRECTORY, null, _hgConstants().AmendMode.CLEAN).refCount().toArray().toPromise();
-          expect(committedToHg).toBeTruthy();
-        })();
+        expectedArgs = ['amend', '--no-rebase'];
+        await hgService.amend(TEST_WORKING_DIRECTORY, null, _hgConstants().AmendMode.CLEAN).refCount().toArray().toPromise();
+        expect(committedToHg).toBeTruthy();
       });
       it('can amend with --rebase & a commit message', async () => {
         expectedArgs = ['amend', '--rebase', '-m', commitMessage];
@@ -401,57 +378,47 @@ describe('HgService', () => {
       });
     });
     it("reports no conflicts when the merge directory isn't there", async () => {
-      await (async () => {
-        mergeDirectoryExists = false;
-        await hgRepoSubscriptions._checkConflictChange();
-        expect(hgRepoSubscriptions._isInConflict).toBeFalsy();
-      })();
+      mergeDirectoryExists = false;
+      await hgRepoSubscriptions._checkConflictChange();
+      expect(hgRepoSubscriptions._isInConflict).toBeFalsy();
     }); // This is necessary especially when users need to run merge drivers to finish
 
     it('reports in conflict state even if no files have merge conflicts', async () => {
       mergeDirectoryExists = true;
-      await (async () => {
-        await hgRepoSubscriptions._checkConflictChange();
-        expect(hgRepoSubscriptions._isInConflict).toBeTruthy();
-      })();
+      await hgRepoSubscriptions._checkConflictChange();
+      expect(hgRepoSubscriptions._isInConflict).toBeTruthy();
     });
     it('reports conflicts when merge directory exists + conflicts found', async () => {
       mergeDirectoryExists = true;
-      await (async () => {
-        await hgRepoSubscriptions._checkConflictChange();
-        expect(hgRepoSubscriptions._isInConflict).toBeTruthy();
-      })();
+      await hgRepoSubscriptions._checkConflictChange();
+      expect(hgRepoSubscriptions._isInConflict).toBeTruthy();
     });
     it('exits of conflict state when the merge directory is removed', async () => {
       mergeDirectoryExists = true;
-      await (async () => {
-        await hgRepoSubscriptions._checkConflictChange();
-        expect(hgRepoSubscriptions._isInConflict).toBeTruthy();
-        mergeDirectoryExists = false;
-        await hgRepoSubscriptions._checkConflictChange();
-        expect(hgRepoSubscriptions._isInConflict).toBeFalsy();
-      })();
+      await hgRepoSubscriptions._checkConflictChange();
+      expect(hgRepoSubscriptions._isInConflict).toBeTruthy();
+      mergeDirectoryExists = false;
+      await hgRepoSubscriptions._checkConflictChange();
+      expect(hgRepoSubscriptions._isInConflict).toBeFalsy();
     });
   });
   describe('::_disposeObserver', () => {
     it('should end published observables when disposed', async () => {
-      await (async () => {
-        const subject = new _RxMin.Subject();
-        const repoSubscriptions = new (HgService().HgRepositorySubscriptions)(TEST_WORKING_DIRECTORY);
-        repoSubscriptions._lockFilesDidChange = subject;
-        const locksObservable = repoSubscriptions.observeLockFilesDidChange().refCount().toArray().toPromise();
-        const m1 = new Map([['hello', true]]);
-        const m2 = new Map([['goodbye', false]]);
-        subject.next(m1);
-        subject.next(m2);
-        repoSubscriptions.dispose(); // after disposing, we shouldn't see any more emitted events
+      const subject = new _RxMin.Subject();
+      const repoSubscriptions = new (HgService().HgRepositorySubscriptions)(TEST_WORKING_DIRECTORY);
+      repoSubscriptions._lockFilesDidChange = subject;
+      const locksObservable = repoSubscriptions.observeLockFilesDidChange().refCount().toArray().toPromise();
+      const m1 = new Map([['hello', true]]);
+      const m2 = new Map([['goodbye', false]]);
+      subject.next(m1);
+      subject.next(m2);
+      repoSubscriptions.dispose(); // after disposing, we shouldn't see any more emitted events
 
-        subject.next(m1);
-        subject.next(m2); // await goes through even though we never called subject.complete()
+      subject.next(m1);
+      subject.next(m2); // await goes through even though we never called subject.complete()
 
-        const result = await locksObservable;
-        expect(result).toEqual([m1, m2]);
-      })();
+      const result = await locksObservable;
+      expect(result).toEqual([m1, m2]);
     });
   });
 });

@@ -29,13 +29,12 @@ function _() {
  *
  *  strict-local
  * @format
+ * @emails oncall+nuclide
  */
 describe('setUseLocalRpc', () => {
   it('successfully starts up a local RPC server', async () => {
-    await (async () => {
-      const infoService = (0, _().getInfoServiceByNuclideUri)('');
-      const version = await infoService.getServerVersion();
-      expect(version).toBe((0, _nuclideVersion().getVersion)());
-    })();
+    const infoService = (0, _().getInfoServiceByNuclideUri)('');
+    const version = await infoService.getServerVersion();
+    expect(version).toBe((0, _nuclideVersion().getVersion)());
   });
 });

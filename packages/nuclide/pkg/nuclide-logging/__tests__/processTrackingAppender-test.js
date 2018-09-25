@@ -51,6 +51,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  *
  * 
  * @format
+ * @emails oncall+nuclide
  */
 jest.unmock('log4js');
 global.NUCLIDE_DO_NOT_LOG = false;
@@ -67,7 +68,7 @@ describe('processTrackingAppender', () => {
     await (0, _waits_for().default)(() => _analytics().trackSampled.mock.calls.length > 0);
     expect(_analytics().trackSampled).toHaveBeenCalledWith('process-exit', 10, {
       command: 'true 1',
-      duration: jasmine.any(Number)
+      duration: expect.any(Number)
     });
   });
 });

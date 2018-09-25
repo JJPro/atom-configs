@@ -3,7 +3,7 @@
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-exports.HEADER_DEFAULT_FLAGS_WARNING = exports.DEFAULT_FLAGS_WARNING = exports.IDENTIFIER_REGEXP = exports.PACKAGE_NAME = exports.GRAMMAR_SET = exports.GRAMMARS = void 0;
+exports.HEADER_DEFAULT_FLAGS_WARNING = exports.DEFAULT_FLAGS_WARNING = exports.IDENTIFIER_REGEXP = exports.PACKAGE_NAME = exports.GRAMMAR_SET = exports.GRAMMARS = exports.OBJC_GRAMMARS = exports.CPP_GRAMMARS = void 0;
 
 /**
  * Copyright (c) 2015-present, Facebook, Inc.
@@ -15,7 +15,11 @@ exports.HEADER_DEFAULT_FLAGS_WARNING = exports.DEFAULT_FLAGS_WARNING = exports.I
  *  strict
  * @format
  */
-const GRAMMARS = ['source.c', 'source.cpp', 'source.objc', 'source.objcpp'];
+const CPP_GRAMMARS = ['source.c', 'source.cpp'];
+exports.CPP_GRAMMARS = CPP_GRAMMARS;
+const OBJC_GRAMMARS = ['source.objc', 'source.objcpp'];
+exports.OBJC_GRAMMARS = OBJC_GRAMMARS;
+const GRAMMARS = [...CPP_GRAMMARS, ...OBJC_GRAMMARS];
 exports.GRAMMARS = GRAMMARS;
 const GRAMMAR_SET = new Set(GRAMMARS);
 exports.GRAMMAR_SET = GRAMMAR_SET;

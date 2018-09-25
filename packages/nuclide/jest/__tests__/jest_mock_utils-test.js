@@ -19,6 +19,7 @@ function _jest_mock_utils() {
  *
  *  strict-local
  * @format
+ * @emails oncall+nuclide
  */
 test('mocks function', () => {
   const obj = {

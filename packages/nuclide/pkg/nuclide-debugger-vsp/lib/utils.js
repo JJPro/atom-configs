@@ -3,7 +3,6 @@
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-exports.getPrepackAutoGenConfig = getPrepackAutoGenConfig;
 exports.getNativeAutoGenConfig = getNativeAutoGenConfig;
 exports.getNativeVSPLaunchProcessConfig = getNativeVSPLaunchProcessConfig;
 exports.getNativeVSPAttachProcessConfig = getNativeVSPAttachProcessConfig;
@@ -44,51 +43,6 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  * 
  * @format
  */
-function getPrepackAutoGenConfig() {
-  const fileToPrepack = {
-    name: 'sourceFile',
-    type: 'string',
-    description: 'Input the file you want to Prepack. Use absolute paths.',
-    required: true,
-    visible: true
-  };
-  const prepackRuntimePath = {
-    name: 'prepackRuntime',
-    type: 'string',
-    description: 'Prepack executable path (e.g. lib/prepack-cli.js). Use absolute paths.',
-    required: false,
-    visible: true
-  };
-  const argumentsProperty = {
-    name: 'prepackArguments',
-    type: 'array',
-    itemType: 'string',
-    description: 'Arguments to start Prepack',
-    required: false,
-    defaultValue: '',
-    visible: true
-  };
-  const autoGenLaunchConfig = {
-    launch: true,
-    vsAdapterType: _nuclideDebuggerCommon().VsAdapterTypes.PREPACK,
-    threads: false,
-    properties: [fileToPrepack, prepackRuntimePath, argumentsProperty],
-    scriptPropertyName: 'fileToPrepack',
-    scriptExtension: '.js',
-    cwdPropertyName: null,
-    header: null,
-
-    getProcessName(values) {
-      return values.fileToPrepack + ' (Prepack)';
-    }
-
-  };
-  return {
-    launch: autoGenLaunchConfig,
-    attach: null
-  };
-}
-
 function getNativeAutoGenConfig(vsAdapterType) {
   const program = {
     name: 'program',

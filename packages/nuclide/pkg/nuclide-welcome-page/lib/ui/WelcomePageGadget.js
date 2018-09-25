@@ -3,7 +3,8 @@
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-exports.default = exports.WELCOME_PAGE_VIEW_URI = void 0;
+exports.getURIForTopic = getURIForTopic;
+exports.default = exports.WELCOME_PAGE_VIEW_URI_PREFIX = exports.ALL_WELCOME_PAGE_TOPICS = void 0;
 
 function _observePaneItemVisibility() {
   const data = _interopRequireDefault(require("../../../../modules/nuclide-commons-atom/observePaneItemVisibility"));
@@ -61,8 +62,14 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  * 
  * @format
  */
-const WELCOME_PAGE_VIEW_URI = 'atom://nuclide/welcome-page';
-exports.WELCOME_PAGE_VIEW_URI = WELCOME_PAGE_VIEW_URI;
+const ALL_WELCOME_PAGE_TOPICS = 'all-welcome-pages';
+exports.ALL_WELCOME_PAGE_TOPICS = ALL_WELCOME_PAGE_TOPICS;
+const WELCOME_PAGE_VIEW_URI_PREFIX = 'atom://nuclide/welcome-page/';
+exports.WELCOME_PAGE_VIEW_URI_PREFIX = WELCOME_PAGE_VIEW_URI_PREFIX;
+
+function getURIForTopic(topic) {
+  return WELCOME_PAGE_VIEW_URI_PREFIX + topic;
+}
 
 class WelcomePageGadget extends React.Component {
   constructor(...args) {
@@ -87,7 +94,9 @@ class WelcomePageGadget extends React.Component {
   }
 
   getTitle() {
-    return 'Welcome to Nuclide';
+    var _ref, _this$props$paneProps;
+
+    return (_ref = (_this$props$paneProps = this.props.paneProps) === null || _this$props$paneProps === void 0 ? void 0 : _this$props$paneProps.title) !== null && _ref !== void 0 ? _ref : 'Welcome to Nuclide';
   }
 
   getIconName() {
@@ -120,15 +129,20 @@ class WelcomePageGadget extends React.Component {
 
   render() {
     const {
-      store
+      paneProps,
+      store,
+      topic
     } = this.props;
     const visibleStore = Object.assign({}, store, {
       subscribe: this._customSubscribe
     });
     return React.createElement(_reactRedux().Provider, {
       store: visibleStore
-    }, React.createElement(_WelcomePageComponent().WelcomePageContainer, null));
-  } // don't emit when smartlog's not visible to prevent needless re-calculations
+    }, React.createElement(_WelcomePageComponent().WelcomePageContainer, {
+      className: paneProps === null || paneProps === void 0 ? void 0 : paneProps.className,
+      topic: topic
+    }));
+  } // don't emit when welcome page is not visible to prevent needless re-calculations
 
 
   getDefaultLocation() {
@@ -136,7 +150,7 @@ class WelcomePageGadget extends React.Component {
   }
 
   getURI() {
-    return WELCOME_PAGE_VIEW_URI;
+    return getURIForTopic(this.props.topic);
   }
 
 }

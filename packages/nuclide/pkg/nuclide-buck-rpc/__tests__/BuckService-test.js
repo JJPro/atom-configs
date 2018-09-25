@@ -57,6 +57,7 @@ function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj;
  *
  *  strict-local
  * @format
+ * @emails oncall+nuclide
  */
 jest.setTimeout(50000); // flowlint-next-line sketchy-null-string:off
 
@@ -176,27 +177,27 @@ describe('BuckService (test-project-with-failing-targets)', () => {
       expect(resolved.buildTarget.flavors.length).toBe(0);
       {
         // Strip out flavors.
-        const resolved = await BuckService().buildRuleTypeFor(buckRoot, '//:good_rule#');
+        const resolved2 = await BuckService().buildRuleTypeFor(buckRoot, '//:good_rule#');
 
-        if (!(resolved != null)) {
-          throw new Error("Invariant violation: \"resolved != null\"");
+        if (!(resolved2 != null)) {
+          throw new Error("Invariant violation: \"resolved2 != null\"");
         }
 
-        expect(resolved.type).toBe('genrule');
-        expect(resolved.buildTarget.qualifiedName).toBe('//:good_rule');
-        expect(resolved.buildTarget.flavors[0]).toBe('');
+        expect(resolved2.type).toBe('genrule');
+        expect(resolved2.buildTarget.qualifiedName).toBe('//:good_rule');
+        expect(resolved2.buildTarget.flavors[0]).toBe('');
       }
       {
         // Strip out flavors.
-        const resolved = await BuckService().buildRuleTypeFor(buckRoot, '//:good_rule#foo');
+        const resolved3 = await BuckService().buildRuleTypeFor(buckRoot, '//:good_rule#foo');
 
-        if (!(resolved != null)) {
-          throw new Error("Invariant violation: \"resolved != null\"");
+        if (!(resolved3 != null)) {
+          throw new Error("Invariant violation: \"resolved3 != null\"");
         }
 
-        expect(resolved.type).toBe('genrule');
-        expect(resolved.buildTarget.qualifiedName).toBe('//:good_rule');
-        expect(resolved.buildTarget.flavors[0]).toBe('foo');
+        expect(resolved3.type).toBe('genrule');
+        expect(resolved3.buildTarget.qualifiedName).toBe('//:good_rule');
+        expect(resolved3.buildTarget.flavors[0]).toBe('foo');
       }
     });
     it('works for multi-target rules', async () => {

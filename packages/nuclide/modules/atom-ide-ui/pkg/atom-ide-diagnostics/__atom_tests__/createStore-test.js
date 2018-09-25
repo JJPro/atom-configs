@@ -66,6 +66,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  *
  * 
  * @format
+ * @emails oncall+nuclide
  */
 // Test Constants
 const dummyProviderA = {};
@@ -135,8 +136,9 @@ describe('createStore', () => {
   };
 
   beforeEach(() => {
-    store = (0, _createStore().default)(new (_MessageRangeTracker().default)());
-    updater = new (_DiagnosticUpdater().default)(store);
+    const messageRangeTracker = new (_MessageRangeTracker().default)();
+    store = (0, _createStore().default)(messageRangeTracker);
+    updater = new (_DiagnosticUpdater().default)(store, messageRangeTracker);
   });
   afterEach(() => {
     disposeSpies();
@@ -319,11 +321,9 @@ describe('createStore', () => {
     };
     let editor = null;
     beforeEach(async () => {
-      await (async () => {
-        editor = await atom.workspace.open('/tmp/fileA');
-        editor.setText('foobar\n');
-        store.dispatch(Actions().updateMessages(dummyProviderA, new Map([['/tmp/fileA', [messageWithAutofix]]])));
-      })();
+      editor = await atom.workspace.open('/tmp/fileA');
+      editor.setText('foobar\n');
+      store.dispatch(Actions().updateMessages(dummyProviderA, new Map([['/tmp/fileA', [messageWithAutofix]]])));
     });
     describe('applyFix', () => {
       it('should apply the fix to the editor', () => {

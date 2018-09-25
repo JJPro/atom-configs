@@ -256,7 +256,7 @@ var _initialiseProps = function () {
 
       return Object.assign({}, event.message);
     });
-    const ready = metroEvents.filter(message => message.type === 'ready').mapTo(undefined);
+    const ready = metroEvents.first(message => message.type === 'ready').mapTo(undefined);
     return new (_LogTailer().LogTailer)({
       name: 'Metro',
       messages,

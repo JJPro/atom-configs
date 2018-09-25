@@ -65,6 +65,9 @@ class OCamlDebugAdapter {
     this.excludedOptions = new Set([]);
     this.extensions = new Set();
     this.customArguments = new Map();
+    this.muteOutputCategories = new Set();
+    this.asyncStopThread = null;
+    this.supportsCodeBlocks = false;
     this._includedOptions = new Set();
   }
 

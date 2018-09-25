@@ -45,6 +45,26 @@ function _nuclideRemoteConnection() {
   return data;
 }
 
+function _ClientQueryContext() {
+  const data = require("../../commons-atom/ClientQueryContext");
+
+  _ClientQueryContext = function () {
+    return data;
+  };
+
+  return data;
+}
+
+function _goToLocation() {
+  const data = require("../../../modules/nuclide-commons-atom/go-to-location");
+
+  _goToLocation = function () {
+    return data;
+  };
+
+  return data;
+}
+
 function _utils() {
   const data = require("./utils");
 
@@ -67,6 +87,17 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  * 
  * @format
  */
+const {
+  logCustomFileSearchFeedback
+} = function () {
+  try {
+    // $FlowFB
+    return require("../../commons-atom/fb-custom-file-search-graphql");
+  } catch (err) {
+    return {};
+  }
+}();
+
 var _default = {
   providerType: 'DIRECTORY',
   name: 'FuzzyFileNameProvider',
@@ -96,13 +127,16 @@ var _default = {
 
     const directoryPath = directory.getPath();
     const service = (0, _nuclideRemoteConnection().getFuzzyFileSearchServiceByNuclideUri)(directoryPath);
+    const preferCustomSearch = Boolean((0, _passesGK().isGkEnabled)('nuclide_prefer_myles_search'));
+    const context = preferCustomSearch ? await (0, _ClientQueryContext().getNuclideContext)(directoryPath) : null;
     const results = await service.queryFuzzyFile({
       rootDirectory: directoryPath,
       queryRoot: getQueryRoot(directoryPath),
       queryString: fileName,
       ignoredNames: (0, _utils().getIgnoredNames)(),
       smartCase: Boolean(_featureConfig().default.get('nuclide-fuzzy-filename-provider.smartCase')),
-      preferCustomSearch: Boolean((0, _passesGK().isGkEnabled)('nuclide_prefer_myles_search'))
+      preferCustomSearch,
+      context
     }); // Take the `nuclide://<host>` prefix into account for matchIndexes of remote files.
 
     if (_nuclideRemoteConnection().RemoteDirectory.isRemoteDirectory(directory)) {
@@ -122,7 +156,20 @@ var _default = {
       score: result.score,
       matchIndexes: result.matchIndexes,
       line,
-      column
+      column,
+
+      callback() {
+        if (preferCustomSearch && logCustomFileSearchFeedback && context != null) {
+          logCustomFileSearchFeedback(result, results, query, directoryPath, context.session_id);
+        } // Custom callbacks need to run goToLocation
+
+
+        (0, _goToLocation().goToLocation)(result.path, {
+          line,
+          column
+        });
+      }
+
     }));
   }
 

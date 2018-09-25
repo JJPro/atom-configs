@@ -176,7 +176,8 @@ class Activation {
         rootDirectory: projectPath,
         queryString: '^^^',
         ignoredNames: (0, _utils().getIgnoredNames)(),
-        preferCustomSearch: Boolean((0, _passesGK().isGkEnabled)('nuclide_prefer_myles_search'))
+        preferCustomSearch: Boolean((0, _passesGK().isGkEnabled)('nuclide_prefer_myles_search')),
+        context: null
       });
     } catch (err) {
       throw err;

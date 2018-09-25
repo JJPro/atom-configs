@@ -132,7 +132,8 @@ class Notice extends React.Component {
     }, React.createElement(_Message().Message, {
       type: this.props.messageType
     }, React.createElement("div", {
-      className: "nuclide-ui-text-editor-banner-notice-content"
+      className: "nuclide-ui-text-editor-banner-notice-content",
+      style: this.props.contentStyle
     }, this.props.children)));
   }
 

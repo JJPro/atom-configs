@@ -52,8 +52,6 @@ function _nuclideUri() {
   return data;
 }
 
-var _vm = _interopRequireDefault(require("vm"));
-
 function _builtinTypes() {
   const data = require("../lib/builtin-types");
 
@@ -77,6 +75,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  *
  * 
  * @format
+ * @emails oncall+nuclide
  */
 const {
   generateProxy,

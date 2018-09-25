@@ -30,6 +30,8 @@ var _RxMin = require("rxjs/bundles/Rx.min.js");
 const PORT_LINE = /.*(?:Running.*|Listening )on port\s+(\d+)/;
 const SOURCE_LIST_START = /Looking for (?:JS|JavaScript) files in/;
 const READY_LINE = /(packager|server) ready|<END> {3}Starting Facebook Packager Server/i;
+const SHUTDOWN_LINE = /Server was automatically shut down/;
+const RESTARTING_LINE = /Restarting the server/;
 /**
  * Parses output from Metro into messages.
  */
@@ -40,7 +42,7 @@ function parseMessages(raw) {
     let sawPortLine = false;
     let sawSourcesStart = false;
     let sawSourcesEnd = false;
-    let sawReadyMessage = false;
+    let running = false;
     const sourceDirectories = [];
     return raw.subscribe({
       next: line => {
@@ -101,11 +103,28 @@ function parseMessages(raw) {
             message: (0, _parseRegularLine().parseRegularLine)(line)
           });
 
-          if (!sawReadyMessage && READY_LINE.test(line)) {
-            sawReadyMessage = true;
+          if (!running && READY_LINE.test(line)) {
             observer.next({
               type: 'ready'
             });
+            running = true;
+          } // We don't use "Restarting the server..." to signal server restarting beacause
+          // that message takes a long time to show up.
+
+
+          if (running && SHUTDOWN_LINE.test(line)) {
+            observer.next({
+              type: 'restarting'
+            });
+            running = false;
+          }
+
+          if (!running && RESTARTING_LINE.test(line)) {
+            sawPreamble = false;
+            sawPortLine = false;
+            sawSourcesStart = false;
+            sawSourcesEnd = false;
+            sourceDirectories.length = 0;
           }
 
           return;

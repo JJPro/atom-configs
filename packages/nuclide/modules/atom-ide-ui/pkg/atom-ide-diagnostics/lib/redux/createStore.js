@@ -101,10 +101,10 @@ function createStore(messageRangeTracker, initialState = INITIAL_STATE) {
     return stream;
   });
 
-  const store = (0, _reduxMin().createStore)((0, _reduxMin().combineReducers)(Reducers()), initialState, (0, _reduxMin().applyMiddleware)((0, _reduxObservable().createEpicMiddleware)(rootEpic))); // When we get new messages with fixes, track them.
+  const store = (0, _reduxMin().createStore)((0, _reduxMin().combineReducers)(Reducers()), initialState, (0, _reduxMin().applyMiddleware)((0, _reduxObservable().createEpicMiddleware)(rootEpic))); // When we get new messages, track them.
 
-  const messagesWithFixes = getFileMessages(store).map(messageSet => (0, _collection().setFilter)(messageSet, message => message.fix != null)).filter(messageSet => messageSet.size > 0);
-  messagesWithFixes.let((0, _observable().diffSets)()).subscribe(({
+  const allMessages = getFileMessages(store);
+  allMessages.let((0, _observable().diffSets)()).subscribe(({
     added,
     removed
   }) => {
@@ -123,6 +123,7 @@ const INITIAL_STATE = {
   messages: new Map(),
   codeActionFetcher: null,
   codeActionsForMessage: new Map(),
+  descriptions: new Map(),
   providers: new Set()
 };
 

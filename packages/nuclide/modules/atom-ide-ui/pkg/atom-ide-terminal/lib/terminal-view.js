@@ -41,6 +41,16 @@ function _event() {
   return data;
 }
 
+function _observable() {
+  const data = require("../../../../nuclide-commons/observable");
+
+  _observable = function () {
+    return data;
+  };
+
+  return data;
+}
+
 var _RxMin = require("rxjs/bundles/Rx.min.js");
 
 var _url = _interopRequireDefault(require("url"));
@@ -95,10 +105,10 @@ function _createTerminal() {
   return data;
 }
 
-function _nuclideTerminalUri() {
-  const data = require("./nuclide-terminal-uri");
+function _measurePerformance() {
+  const data = _interopRequireDefault(require("./measure-performance"));
 
-  _nuclideTerminalUri = function () {
+  _measurePerformance = function () {
     return data;
   };
 
@@ -155,6 +165,16 @@ function _config() {
   return data;
 }
 
+function _nuclideTerminalUri() {
+  const data = require("./nuclide-terminal-uri");
+
+  _nuclideTerminalUri = function () {
+    return data;
+  };
+
+  return data;
+}
+
 function _sink() {
   const data = require("./sink");
 
@@ -180,27 +200,33 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  */
 
 /* eslint-env browser */
-const TMUX_CONTROLCONTROL_PREFIX = '\x1BP1000p';
 const URI_PREFIX = 'atom://nuclide-terminal-view';
 exports.URI_PREFIX = URI_PREFIX;
 
 class TerminalView {
-  constructor(paneUri) {
-    this._syncFontAndFit = () => {
-      this._setTerminalOption('fontSize', (0, _config().getFontSize)());
+  constructor(info) {
+    this._syncFontAndFit = terminal => {
+      (0, _config().syncTerminalFont)(terminal); // Force character measure before 'fit' runs.
 
-      this._setTerminalOption('lineHeight', _featureConfig().default.get(_config().LINE_HEIGHT_CONFIG));
+      terminal.resize(terminal.cols, terminal.rows);
+      terminal.fit();
 
-      this._setTerminalOption('fontFamily', _featureConfig().default.get(_config().FONT_FAMILY_CONFIG));
+      if (this._pty != null) {
+        this._pty.resize(terminal.cols, terminal.rows);
+      }
 
-      this._fitAndResize();
+      this._syncAtomTheme(terminal); // documented workaround for https://github.com/xtermjs/xterm.js/issues/291
+      // see https://github.com/Microsoft/vscode/commit/134cbec22f81d5558909040491286d72b547bee6
+      // $FlowIgnore: using unofficial _core interface defined in https://github.com/Microsoft/vscode/blob/master/src/typings/vscode-xterm.d.ts#L682-L706
+
+
+      terminal.emit('scroll', terminal._core.buffer.ydisp);
     };
 
-    this._paneUri = paneUri;
-    const info = (0, _nuclideTerminalUri().infoFromUri)(paneUri);
     this._terminalInfo = info;
-    const cwd = this._cwd = info.cwd == null ? null : info.cwd;
+    const cwd = this._cwd = info.cwd;
     this._command = info.command == null ? null : info.command;
+    this._key = info.key;
     this._title = info.title == null ? 'terminal' : info.title;
     this._path = cwd;
     this._initialInput = info.initialInput == null ? '' : getSafeInitialInput(info.initialInput);
@@ -215,49 +241,11 @@ class TerminalView {
     this._focusDuration = 0;
     this._isFirstOutput = true;
     const subscriptions = this._subscriptions = new (_UniversalDisposable().default)();
-    this._processOutput = this._createOutputSink();
     this._emitter = new _atom.Emitter();
     subscriptions.add(this._emitter);
-    subscriptions.add(_featureConfig().default.observeAsStream(_config().PRESERVED_COMMANDS_CONFIG).subscribe(preserved => {
-      this._preservedCommands = new Set([...(preserved || []), ...(info.preservedCommands || [])]);
-    }), atom.config.onDidChange('core.themes', this._syncAtomTheme.bind(this)), atom.themes.onDidChangeActiveThemes(this._syncAtomTheme.bind(this)));
-    subscriptions.add( // Skip the first value because the observe callback triggers once when
-    // we begin observing, duplicating work in the constructor.
-    ...Object.keys(_config().COLOR_CONFIGS).map(color => _featureConfig().default.observeAsStream(_config().COLOR_CONFIGS[color]).skip(1).subscribe(this._syncAtomTheme.bind(this))));
     const div = this._div = document.createElement('div');
     div.classList.add('terminal-pane');
     subscriptions.add(() => div.remove());
-    const terminal = this._terminal = (0, _createTerminal().createTerminal)();
-    terminal.attachCustomKeyEventHandler(this._checkIfKeyBoundOrDivertToXTerm.bind(this));
-
-    this._subscriptions.add(() => terminal.dispose());
-
-    terminal.webLinksInit(openLink);
-    registerLinkHandlers(terminal, this._cwd);
-
-    this._subscriptions.add(atom.commands.add(div, 'core:copy', () => {
-      document.execCommand('copy');
-    }), atom.commands.add(div, 'core:paste', () => {
-      document.execCommand('paste');
-    }), atom.commands.add(div, _config().ADD_ESCAPE_COMMAND, this._addEscapePrefix.bind(this)), atom.commands.add(div, 'atom-ide-terminal:clear', this._clear.bind(this)));
-
-    if (process.platform === 'win32') {
-      // On Windows, add Putty-style highlight and right click to copy, right click to paste.
-      this._subscriptions.add(_RxMin.Observable.fromEvent(div, 'contextmenu').subscribe(e => {
-        // Note: Manipulating the clipboard directly because atom's core:copy and core:paste
-        // commands are not working correctly with terminal selection.
-        if (terminal.hasSelection()) {
-          // $FlowFixMe: add types for clipboard
-          _electron.clipboard.writeText(terminal.selectionManager.selectionText);
-        } else {
-          document.execCommand('paste');
-        }
-
-        terminal.selectionManager.clearSelection();
-        terminal.focus();
-        e.stopPropagation();
-      }));
-    }
 
     if (cwd != null && _nuclideUri().default.isRemote(cwd)) {
       this._subscriptions.add((0, _projects().observeRemovedHostnames)().subscribe(hostname => {
@@ -265,17 +253,24 @@ class TerminalView {
           this._closeTab();
         }
       }));
-    } // div items don't support a 'focus' event, and we need to forward.
-
-
-    this._div.focus = () => terminal.focus();
-
-    this._div.blur = () => terminal.blur(); // Terminal.open only works after its div has been attached to the DOM,
+    } // Terminal.open only works after its div has been attached to the DOM,
     // which happens in getElement, not in this constructor. Therefore delay
     // open and spawn until the div is visible, which means it is in the DOM.
 
 
-    this._subscriptions.add((0, _observePaneItemVisibility().default)(this).filter(Boolean).first().subscribe(() => {
+    const gkService = (0, _AtomServiceContainer().getGkService)();
+    const preferDom = gkService != null ? gkService.passesGK('nuclide_terminal_prefer_dom') : Promise.resolve(false);
+
+    this._subscriptions.add(_RxMin.Observable.combineLatest(_RxMin.Observable.fromPromise(preferDom), (0, _observePaneItemVisibility().default)(this).filter(Boolean).first()).subscribe(([passesPreferDom]) => {
+      const rendererType = _featureConfig().default.get(_config().RENDERER_TYPE_CONFIG);
+
+      const terminal = (0, _createTerminal().createTerminal)( // $FlowIgnore: rendererType config not yet added in flow typing
+      passesPreferDom && rendererType === 'auto' ? {
+        rendererType: 'dom'
+      } : {});
+
+      this._onTerminalCreation(terminal);
+
       terminal.open(this._div);
       div.terminal = terminal;
 
@@ -286,14 +281,16 @@ class TerminalView {
 
       terminal.focus();
 
-      this._subscriptions.add(this._subscribeFitEvents());
+      this._subscriptions.add(this._subscribeFitEvents(terminal));
 
-      this._spawn(cwd).then(pty => this._onPtyFulfill(pty)).catch(error => this._onPtyFail(error));
+      this._spawn(cwd).then(pty => this._onPtyFulfill(pty, terminal)).catch(error => this._onPtyFail(error, terminal));
     }));
   }
 
-  _subscribeFitEvents() {
-    return new (_UniversalDisposable().default)(_featureConfig().default.observeAsStream(_config().CURSOR_STYLE_CONFIG).skip(1).subscribe(cursorStyle => this._setTerminalOption('cursorStyle', cursorStyle)), _featureConfig().default.observeAsStream(_config().CURSOR_BLINK_CONFIG).skip(1).subscribe(cursorBlink => this._setTerminalOption('cursorBlink', cursorBlink)), _featureConfig().default.observeAsStream(_config().SCROLLBACK_CONFIG).skip(1).subscribe(scrollback => this._setTerminalOption('scrollback', scrollback)), _RxMin.Observable.merge((0, _event().observableFromSubscribeFunction)(cb => atom.config.onDidChange('editor.fontSize', cb)), _featureConfig().default.observeAsStream(_config().FONT_SCALE_CONFIG).skip(1), _featureConfig().default.observeAsStream(_config().FONT_FAMILY_CONFIG).skip(1), _featureConfig().default.observeAsStream(_config().LINE_HEIGHT_CONFIG).skip(1), _RxMin.Observable.fromEvent(this._terminal, 'focus'), _RxMin.Observable.fromEvent(window, 'resize'), new (_observableDom().ResizeObservable)(this._div)).subscribe(this._syncFontAndFit));
+  _subscribeFitEvents(terminal) {
+    return new (_UniversalDisposable().default)((0, _config().subscribeConfigChanges)(terminal), _RxMin.Observable.combineLatest((0, _observePaneItemVisibility().default)(this), _RxMin.Observable.merge((0, _event().observableFromSubscribeFunction)(cb => atom.config.onDidChange('editor.fontSize', cb)), _featureConfig().default.observeAsStream(_config().FONT_SCALE_CONFIG).skip(1), _featureConfig().default.observeAsStream(_config().FONT_FAMILY_CONFIG).skip(1), _featureConfig().default.observeAsStream(_config().LINE_HEIGHT_CONFIG).skip(1), _RxMin.Observable.fromEvent(terminal, 'focus'), // Debounce resize observables to reduce lag.
+    _RxMin.Observable.merge(_RxMin.Observable.fromEvent(window, 'resize'), new (_observableDom().ResizeObservable)(this._div)).let((0, _observable().fastDebounce)(100))).startWith(null)) // Don't emit syncs if the pane is not visible.
+    .filter(([visible]) => visible).subscribe(() => this._syncFontAndFit(terminal)));
   }
 
   _spawn(cwd) {
@@ -328,7 +325,54 @@ class TerminalView {
     (0, _AtomServiceContainer().getPtyServiceByNuclideUri)(cwd).useTitleAsPath(this).then(value => this._useTitleAsPath = value);
   }
 
-  _onPtyFulfill(pty) {
+  _onTerminalCreation(terminal) {
+    this._terminal = terminal;
+    this._processOutput = (0, _sink().createOutputSink)(terminal);
+    terminal.attachCustomKeyEventHandler(this._checkIfKeyBoundOrDivertToXTerm.bind(this));
+
+    this._subscriptions.add(() => terminal.dispose());
+
+    terminal.webLinksInit(openLink);
+    registerLinkHandlers(terminal, this._cwd); // div items don't support a 'focus' event, and we need to forward.
+
+    this._div.focus = () => terminal.focus();
+
+    this._div.blur = () => terminal.blur();
+
+    if (process.platform === 'win32') {
+      // On Windows, add Putty-style highlight and right click to copy, right click to paste.
+      this._subscriptions.add(_RxMin.Observable.fromEvent(this._div, 'contextmenu').subscribe(e => {
+        // Note: Manipulating the clipboard directly because atom's core:copy and core:paste
+        // commands are not working correctly with terminal selection.
+        if (terminal.hasSelection()) {
+          // $FlowFixMe: add types for clipboard
+          _electron.clipboard.writeText(terminal.getSelection());
+        } else {
+          document.execCommand('paste');
+        }
+
+        terminal.clearSelection();
+        terminal.focus();
+        e.stopPropagation();
+      }));
+    }
+
+    this._subscriptions.add(atom.commands.add(this._div, 'core:copy', () => {
+      document.execCommand('copy');
+    }), atom.commands.add(this._div, 'core:paste', () => {
+      document.execCommand('paste');
+    }), atom.commands.add(this._div, _config().ADD_ESCAPE_COMMAND, this._addEscapePrefix.bind(this)), atom.commands.add(this._div, 'atom-ide-terminal:clear', terminal.clear.bind(terminal)));
+
+    this._subscriptions.add(_featureConfig().default.observeAsStream(_config().PRESERVED_COMMANDS_CONFIG).subscribe(preserved => {
+      this._preservedCommands = new Set([...(preserved || []), ...(this._terminalInfo.preservedCommands || [])]);
+    }), atom.config.onDidChange('core.themes', () => this._syncAtomTheme(terminal)), atom.themes.onDidChangeActiveThemes(() => this._syncAtomTheme(terminal)));
+
+    this._subscriptions.add( // Skip the first value because the observe callback triggers once when
+    // we begin observing, duplicating work in the constructor.
+    ...Object.keys(_config().COLOR_CONFIGS).map(color => _featureConfig().default.observeAsStream(_config().COLOR_CONFIGS[color]).skip(1).subscribe(() => this._syncAtomTheme(terminal))));
+  }
+
+  _onPtyFulfill(pty, terminal) {
     if (!(this._pty == null)) {
       throw new Error("Invariant violation: \"this._pty == null\"");
     }
@@ -337,20 +381,21 @@ class TerminalView {
     const now = (0, _performanceNow().default)();
     this._focusStart = now;
     (0, _analytics().track)('nuclide-terminal.started', {
-      pane: this._paneUri,
       uri: this._cwd,
       startDelay: Math.round(now - this._startTime)
     });
 
-    this._subscriptions.add(this.dispose.bind(this), _RxMin.Observable.fromEvent(this._terminal, 'data').subscribe(this._onInput.bind(this)), _RxMin.Observable.fromEvent(this._terminal, 'title').subscribe(title => {
+    this._subscriptions.add(this.dispose.bind(this), _RxMin.Observable.fromEvent(terminal, 'data').subscribe(this._onInput.bind(this)), _RxMin.Observable.fromEvent(terminal, 'title').subscribe(title => {
       this._setTitle(title);
 
       if (this._useTitleAsPath) {
         this._setPath(title);
       }
-    }), _RxMin.Observable.interval(60 * 60 * 1000).subscribe(() => (0, _analytics().track)('nuclide-terminal.hourly', this._statistics())), _RxMin.Observable.fromEvent(this._terminal, 'focus').subscribe(this._focused.bind(this)), _RxMin.Observable.fromEvent(this._terminal, 'blur').subscribe(this._blurred.bind(this)));
+    }), _RxMin.Observable.interval(60 * 60 * 1000).subscribe(() => (0, _analytics().track)('nuclide-terminal.hourly', this._statistics())), _RxMin.Observable.fromEvent(terminal, 'focus').subscribe(this._focused.bind(this)), _RxMin.Observable.fromEvent(terminal, 'blur').subscribe(this._blurred.bind(this)));
 
-    this._syncFontAndFit();
+    this._syncFontAndFit(terminal);
+
+    this._subscriptions.add((0, _measurePerformance().default)(terminal));
   }
 
   _focused() {
@@ -372,14 +417,7 @@ class TerminalView {
     const now = (0, _performanceNow().default)();
     const focusStart = this._focusStart;
     const focusDuration = this._focusDuration + (focusStart == null ? 0 : now - focusStart);
-
-    const {
-      query
-    } = _url.default.parse(this._paneUri, true);
-
-    const id = query == null ? null : query.unique;
     return {
-      id,
       uri: this._cwd,
       focusDuration: Math.round(focusDuration),
       duration: Math.round(now - this._startTime),
@@ -388,15 +426,14 @@ class TerminalView {
     };
   }
 
-  _onPtyFail(error) {
-    this._terminal.writeln('Error starting process:');
+  _onPtyFail(error, terminal) {
+    terminal.writeln('Error starting process:');
 
     for (const line of String(error).split('\n')) {
-      this._terminal.writeln(line);
+      terminal.writeln(line);
     }
 
     (0, _analytics().track)('nuclide-terminal.failed', {
-      pane: this._paneUri,
       uri: this._cwd,
       startDelay: Math.round((0, _performanceNow().default)() - this._startTime),
       error: String(error)
@@ -405,37 +442,9 @@ class TerminalView {
   // trigger a re-fit when updating font settings.
 
 
-  _setTerminalOption(optionName, value) {
-    if (this._terminal.getOption(optionName) !== value) {
-      this._terminal.setOption(optionName, value);
-    }
-  }
-
-  _fitAndResize() {
-    // Force character measure before 'fit' runs.
-    this._terminal.resize(this._terminal.cols, this._terminal.rows);
-
-    this._terminal.fit();
-
-    if (this._pty != null) {
-      this._pty.resize(this._terminal.cols, this._terminal.rows);
-    }
-
-    this._syncAtomTheme(); // documented workaround for https://github.com/xtermjs/xterm.js/issues/291
-    // see https://github.com/Microsoft/vscode/commit/134cbec22f81d5558909040491286d72b547bee6
-
-
-    this._terminal.emit('scroll', this._terminal.buffer.ydisp);
-  }
-
-  _syncAtomTheme() {
+  _syncAtomTheme(terminal) {
     const div = this._div;
-
-    this._setTerminalOption('theme', getTerminalTheme(div));
-  }
-
-  _clear() {
-    this._terminal.clear();
+    (0, _config().setTerminalOption)(terminal, 'theme', getTerminalTheme(div));
   }
 
   _onInput(data) {
@@ -499,28 +508,6 @@ class TerminalView {
     }
   }
 
-  _createOutputSink() {
-    let tmuxLines = 0;
-    let lines = 0;
-    let firstChar = null;
-    let warned = false;
-    return (0, _sink().removePrefixSink)(TMUX_CONTROLCONTROL_PREFIX, (0, _sink().patternCounterSink)('\n%', n => ++tmuxLines < 2, (0, _sink().patternCounterSink)('\n', n => ++lines < 2, data => {
-      if (firstChar == null && data.length > 0) {
-        firstChar = data.charAt(0);
-      }
-
-      if (firstChar === '%' && tmuxLines === lines && tmuxLines >= 2 && !warned) {
-        warned = true;
-        atom.notifications.addWarning('Tmux control protocol detected', {
-          detail: 'The terminal output looks like you might be using tmux with -C or -CC.  ' + 'Nuclide terminal can be used with tmux, but not with the -C or -CC options.  ' + 'In your ~/.bashrc or similar, you can avoid invocations of tmux -C (or -CC) ' + 'in Nuclide terminal by checking:\n' + '  if [ "$TERM_PROGRAM" != nuclide ]; then\n' + '    tmux -C ...\n' + '  fi',
-          dismissable: true
-        });
-      }
-
-      this._terminal.write(data);
-    })));
-  }
-
   _closeTab() {
     const pane = atom.workspace.paneForItem(this);
 
@@ -532,7 +519,9 @@ class TerminalView {
   onOutput(data) {
     this._bytesOut += data.length;
 
-    this._processOutput(data);
+    if (this._processOutput != null) {
+      this._processOutput(data);
+    }
 
     if (this._isFirstOutput) {
       this._isFirstOutput = false;
@@ -542,7 +531,6 @@ class TerminalView {
   }
 
   onExit(code, signal) {
-    const terminal = this._terminal;
     (0, _analytics().track)('nuclide-terminal.exit', Object.assign({}, this._statistics(), {
       code,
       signal
@@ -554,6 +542,11 @@ class TerminalView {
       return;
     }
 
+    if (this._terminal == null) {
+      return;
+    }
+
+    const terminal = this._terminal;
     terminal.writeln('');
     terminal.writeln('');
     const command = this._terminalInfo.command;
@@ -566,14 +559,12 @@ class TerminalView {
 
     terminal.writeln('');
 
-    this._disableTerminal();
+    this._disableTerminal(terminal);
   }
 
-  _disableTerminal() {
+  _disableTerminal(terminal) {
     this.dispose();
-
-    this._terminal.blur(); // Disable terminal's ability to capture input once in error state.
-
+    terminal.blur(); // Disable terminal's ability to capture input once in error state.
 
     this._div.focus = () => {};
 
@@ -585,20 +576,19 @@ class TerminalView {
   }
 
   terminateProcess() {
-    if (this._pty != null) {
-      this._disableTerminal();
+    if (this._pty != null && this._terminal != null) {
+      const terminal = this._terminal;
 
-      this._terminal.writeln('');
+      this._disableTerminal(terminal);
 
-      this._terminal.writeln('Process terminated.');
-
-      this._terminal.writeln('');
+      terminal.writeln('');
+      terminal.writeln('Process terminated.');
+      terminal.writeln('');
     }
   }
 
   copy() {
-    const paneUri = (0, _nuclideTerminalUri().uriFromInfo)(this._terminalInfo);
-    return new TerminalView(paneUri);
+    return new TerminalView(this._terminalInfo);
   } // Remote connection is closing--note the window remains open to show error
   // output if the process exit code was not 0.
 
@@ -629,7 +619,11 @@ class TerminalView {
   }
 
   getURI() {
-    return this._paneUri;
+    return 'atom://nuclide-terminal-view';
+  }
+
+  getTerminalKey() {
+    return this._key;
   }
 
   getDefaultLocation() {
@@ -653,13 +647,18 @@ class TerminalView {
   }
 
   on(name, callback) {
-    return this._emitter.on(name, callback);
+    if (this._subscriptions.disposed) {
+      return new (_UniversalDisposable().default)();
+    } else {
+      return this._emitter.on(name, callback);
+    }
   }
 
   serialize() {
     return {
       deserializer: 'TerminalView',
-      paneUri: this._paneUri
+      initialInfo: this._terminalInfo,
+      cwd: this._cwd
     };
   }
 
@@ -668,10 +667,11 @@ class TerminalView {
 exports.TerminalView = TerminalView;
 
 function deserializeTerminalView(state) {
-  // Convert from/to uri to generate a new unique id.
-  const info = (0, _nuclideTerminalUri().infoFromUri)(state.paneUri, true);
-  const paneUri = (0, _nuclideTerminalUri().uriFromInfo)(info);
-  return new TerminalView(paneUri);
+  if (state.initialInfo != null) {
+    return new TerminalView(state.initialInfo);
+  }
+
+  return new TerminalView((0, _nuclideTerminalUri().infoFromUri)(URI_PREFIX));
 }
 
 function registerLinkHandlers(terminal, cwd) {
@@ -702,7 +702,7 @@ function registerLinkHandlers(terminal, cwd) {
     urlPattern: taskPattern
   }, {
     // An absolute file path
-    regex: /(^|\s)(\/[^<>:"\\|?*[\]\s]+)/,
+    regex: /(^|\s)((\/[^<>:"\\|?*[\]\s]+)(:\d+)?)/,
     matchIndex: 2,
     urlPattern: 'open-file-object://%s'
   }];
@@ -713,7 +713,7 @@ function registerLinkHandlers(terminal, cwd) {
       matchIndex,
       urlPattern
     } = _ref;
-    terminal.linkifier.registerLinkMatcher(regex, (event, match) => {
+    terminal.registerLinkMatcher(regex, (event, match) => {
       const replacedUrl = urlPattern.replace('%s', match);
 
       if (replacedUrl !== '') {
@@ -735,16 +735,26 @@ function tryOpenInAtom(link, cwd) {
   const parsed = _url.default.parse(link);
 
   if (parsed.protocol === 'open-file-object:') {
-    let path = parsed.path;
+    const path = parsed.path;
 
     if (path != null) {
+      const fileLine = path.split(':');
+      let filePath = fileLine[0];
+      let line = 0;
+
+      if (fileLine.length > 1 && parseInt(fileLine[1], 10) > 0) {
+        line = parseInt(fileLine[1], 10) - 1;
+      }
+
       if (cwd != null && _nuclideUri().default.isRemote(cwd)) {
         const terminalLocation = _nuclideUri().default.parseRemoteUri(cwd);
 
-        path = _nuclideUri().default.createRemoteUri(terminalLocation.hostname, path);
+        filePath = _nuclideUri().default.createRemoteUri(terminalLocation.hostname, filePath);
       }
 
-      (0, _goToLocation().goToLocation)(path);
+      (0, _goToLocation().goToLocation)(filePath, {
+        line
+      });
     }
 
     return true;

@@ -51,6 +51,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  *
  * 
  * @format
+ * @emails oncall+nuclide
  */
 describe('GrepService.grepReplace', () => {
   let tempDir;
@@ -66,7 +67,7 @@ describe('GrepService.grepReplace', () => {
     }, {
       type: 'error',
       filePath: _nuclideUri().default.join(tempDir, 'nonexistent.txt'),
-      message: jasmine.any(String)
+      message: expect.any(String)
     }, {
       type: 'success',
       filePath: _nuclideUri().default.join(tempDir, 'test.txt'),

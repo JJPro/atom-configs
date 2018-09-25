@@ -81,7 +81,7 @@ class Activation {
           return _RxMin.Observable.of(_expected().Expect.error(new Error('iOS devices on remote hosts are not currently supported.')));
         } else {
           return (0, _nuclideFbsimctl().observeIosDevices)().map(expected => expected.map(devices => devices.map(device => ({
-            name: device.udid,
+            identifier: device.udid,
             displayName: device.name,
             ignoresSelection: true
           }))));

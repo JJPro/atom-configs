@@ -70,7 +70,8 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 _temp().default.track();
 
 const tempMkDir = (0, _promise().denodeify)(_temp().default.mkdir);
-const mkdir = (0, _promise().denodeify)(_fsPlus().makeTree);
+const mkdir = (0, _promise().denodeify)(_fsPlus().makeTree); // eslint-disable-next-line nuclide-internal/no-unresolved
+
 const touch = (0, _promise().denodeify)(_touch().default);
 
 async function buildTempDirTree(...paths) {

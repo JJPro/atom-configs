@@ -17,11 +17,13 @@ exports.destroyItemWhere = destroyItemWhere;
  * @format
  */
 function destroyItemWhere(predicate) {
+  const destroyItemStatuses = [];
   atom.workspace.getPanes().forEach(pane => {
     pane.getItems().forEach(item => {
       if (predicate(item)) {
-        pane.destroyItem(item, true);
+        destroyItemStatuses.push(pane.destroyItem(item, true));
       }
     });
   });
+  return Promise.all(destroyItemStatuses);
 }

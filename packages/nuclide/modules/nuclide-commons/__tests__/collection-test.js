@@ -20,6 +20,7 @@ function _collection() {
  *
  * 
  * @format
+ * @emails oncall+nuclide
  */
 describe('ensureArray', () => {
   it('works on arrays', () => {

@@ -19,6 +19,7 @@ function _hgDiffOutputParser() {
  *
  *  strict-local
  * @format
+ * @emails oncall+nuclide
  */
 const MULTI_CHUNK_CHANGE_HG_DIFF_OUTPUT = `diff --git a/test-test/blah/blah.js b/test-test/blah/blah.js
 --- a/jar-rename/blah/blah.js

@@ -46,13 +46,11 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  * This source code is licensed under the license found in the LICENSE file in
  * the root directory of this source tree.
  *
- * 
+ *  strict-local
  * @format
  */
 const DEFAULT_OPTIONS = {
   isExpanded: false,
-  isSelected: false,
-  isFocused: false,
   isDragHovered: false,
   isBeingReordered: false,
   isLoading: false,
@@ -136,15 +134,13 @@ class FileTreeNode {
     this.parent = null;
     this.nextSibling = null;
     this.prevSibling = null;
-    this.conf = conf;
+    this._conf = conf;
 
     this._assignOptions(options);
 
     this._deriver = _deriver || new (_MemoizedFieldsDeriver().MemoizedFieldsDeriver)(options.uri, options.rootUri);
 
-    const derived = this._deriver.buildDerivedFields(conf);
-
-    this._assignDerived(derived);
+    this._assignDerived();
 
     this._handleChildren();
   }
@@ -221,18 +217,6 @@ class FileTreeNode {
     this.uri = options.uri;
     this.rootUri = options.rootUri;
     this.isExpanded = options.isExpanded !== undefined ? options.isExpanded : DEFAULT_OPTIONS.isExpanded;
-    const isSelected = options.isSelected !== undefined ? options.isSelected : DEFAULT_OPTIONS.isSelected;
-
-    if (isSelected) {
-      this.conf.selectionManager.select(this);
-    }
-
-    const isFocused = options.isFocused !== undefined ? options.isFocused : DEFAULT_OPTIONS.isFocused;
-
-    if (isFocused) {
-      this.conf.selectionManager.focus(this);
-    }
-
     this.isDragHovered = options.isDragHovered !== undefined ? options.isDragHovered : DEFAULT_OPTIONS.isDragHovered;
     this.isBeingReordered = options.isBeingReordered !== undefined ? options.isBeingReordered : DEFAULT_OPTIONS.isBeingReordered;
     this.isLoading = options.isLoading !== undefined ? options.isLoading : DEFAULT_OPTIONS.isLoading;
@@ -253,7 +237,9 @@ class FileTreeNode {
    */
 
 
-  _assignDerived(derived) {
+  _assignDerived() {
+    const derived = this._deriver.buildDerivedFields(this._conf);
+
     this.isRoot = derived.isRoot;
     this.name = derived.name;
     this.hashKey = derived.hashKey;
@@ -279,8 +265,6 @@ class FileTreeNode {
       uri: this.uri,
       rootUri: this.rootUri,
       isExpanded: this.isExpanded,
-      isSelected: this.isSelected(),
-      isFocused: this.isFocused(),
       isDragHovered: this.isDragHovered,
       isBeingReordered: this.isBeingReordered,
       isLoading: this.isLoading,
@@ -299,18 +283,6 @@ class FileTreeNode {
   setIsExpanded(isExpanded) {
     return this.set({
       isExpanded
-    });
-  }
-
-  setIsSelected(isSelected) {
-    return this.set({
-      isSelected
-    });
-  }
-
-  setIsFocused(isFocused) {
-    return this.set({
-      isFocused
     });
   }
 
@@ -355,42 +327,24 @@ class FileTreeNode {
    */
 
 
-  updateConf() {
-    const children = this.children.map(c => c.updateConf());
-    return this._newNode({
+  updateConf(conf) {
+    const children = this.children.map(c => c.updateConf(conf));
+
+    const options = this._buildOptions();
+
+    return new FileTreeNode(Object.assign({}, options, {
       children
-    }, this.conf);
+    }), conf, this._deriver);
   }
   /**
    * Used to modify several properties at once and skip unnecessary construction of intermediate
    * instances. For example:
-   * const newNode = node.set({isExpanded: true, isSelected: false});
+   * const newNode = node.set({isExpanded: true});
    */
 
 
   set(props) {
-    if (this._propsAreTheSame(props)) {
-      // Prevent an expensive operation on a very frequent update (selection)
-      if (props.isSelected !== undefined && this.isSelected() !== props.isSelected) {
-        if (props.isSelected) {
-          this.conf.selectionManager.select(this);
-        } else {
-          this.conf.selectionManager.unselect(this);
-        }
-      }
-
-      if (props.isFocused !== undefined && this.isFocused() !== props.isFocused) {
-        if (props.isFocused) {
-          this.conf.selectionManager.focus(this);
-        } else {
-          this.conf.selectionManager.unfocus(this);
-        }
-      }
-
-      return this;
-    }
-
-    return this._newNode(props, this.conf);
+    return this._propsAreTheSame(props) ? this : this._newNode(props);
   }
   /**
    * Performs an update of a tree branch. Receives two optional predicates
@@ -617,27 +571,7 @@ class FileTreeNode {
   }
 
   findByIndex(index) {
-    if (index === 1) {
-      return this;
-    }
-
-    if (index > this.shownChildrenCount) {
-      const nextShownSibling = this.findNextShownSibling();
-
-      if (nextShownSibling != null) {
-        return nextShownSibling.findByIndex(index - this.shownChildrenCount);
-      }
-
-      return null;
-    }
-
-    const firstVisibleChild = this.children.find(c => c.shouldBeShown);
-
-    if (firstVisibleChild != null) {
-      return firstVisibleChild.findByIndex(index - 1);
-    }
-
-    return null;
+    return findNodeAtOffset(this, index - 1); // indexes are 1-based.
   }
 
   _propsAreTheSame(props) {
@@ -692,43 +626,10 @@ class FileTreeNode {
     return true;
   }
 
-  _newNode(props, conf) {
+  _newNode(props) {
     const options = this._buildOptions();
 
-    if (props.children !== undefined) {
-      this._handleChildrenChange(this.children, props.children);
-    }
-
-    this.conf.selectionManager.unselect(this);
-    this.conf.selectionManager.unfocus(this);
-    return new FileTreeNode(Object.assign({}, options, props), conf, this._deriver);
-  }
-
-  _handleChildrenChange(oldChildren, newChildren) {
-    if (oldChildren === newChildren) {
-      return;
-    }
-
-    const childrenToUnselect = new Set();
-    const childrenToUnfocus = new Set();
-    oldChildren.forEach(node => {
-      const newChild = newChildren.get(node.name);
-
-      if (newChild === node) {
-        return;
-      }
-
-      childrenToUnselect.add(node);
-      childrenToUnfocus.add(node);
-
-      if (newChild != null) {
-        this._handleChildrenChange(node.children, newChild.children);
-      } else {
-        this._handleChildrenChange(node.children, Immutable().OrderedMap());
-      }
-    });
-    childrenToUnselect.forEach(node => this.conf.selectionManager.unselect(node));
-    childrenToUnfocus.forEach(node => this.conf.selectionManager.unfocus(node));
+    return new FileTreeNode(Object.assign({}, options, props), this._conf, this._deriver);
   }
 
   _findLastByNamePath(childNamePath) {
@@ -743,14 +644,6 @@ class FileTreeNode {
     }
 
     return child._findLastByNamePath(childNamePath.slice(1));
-  }
-
-  isSelected() {
-    return this.conf.selectionManager.isSelected(this);
-  }
-
-  isFocused() {
-    return this.conf.selectionManager.isFocused(this);
   }
 
   collectDebugState() {
@@ -789,5 +682,45 @@ class FileTreeNode {
   }
 
 }
+/**
+ * Find the node that occurs `offset` after the provided one in the flattened list. `offset` must
+ * be a non-negative integer.
+ *
+ * This function is intentionally implemented with a loop instead of recursion. Previously it was
+ * implemented using recursion, which caused the stack size to grow with the number of siblings we
+ * had to traverse. That meant we exceeded the max stack size with enough sibling files.
+ */
+
 
 exports.FileTreeNode = FileTreeNode;
+
+function findNodeAtOffset(node_, offset_) {
+  let offset = offset_;
+  let node = node_;
+
+  while (offset > 0) {
+    if (offset < node.shownChildrenCount // `shownChildrenCount` includes the node itself.
+    ) {
+        // It's a descendant of this node!
+        const firstVisibleChild = node.children.find(c => c.shouldBeShown);
+
+        if (firstVisibleChild == null) {
+          return null;
+        }
+
+        offset--;
+        node = firstVisibleChild;
+      } else {
+      const nextShownSibling = node.findNextShownSibling();
+
+      if (nextShownSibling == null) {
+        return null;
+      }
+
+      offset -= node.shownChildrenCount;
+      node = nextShownSibling;
+    }
+  }
+
+  return node;
+}

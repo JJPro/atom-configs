@@ -24,6 +24,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  *
  * 
  * @format
+ * @emails oncall+nuclide
  */
 // Package activation is not supported yet
 describe.skip('DefinitionHyperclick', () => {
@@ -67,219 +68,209 @@ describe.skip('DefinitionHyperclick', () => {
     expect(result).toBe(null);
   });
   it('no definition', async () => {
-    await (async () => {
-      const spy = jest.spyOn(definitionProvider, 'getDefinition').mockReturnValue(null);
+    const spy = jest.spyOn(definitionProvider, 'getDefinition').mockReturnValue(null);
 
-      if (!(provider != null)) {
-        throw new Error("Invariant violation: \"provider != null\"");
-      }
+    if (!(provider != null)) {
+      throw new Error("Invariant violation: \"provider != null\"");
+    }
 
-      if (!(provider.getSuggestion != null)) {
-        throw new Error("Invariant violation: \"provider.getSuggestion != null\"");
-      }
+    if (!(provider.getSuggestion != null)) {
+      throw new Error("Invariant violation: \"provider.getSuggestion != null\"");
+    }
 
-      const result = await provider.getSuggestion(editor, position);
-      expect(result).toBe(null);
-      expect(spy).toHaveBeenCalledWith(editor, position);
-    })();
+    const result = await provider.getSuggestion(editor, position);
+    expect(result).toBe(null);
+    expect(spy).toHaveBeenCalledWith(editor, position);
   });
   it('definition - single', async () => {
-    await (async () => {
-      const definition = {
-        queryRange: [new _atom.Range(new _atom.Point(1, 1), new _atom.Point(1, 5))],
-        definitions: [{
-          path: 'path1',
-          position: new _atom.Point(1, 2),
-          range: null,
-          id: 'symbol-name',
-          name: null,
-          projectRoot: null
-        }]
-      };
-      const spy = jest.spyOn(definitionProvider, 'getDefinition').mockReturnValue(Promise.resolve(definition));
+    const definition = {
+      queryRange: [new _atom.Range(new _atom.Point(1, 1), new _atom.Point(1, 5))],
+      definitions: [{
+        path: 'path1',
+        position: new _atom.Point(1, 2),
+        range: null,
+        id: 'symbol-name',
+        name: null,
+        projectRoot: null
+      }]
+    };
+    const spy = jest.spyOn(definitionProvider, 'getDefinition').mockReturnValue(Promise.resolve(definition));
 
-      if (!(provider != null)) {
-        throw new Error("Invariant violation: \"provider != null\"");
-      }
+    if (!(provider != null)) {
+      throw new Error("Invariant violation: \"provider != null\"");
+    }
 
-      if (!(provider.getSuggestion != null)) {
-        throw new Error("Invariant violation: \"provider.getSuggestion != null\"");
-      }
+    if (!(provider.getSuggestion != null)) {
+      throw new Error("Invariant violation: \"provider.getSuggestion != null\"");
+    }
 
-      const result = await provider.getSuggestion(editor, position);
+    const result = await provider.getSuggestion(editor, position);
 
-      if (!(result != null)) {
-        throw new Error("Invariant violation: \"result != null\"");
-      }
+    if (!(result != null)) {
+      throw new Error("Invariant violation: \"result != null\"");
+    }
 
-      expect(result.range).toEqual(definition.queryRange);
-      expect(spy).toHaveBeenCalledWith(editor, position);
-      expect(goToLocation).not.toHaveBeenCalled();
+    expect(result.range).toEqual(definition.queryRange);
+    expect(spy).toHaveBeenCalledWith(editor, position);
+    expect(goToLocation).not.toHaveBeenCalled();
 
-      if (!(result != null)) {
-        throw new Error("Invariant violation: \"result != null\"");
-      }
+    if (!(result != null)) {
+      throw new Error("Invariant violation: \"result != null\"");
+    }
 
-      if (!(result.callback != null)) {
-        throw new Error("Invariant violation: \"result.callback != null\"");
-      }
+    if (!(result.callback != null)) {
+      throw new Error("Invariant violation: \"result.callback != null\"");
+    }
 
-      if (!(typeof result.callback === 'function')) {
-        throw new Error("Invariant violation: \"typeof result.callback === 'function'\"");
-      }
+    if (!(typeof result.callback === 'function')) {
+      throw new Error("Invariant violation: \"typeof result.callback === 'function'\"");
+    }
 
-      result.callback();
-      expect(goToLocation).toHaveBeenCalledWith('path1', {
-        line: 1,
-        column: 2
-      });
-    })();
+    result.callback();
+    expect(goToLocation).toHaveBeenCalledWith('path1', {
+      line: 1,
+      column: 2
+    });
   });
   it('definition - multiple', async () => {
-    await (async () => {
-      const defs = {
-        queryRange: [new _atom.Range(new _atom.Point(1, 1), new _atom.Point(1, 5))],
-        definitions: [{
-          path: '/a/b/path1',
-          position: new _atom.Point(1, 2),
-          range: null,
-          id: 'symbol-name',
-          name: 'd1',
-          projectRoot: '/a'
-        }, {
-          path: '/a/b/path2',
-          position: new _atom.Point(3, 4),
-          range: null,
-          id: 'symbol-name2',
-          name: 'd2',
-          projectRoot: '/a'
-        }, {
-          path: '/a/b/path3',
-          position: new _atom.Point(3, 4),
-          range: null,
-          id: 'symbol-without-name',
-          projectRoot: '/a'
-        }]
-      };
-      const spy = jest.spyOn(definitionProvider, 'getDefinition').mockReturnValue(Promise.resolve(defs));
+    const defs = {
+      queryRange: [new _atom.Range(new _atom.Point(1, 1), new _atom.Point(1, 5))],
+      definitions: [{
+        path: '/a/b/path1',
+        position: new _atom.Point(1, 2),
+        range: null,
+        id: 'symbol-name',
+        name: 'd1',
+        projectRoot: '/a'
+      }, {
+        path: '/a/b/path2',
+        position: new _atom.Point(3, 4),
+        range: null,
+        id: 'symbol-name2',
+        name: 'd2',
+        projectRoot: '/a'
+      }, {
+        path: '/a/b/path3',
+        position: new _atom.Point(3, 4),
+        range: null,
+        id: 'symbol-without-name',
+        projectRoot: '/a'
+      }]
+    };
+    const spy = jest.spyOn(definitionProvider, 'getDefinition').mockReturnValue(Promise.resolve(defs));
 
-      if (!(provider != null)) {
-        throw new Error("Invariant violation: \"provider != null\"");
-      }
+    if (!(provider != null)) {
+      throw new Error("Invariant violation: \"provider != null\"");
+    }
 
-      if (!(provider.getSuggestion != null)) {
-        throw new Error("Invariant violation: \"provider.getSuggestion != null\"");
-      }
+    if (!(provider.getSuggestion != null)) {
+      throw new Error("Invariant violation: \"provider.getSuggestion != null\"");
+    }
 
-      const result = await provider.getSuggestion(editor, position);
+    const result = await provider.getSuggestion(editor, position);
 
-      if (!(result != null)) {
-        throw new Error("Invariant violation: \"result != null\"");
-      }
+    if (!(result != null)) {
+      throw new Error("Invariant violation: \"result != null\"");
+    }
 
-      expect(result.range).toEqual(defs.queryRange);
-      expect(spy).toHaveBeenCalledWith(editor, position);
-      expect(goToLocation).not.toHaveBeenCalled();
-      const callbacks = result.callback;
-      expect(callbacks.length).toBe(3);
-      expect(callbacks[0].title).toBe('d1 (b/path1)');
-      expect(typeof callbacks[0].callback).toBe('function');
-      expect(callbacks[1].title).toBe('d2 (b/path2)');
-      expect(typeof callbacks[1].callback).toBe('function');
-      expect(callbacks[2].title).toBe('b/path3:4');
-      expect(typeof callbacks[2].callback).toBe('function');
-      callbacks[1].callback();
-      expect(goToLocation).toHaveBeenCalledWith('/a/b/path2', {
-        line: 3,
-        column: 4
-      });
-    })();
+    expect(result.range).toEqual(defs.queryRange);
+    expect(spy).toHaveBeenCalledWith(editor, position);
+    expect(goToLocation).not.toHaveBeenCalled();
+    const callbacks = result.callback;
+    expect(callbacks.length).toBe(3);
+    expect(callbacks[0].title).toBe('d1 (b/path1)');
+    expect(typeof callbacks[0].callback).toBe('function');
+    expect(callbacks[1].title).toBe('d2 (b/path2)');
+    expect(typeof callbacks[1].callback).toBe('function');
+    expect(callbacks[2].title).toBe('b/path3:4');
+    expect(typeof callbacks[2].callback).toBe('function');
+    callbacks[1].callback();
+    expect(goToLocation).toHaveBeenCalledWith('/a/b/path2', {
+      line: 3,
+      column: 4
+    });
   });
   it('falls back to lower-priority providers', async () => {
-    await (async () => {
-      const def = {
-        queryRange: [new _atom.Range(new _atom.Point(1, 1), new _atom.Point(1, 5))],
-        definitions: [{
-          path: 'path1',
-          position: new _atom.Point(1, 2),
-          range: null,
-          id: 'symbol-name',
-          name: null,
-          projectRoot: null
-        }]
-      };
-      const newProvider = {
-        priority: 10,
-        name: '',
-        grammarScopes: ['text.plain.null-grammar'],
-        getDefinition: () => Promise.resolve(def)
-      };
-      atom.packages.serviceHub.provide('definitions', '0.1.0', newProvider);
+    const def = {
+      queryRange: [new _atom.Range(new _atom.Point(1, 1), new _atom.Point(1, 5))],
+      definitions: [{
+        path: 'path1',
+        position: new _atom.Point(1, 2),
+        range: null,
+        id: 'symbol-name',
+        name: null,
+        projectRoot: null
+      }]
+    };
+    const newProvider = {
+      priority: 10,
+      name: '',
+      grammarScopes: ['text.plain.null-grammar'],
+      getDefinition: () => Promise.resolve(def)
+    };
+    atom.packages.serviceHub.provide('definitions', '0.1.0', newProvider);
 
-      if (!(provider != null)) {
-        throw new Error("Invariant violation: \"provider != null\"");
-      }
+    if (!(provider != null)) {
+      throw new Error("Invariant violation: \"provider != null\"");
+    }
 
-      if (!(provider.getSuggestion != null)) {
-        throw new Error("Invariant violation: \"provider.getSuggestion != null\"");
-      }
+    if (!(provider.getSuggestion != null)) {
+      throw new Error("Invariant violation: \"provider.getSuggestion != null\"");
+    }
 
-      const result = await provider.getSuggestion(editor, position);
-      expect(result).not.toBe(null);
+    const result = await provider.getSuggestion(editor, position);
+    expect(result).not.toBe(null);
 
-      if (!(result != null)) {
-        throw new Error("Invariant violation: \"result != null\"");
-      }
+    if (!(result != null)) {
+      throw new Error("Invariant violation: \"result != null\"");
+    }
 
-      expect(result.range).toEqual(def.queryRange);
-    })();
+    expect(result.range).toEqual(def.queryRange);
   });
   it('does not cache null values', async () => {
-    await (async () => {
-      editor.setText('test');
-      const def = {
-        queryRange: [new _atom.Range(new _atom.Point(1, 1), new _atom.Point(1, 5))],
-        definitions: [{
-          path: 'path1',
-          position: new _atom.Point(1, 2),
-          range: null,
-          id: 'symbol-name',
-          name: null,
-          projectRoot: null
-        }]
-      };
-      const newProvider = {
-        priority: 10,
-        name: '',
-        grammarScopes: ['text.plain.null-grammar'],
-        getDefinition: () => Promise.resolve(null)
-      };
-      atom.packages.serviceHub.provide('definitions', '0.1.0', newProvider);
+    editor.setText('test');
+    const def = {
+      queryRange: [new _atom.Range(new _atom.Point(1, 1), new _atom.Point(1, 5))],
+      definitions: [{
+        path: 'path1',
+        position: new _atom.Point(1, 2),
+        range: null,
+        id: 'symbol-name',
+        name: null,
+        projectRoot: null
+      }]
+    };
+    const newProvider = {
+      priority: 10,
+      name: '',
+      grammarScopes: ['text.plain.null-grammar'],
+      getDefinition: () => Promise.resolve(null)
+    };
+    atom.packages.serviceHub.provide('definitions', '0.1.0', newProvider);
 
-      if (!(provider != null)) {
-        throw new Error("Invariant violation: \"provider != null\"");
-      }
+    if (!(provider != null)) {
+      throw new Error("Invariant violation: \"provider != null\"");
+    }
 
-      if (!(provider.getSuggestion != null)) {
-        throw new Error("Invariant violation: \"provider.getSuggestion != null\"");
-      }
+    if (!(provider.getSuggestion != null)) {
+      throw new Error("Invariant violation: \"provider.getSuggestion != null\"");
+    }
 
-      let result = await provider.getSuggestion(editor, position);
-      expect(result).toBe(null);
+    let result = await provider.getSuggestion(editor, position);
+    expect(result).toBe(null);
 
-      newProvider.getDefinition = () => Promise.resolve(def);
+    newProvider.getDefinition = () => Promise.resolve(def);
 
-      if (!(provider.getSuggestion != null)) {
-        throw new Error("Invariant violation: \"provider.getSuggestion != null\"");
-      }
+    if (!(provider.getSuggestion != null)) {
+      throw new Error("Invariant violation: \"provider.getSuggestion != null\"");
+    }
 
-      result = await provider.getSuggestion(editor, position);
+    result = await provider.getSuggestion(editor, position);
 
-      if (!(result != null)) {
-        throw new Error("Invariant violation: \"result != null\"");
-      }
+    if (!(result != null)) {
+      throw new Error("Invariant violation: \"result != null\"");
+    }
 
-      expect(result.range).toEqual(def.queryRange);
-    })();
+    expect(result.range).toEqual(def.queryRange);
   });
 });

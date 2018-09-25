@@ -57,16 +57,6 @@ function _escapeHtml() {
   return data;
 }
 
-function _nuclideVcsLog() {
-  const data = require("../../nuclide-vcs-log");
-
-  _nuclideVcsLog = function () {
-    return data;
-  };
-
-  return data;
-}
-
 var React = _interopRequireWildcard(require("react"));
 
 var _reactDom = _interopRequireDefault(require("react-dom"));
@@ -75,6 +65,16 @@ function _classnames() {
   const data = _interopRequireDefault(require("classnames"));
 
   _classnames = function () {
+    return data;
+  };
+
+  return data;
+}
+
+function _nuclideVcsLog() {
+  const data = require("../../nuclide-vcs-log");
+
+  _nuclideVcsLog = function () {
     return data;
   };
 
@@ -104,6 +104,15 @@ try {
   Avatar = require("../../nuclide-ui/fb-Avatar").default;
 } catch (err) {
   Avatar = null;
+}
+
+let getEmployeeIdentifierFromAuthorString;
+
+try {
+  // $FlowFB
+  getEmployeeIdentifierFromAuthorString = require("../../commons-node/fb-vcs-utils").getEmployeeIdentifierFromAuthorString;
+} catch (err) {
+  getEmployeeIdentifierFromAuthorString = _nuclideVcsLog().shortNameForAuthor;
 }
 
 function getHash(revision) {
@@ -365,9 +374,9 @@ class GutterElement extends React.Component {
     const opacity = 0.2 + 0.8 * alpha;
 
     if (isFirstLine) {
-      const unixname = (0, _nuclideVcsLog().shortNameForAuthor)(revision.author);
+      const employeeIdentifier = getEmployeeIdentifierFromAuthorString(revision.author);
       const tooltip = {
-        title: (0, _escapeHtml().default)(revision.title) + '<br />' + (0, _escapeHtml().default)(unixname) + ' &middot; ' + (0, _escapeHtml().default)(revision.date.toDateString()),
+        title: (0, _escapeHtml().default)(revision.title) + '<br />' + (0, _escapeHtml().default)(employeeIdentifier) + ' &middot; ' + (0, _escapeHtml().default)(revision.date.toDateString()),
         delay: 0,
         placement: 'right'
       };
@@ -379,8 +388,8 @@ class GutterElement extends React.Component {
         className: "nuclide-blame-vertical-bar nuclide-blame-vertical-bar-first"
       }) : null, Avatar ? React.createElement(Avatar, {
         size: 16,
-        employeeIdentifier: unixname
-      }) : unixname + ': ', React.createElement("span", null, revision.title), React.createElement("div", {
+        employeeIdentifier: employeeIdentifier
+      }) : employeeIdentifier + ': ', React.createElement("span", null, revision.title), React.createElement("div", {
         style: {
           opacity
         },

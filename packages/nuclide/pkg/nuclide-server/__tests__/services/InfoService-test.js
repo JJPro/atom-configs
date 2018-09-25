@@ -41,6 +41,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  *
  *  strict-local
  * @format
+ * @emails oncall+nuclide
  */
 jest.setTimeout(20000);
 describe('InfoService', () => {
@@ -58,5 +59,5 @@ describe('InfoService', () => {
     const version = await service.getServerVersion();
     expect(version).toBe((0, _nuclideVersion().getVersion)());
   });
-  afterEach(async () => await testHelper.stop());
+  afterEach(async () => testHelper.stop());
 });

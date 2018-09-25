@@ -4,7 +4,6 @@ Object.defineProperty(exports, "__esModule", {
   value: true
 });
 exports.createMultiLspLanguageService = createMultiLspLanguageService;
-exports.processPlatform = processPlatform;
 
 function _log4js() {
   const data = require("log4js");
@@ -20,16 +19,6 @@ function _fsPromise() {
   const data = _interopRequireDefault(require("../../../modules/nuclide-commons/fsPromise"));
 
   _fsPromise = function () {
-    return data;
-  };
-
-  return data;
-}
-
-function _promise() {
-  const data = require("../../../modules/nuclide-commons/promise");
-
-  _promise = function () {
     return data;
   };
 
@@ -108,49 +97,27 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  * 
  * @format
  */
-function pickCommand(candidates, useFork, cwd) {
-  const options = cwd == null ? {} : {
-    cwd
-  };
-  return (0, _promise().asyncFind)(candidates, async candidate => {
-    const command = useFork ? (0, _resolveFrom().default)((0, _systemInfo().getNuclideRealDir)(), candidate) : candidate;
-    const exists = useFork ? await _fsPromise().default.exists(command) : (await (0, _which().default)(command, options)) != null;
-    return exists ? command : null;
-  });
-}
+
 /**
  * Creates a language service capable of connecting to an LSP server.
  * Note that spawnOptions and initializationOptions must both be RPC-able.
- *
- * The 'command_' parameter is a list of candidate filepaths for the LSP
- * server binary; the first one to be found will be used. They can be relative
- * to the project directory so long as params.fork isn't used. If none are
- * relative and none can be found then this function will return null immediately.
- * If some are relative, then we can only determine whether one can be found at
- * the moment we're asked to spin up each individual language service, and so
- * LspLanguageService will necessarily be spun up. Therefore it's recommended
- * only to use relative paths if your language configuration uses StatusConfig,
- * so as not to spam the user with red error boxes in case of missing binary.
  */
-
-
 async function createMultiLspLanguageService(languageServerName, command_, args, params) {
   const logger = (0, _log4js().getLogger)(params.logCategory);
   logger.setLevel(params.logLevel);
+  let command = command_; // if command is a json payload, it's resolved in LspLanguageService.js
+  // after the projectRoot has been determined.
 
-  if (command_.length === 0) {
-    throw new Error('Expected a command to launch LSP server');
-  }
+  if (!command.startsWith('{')) {
+    command = params.fork ? (0, _resolveFrom().default)((0, _systemInfo().getNuclideRealDir)(), command_) : command_;
+    const exists = params.fork ? await _fsPromise().default.exists(command) : (await (0, _which().default)(command)) != null;
 
-  const lastCandidate = command_.slice(-1)[0];
-  const isProjectRelative = command_.some(c => c.startsWith('./'));
-  let command = isProjectRelative ? null : await pickCommand(command_, params.fork, null);
-
-  if (!isProjectRelative && command == null) {
-    const message = `Command "${lastCandidate}" could not be found: ${languageServerName} language features will be disabled.`;
-    logger.warn(message);
-    params.host.consoleNotification(languageServerName, 'warning', message);
-    return null;
+    if (!exists) {
+      const message = `Command "${command}" could not be found: ${languageServerName} language features will be disabled.`;
+      logger.warn(message);
+      params.host.consoleNotification(languageServerName, 'warning', message);
+      return null;
+    }
   }
 
   const result = new (_nuclideLanguageServiceRpc().MultiProjectLanguageService)();
@@ -181,14 +148,6 @@ async function createMultiLspLanguageService(languageServerName, command_, args,
     // prevent race condition: see below).
 
 
-    if (isProjectRelative) {
-      command = await pickCommand(command_, params.fork, projectDir);
-    }
-
-    if (command == null) {
-      command = lastCandidate;
-    }
-
     const lsp = new (_LspLanguageService().LspLanguageService)(logger, fileCache, (await (0, _nuclideLanguageServiceRpc().forkHostServices)(params.host, logger)), languageServerName, command, args, params.spawnOptions, params.fork, projectDir, params.fileExtensions, params.initializationOptions || {}, Number(params.additionalLogFilesRetentionPeriod), params.useOriginalEnvironment || false, params.lspPreferences);
     lsp.start(); // Kick off 'Initializing'...
 
@@ -202,8 +161,4 @@ async function createMultiLspLanguageService(languageServerName, command_, args,
 
   result.initialize(logger, fileCache, params.host, params.projectFileNames, params.projectFileSearchStrategy, params.fileExtensions, languageServiceFactory);
   return result;
-}
-
-function processPlatform() {
-  return Promise.resolve(process.platform);
 }

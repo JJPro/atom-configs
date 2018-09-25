@@ -49,18 +49,18 @@ function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj;
  * 
  * @format
  */
-function onFileChosen(uri) {
-  atom.notifications.addInfo(`Selected file ${uri}`);
-}
-
 function BasicExample() {
   const fileChanges = new Map([['nuclide://remote.host/someRemoteDir', new Map([['path/to/some/file/added.js', _nuclideVcsBase().FileChangeStatus.ADDED], ['path/to/some/file/modified.js', _nuclideVcsBase().FileChangeStatus.MODIFIED], ['path/to/some/file/missing.js', _nuclideVcsBase().FileChangeStatus.MISSING], ['path/to/some/file/removed.js', _nuclideVcsBase().FileChangeStatus.REMOVED], ['path/to/some/file/untracked.js', _nuclideVcsBase().FileChangeStatus.UNTRACKED]])], ['someLocalDir', new Map([['file/with/shared/prefix/foo.js', _nuclideVcsBase().FileChangeStatus.MODIFIED], ['file/with/shared/prefix/bar.js', _nuclideVcsBase().FileChangeStatus.MODIFIED], ['file/with/shared/prefix/baz.js', _nuclideVcsBase().FileChangeStatus.MODIFIED], ['file/with/another/prefix/foo.js', _nuclideVcsBase().FileChangeStatus.MODIFIED], ['file/with/another/prefix/bar.js', _nuclideVcsBase().FileChangeStatus.MODIFIED]])]]);
   return React.createElement("div", null, React.createElement(_Block().Block, null, React.createElement(_MultiRootChangedFilesView().MultiRootChangedFilesView, {
     fileStatuses: fileChanges,
     commandPrefix: "nuclide-ui-playground",
     selectedFile: null,
-    onFileChosen: onFileChosen,
-    openInDiffViewOption: true
+    onFileChosen: uri => atom.notifications.addInfo(`Selected file ${uri}`),
+    openInDiffViewOption: true,
+    onClickAdd: uri => atom.notifications.addInfo(`Added file ${uri}`),
+    onClickRevert: uri => atom.notifications.addInfo(`Reverted file ${uri}`),
+    onClickDelete: uri => atom.notifications.addInfo(`Deleted file ${uri}`),
+    onClickForget: uri => atom.notifications.addInfo(`Forgot file ${uri}`)
   })));
 }
 

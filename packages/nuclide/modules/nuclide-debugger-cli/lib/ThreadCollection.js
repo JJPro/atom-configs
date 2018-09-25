@@ -74,10 +74,11 @@ class ThreadCollection {
   }
 
   markThreadStopped(id) {
-    const thread = this.getThreadById(id);
+    let thread = this.getThreadById(id);
 
     if (thread == null) {
-      throw new Error(`Attempt to mark unknown thread ${id} as stopped.`);
+      thread = new (_Thread().default)(id, `Thread ${id}`);
+      this.addThread(thread);
     }
 
     thread.setStopped();

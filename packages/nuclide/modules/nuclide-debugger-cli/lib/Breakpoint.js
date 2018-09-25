@@ -3,7 +3,7 @@
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-exports.default = void 0;
+exports.default = exports.BreakpointState = void 0;
 
 function _nullthrows() {
   const data = _interopRequireDefault(require("nullthrows"));
@@ -28,22 +28,35 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  * 
  * @format
  */
+const BreakpointState = Object.freeze({
+  ENABLED: 'enabled',
+  ONCE: 'once',
+  DISABLED: 'disabled'
+});
+exports.BreakpointState = BreakpointState;
+
 class Breakpoint {
   // index is the name of the breakpoint we show externally in the UI
   // id is the attached breakpoint in the adapter (if the adapter supports it)
   // verified tracks if the breakpoint was successfully set by the adapter.
   // it may not be if the referenced code was not yet loaded
-  // enabled tracks if the breakpoint has been enabled or disabled by the user.
+  // state: enabled, once, or disabled
   // The source file of the breakpoint (which may be undefined if we have an
   // unresolved function breakpoint.)
   // The line number of the breakpoint (which may be undefined if we have an
   // unresolved function breakpoint.)
   // The function name of the breakpoint (only defined if the breakpoint is
   // a function breakpoint.)
-  constructor(index) {
+  // If the breakpoint should support the 'once' state
+  constructor(index, allowOnceState) {
     this._index = index;
     this._verified = false;
-    this._enabled = true;
+    this._state = BreakpointState.ENABLED;
+    this._allowOnceState = allowOnceState;
+  }
+
+  enableSupportsOnce() {
+    this._allowOnceState = true;
   }
 
   get index() {
@@ -66,12 +79,38 @@ class Breakpoint {
     return this._verified;
   }
 
-  setEnabled(enabled) {
-    this._enabled = enabled;
+  setState(state) {
+    if (state === BreakpointState.ONCE && !this._allowOnceState) {
+      throw new Error('One-shot breakpoints are not supported.');
+    }
+
+    this._state = state;
   }
 
-  get enabled() {
-    return this._enabled;
+  toggleState() {
+    switch (this._state) {
+      case BreakpointState.DISABLED:
+        this._state = BreakpointState.ENABLED;
+        break;
+
+      case BreakpointState.ENABLED:
+        this._state = this._allowOnceState ? BreakpointState.ONCE : BreakpointState.DISABLED;
+        break;
+
+      case BreakpointState.ONCE:
+        this._state = BreakpointState.ENABLED;
+        break;
+    }
+
+    return this._state;
+  }
+
+  get state() {
+    return this._state;
+  }
+
+  isEnabled() {
+    return this._state !== BreakpointState.DISABLED;
   }
 
   setPath(path) {

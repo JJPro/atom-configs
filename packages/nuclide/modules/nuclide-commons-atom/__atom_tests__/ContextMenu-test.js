@@ -22,6 +22,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  *
  *  strict-local
  * @format
+ * @emails oncall+nuclide
  */
 describe('ContextMenu', () => {
   const cssSelector = '.nuclide-context-menu-unit-test';
@@ -54,274 +55,266 @@ describe('ContextMenu', () => {
     expect(menu.isEmpty()).toBe(true);
   });
   it('items added to a context menu appear in priority order', async () => {
-    await (async () => {
-      const options = {
-        type: 'root',
-        cssSelector
-      };
-      menu = new (_ContextMenu().default)(options);
-      menu.addItem({
-        label: 'second'
-      }, 20);
-      menu.addItem({
-        label: 'first',
-        command: 'nuclide-do-something'
-      }, 10);
-      menu.addItem({
-        label: 'fourth'
-      }, 40);
-      menu.addItem({
-        label: 'third'
-      }, 30);
-      await waitForNextTick();
-      expect(getTemplateForContextMenu()).toEqual([{
-        label: 'first',
-        command: 'nuclide-do-something'
-      }, {
-        label: 'second'
-      }, {
-        label: 'third'
-      }, {
-        label: 'fourth'
-      }]);
-    })();
+    const options = {
+      type: 'root',
+      cssSelector
+    };
+    menu = new (_ContextMenu().default)(options);
+    menu.addItem({
+      label: 'second'
+    }, 20);
+    menu.addItem({
+      label: 'first',
+      command: 'nuclide-do-something'
+    }, 10);
+    menu.addItem({
+      label: 'fourth'
+    }, 40);
+    menu.addItem({
+      label: 'third'
+    }, 30);
+    await waitForNextTick();
+    expect(getTemplateForContextMenu()).toEqual([{
+      label: 'first',
+      command: 'nuclide-do-something'
+    }, {
+      label: 'second'
+    }, {
+      label: 'third'
+    }, {
+      label: 'fourth'
+    }]);
   });
   it('can handle a mix of menu and submenu items', async () => {
-    await (async () => {
-      const options = {
-        type: 'root',
-        cssSelector
-      };
-      menu = new (_ContextMenu().default)(options);
-      menu.addItem({
-        label: 'two'
-      }, 20);
-      menu.addItem({
-        label: 'one'
-      }, 10);
-      menu.addItem({
-        label: 'four'
-      }, 40);
-      menu.addItem({
-        label: 'three'
-      }, 30);
-      const submenu = new (_ContextMenu().default)({
-        type: 'submenu',
-        label: 'sub',
-        parent: menu
-      });
-      menu.addSubmenu(submenu, 25);
-      submenu.addItem({
-        label: 'B'
-      }, 2);
-      submenu.addItem({
+    const options = {
+      type: 'root',
+      cssSelector
+    };
+    menu = new (_ContextMenu().default)(options);
+    menu.addItem({
+      label: 'two'
+    }, 20);
+    menu.addItem({
+      label: 'one'
+    }, 10);
+    menu.addItem({
+      label: 'four'
+    }, 40);
+    menu.addItem({
+      label: 'three'
+    }, 30);
+    const submenu = new (_ContextMenu().default)({
+      type: 'submenu',
+      label: 'sub',
+      parent: menu
+    });
+    menu.addSubmenu(submenu, 25);
+    submenu.addItem({
+      label: 'B'
+    }, 2);
+    submenu.addItem({
+      label: 'A'
+    }, 1);
+    submenu.addItem({
+      label: 'C'
+    }, 3);
+    await waitForNextTick();
+    expect(getTemplateForContextMenu()).toEqual([{
+      label: 'one'
+    }, {
+      label: 'two'
+    }, {
+      label: 'sub',
+      submenu: [{
         label: 'A'
-      }, 1);
-      submenu.addItem({
+      }, {
+        label: 'B'
+      }, {
         label: 'C'
-      }, 3);
-      await waitForNextTick();
-      expect(getTemplateForContextMenu()).toEqual([{
-        label: 'one'
-      }, {
-        label: 'two'
-      }, {
-        label: 'sub',
-        submenu: [{
-          label: 'A'
-        }, {
-          label: 'B'
-        }, {
-          label: 'C'
-        }]
-      }, {
-        label: 'three'
-      }, {
-        label: 'four'
-      }]);
-    })();
+      }]
+    }, {
+      label: 'three'
+    }, {
+      label: 'four'
+    }]);
   });
   it('dispose() returned for an item can be used to remove a menu item', async () => {
-    await (async () => {
-      const options = {
-        type: 'root',
-        cssSelector
-      };
-      menu = new (_ContextMenu().default)(options);
-      const disposableForItem = menu.addItem({
-        label: 'two'
-      }, 20);
-      menu.addItem({
-        label: 'one'
-      }, 10);
-      menu.addItem({
-        label: 'four'
-      }, 40);
-      menu.addItem({
-        label: 'three'
-      }, 30);
-      const submenu = new (_ContextMenu().default)({
-        type: 'submenu',
-        label: 'sub',
-        parent: menu
-      });
-      const disposableForSubmenu = menu.addSubmenu(submenu, 25);
-      submenu.addItem({
-        label: 'B'
-      }, 2);
-      const disposableForSubmenuItem = submenu.addItem({
+    const options = {
+      type: 'root',
+      cssSelector
+    };
+    menu = new (_ContextMenu().default)(options);
+    const disposableForItem = menu.addItem({
+      label: 'two'
+    }, 20);
+    menu.addItem({
+      label: 'one'
+    }, 10);
+    menu.addItem({
+      label: 'four'
+    }, 40);
+    menu.addItem({
+      label: 'three'
+    }, 30);
+    const submenu = new (_ContextMenu().default)({
+      type: 'submenu',
+      label: 'sub',
+      parent: menu
+    });
+    const disposableForSubmenu = menu.addSubmenu(submenu, 25);
+    submenu.addItem({
+      label: 'B'
+    }, 2);
+    const disposableForSubmenuItem = submenu.addItem({
+      label: 'A'
+    }, 1);
+    submenu.addItem({
+      label: 'C'
+    }, 3);
+    await waitForNextTick();
+    expect(getTemplateForContextMenu()).toEqual([{
+      label: 'one'
+    }, {
+      label: 'two'
+    }, {
+      label: 'sub',
+      submenu: [{
         label: 'A'
-      }, 1);
-      submenu.addItem({
+      }, {
+        label: 'B'
+      }, {
         label: 'C'
-      }, 3);
-      await waitForNextTick();
-      expect(getTemplateForContextMenu()).toEqual([{
-        label: 'one'
-      }, {
-        label: 'two'
-      }, {
-        label: 'sub',
-        submenu: [{
-          label: 'A'
-        }, {
-          label: 'B'
-        }, {
-          label: 'C'
-        }]
-      }, {
-        label: 'three'
-      }, {
-        label: 'four'
-      }]); // Note that unlike addItem() or addSubmenu(), invoking dispose() is synchronous.
+      }]
+    }, {
+      label: 'three'
+    }, {
+      label: 'four'
+    }]); // Note that unlike addItem() or addSubmenu(), invoking dispose() is synchronous.
 
-      disposableForItem.dispose();
-      expect(getTemplateForContextMenu()).toEqual([{
-        label: 'one'
+    disposableForItem.dispose();
+    expect(getTemplateForContextMenu()).toEqual([{
+      label: 'one'
+    }, {
+      label: 'sub',
+      submenu: [{
+        label: 'A'
       }, {
-        label: 'sub',
-        submenu: [{
-          label: 'A'
-        }, {
-          label: 'B'
-        }, {
-          label: 'C'
-        }]
+        label: 'B'
       }, {
-        label: 'three'
+        label: 'C'
+      }]
+    }, {
+      label: 'three'
+    }, {
+      label: 'four'
+    }]);
+    disposableForSubmenuItem.dispose();
+    expect(getTemplateForContextMenu()).toEqual([{
+      label: 'one'
+    }, {
+      label: 'sub',
+      submenu: [{
+        label: 'B'
       }, {
-        label: 'four'
-      }]);
-      disposableForSubmenuItem.dispose();
-      expect(getTemplateForContextMenu()).toEqual([{
-        label: 'one'
-      }, {
-        label: 'sub',
-        submenu: [{
-          label: 'B'
-        }, {
-          label: 'C'
-        }]
-      }, {
-        label: 'three'
-      }, {
-        label: 'four'
-      }]);
-      disposableForSubmenu.dispose();
-      expect(getTemplateForContextMenu()).toEqual([{
-        label: 'one'
-      }, {
-        label: 'three'
-      }, {
-        label: 'four'
-      }]);
-    })();
+        label: 'C'
+      }]
+    }, {
+      label: 'three'
+    }, {
+      label: 'four'
+    }]);
+    disposableForSubmenu.dispose();
+    expect(getTemplateForContextMenu()).toEqual([{
+      label: 'one'
+    }, {
+      label: 'three'
+    }, {
+      label: 'four'
+    }]);
   });
   it('removing all submenu items should result in it being filtered from view', async () => {
-    await (async () => {
-      const options = {
-        type: 'root',
-        cssSelector
-      };
-      menu = new (_ContextMenu().default)(options);
-      menu.addItem({
-        label: 'two'
-      }, 20);
-      menu.addItem({
-        label: 'one'
-      }, 10);
-      menu.addItem({
-        label: 'four'
-      }, 40);
-      menu.addItem({
-        label: 'three'
-      }, 30);
-      const submenu = new (_ContextMenu().default)({
-        type: 'submenu',
-        label: 'sub',
-        parent: menu
-      });
-      menu.addSubmenu(submenu, 25);
-      const disposableForSubmenuItem1 = submenu.addItem({
+    const options = {
+      type: 'root',
+      cssSelector
+    };
+    menu = new (_ContextMenu().default)(options);
+    menu.addItem({
+      label: 'two'
+    }, 20);
+    menu.addItem({
+      label: 'one'
+    }, 10);
+    menu.addItem({
+      label: 'four'
+    }, 40);
+    menu.addItem({
+      label: 'three'
+    }, 30);
+    const submenu = new (_ContextMenu().default)({
+      type: 'submenu',
+      label: 'sub',
+      parent: menu
+    });
+    menu.addSubmenu(submenu, 25);
+    const disposableForSubmenuItem1 = submenu.addItem({
+      label: 'A'
+    }, 1);
+    const disposableForSubmenuItem2 = submenu.addItem({
+      label: 'B'
+    }, 2);
+    const disposableForSubmenuItem3 = submenu.addItem({
+      label: 'C'
+    }, 3);
+    await waitForNextTick();
+    expect(getTemplateForContextMenu()).toEqual([{
+      label: 'one'
+    }, {
+      label: 'two'
+    }, {
+      label: 'sub',
+      submenu: [{
         label: 'A'
-      }, 1);
-      const disposableForSubmenuItem2 = submenu.addItem({
+      }, {
         label: 'B'
-      }, 2);
-      const disposableForSubmenuItem3 = submenu.addItem({
+      }, {
         label: 'C'
-      }, 3);
-      await waitForNextTick();
-      expect(getTemplateForContextMenu()).toEqual([{
-        label: 'one'
-      }, {
-        label: 'two'
-      }, {
-        label: 'sub',
-        submenu: [{
-          label: 'A'
-        }, {
-          label: 'B'
-        }, {
-          label: 'C'
-        }]
-      }, {
-        label: 'three'
-      }, {
-        label: 'four'
-      }]);
-      disposableForSubmenuItem1.dispose();
-      disposableForSubmenuItem2.dispose();
-      disposableForSubmenuItem3.dispose();
-      expect(getTemplateForContextMenu()).toEqual([{
-        label: 'one'
-      }, {
-        label: 'two'
-      }, {
-        label: 'three'
-      }, {
-        label: 'four'
-      }]); // It should still be possible to add items to the submenu after it has been cleared out.
+      }]
+    }, {
+      label: 'three'
+    }, {
+      label: 'four'
+    }]);
+    disposableForSubmenuItem1.dispose();
+    disposableForSubmenuItem2.dispose();
+    disposableForSubmenuItem3.dispose();
+    expect(getTemplateForContextMenu()).toEqual([{
+      label: 'one'
+    }, {
+      label: 'two'
+    }, {
+      label: 'three'
+    }, {
+      label: 'four'
+    }]); // It should still be possible to add items to the submenu after it has been cleared out.
 
-      submenu.addItem({
+    submenu.addItem({
+      label: 'D'
+    }, 4);
+    await waitForNextTick();
+    expect(getTemplateForContextMenu()).toEqual([{
+      label: 'one'
+    }, {
+      label: 'two'
+    }, {
+      label: 'sub',
+      submenu: [{
         label: 'D'
-      }, 4);
-      await waitForNextTick();
-      expect(getTemplateForContextMenu()).toEqual([{
-        label: 'one'
-      }, {
-        label: 'two'
-      }, {
-        label: 'sub',
-        submenu: [{
-          label: 'D'
-        }]
-      }, {
-        label: 'three'
-      }, {
-        label: 'four'
-      }]);
-    })();
+      }]
+    }, {
+      label: 'three'
+    }, {
+      label: 'four'
+    }]);
   });
   it('.isEmpty()', () => {
     const options = {
@@ -341,63 +334,61 @@ describe('ContextMenu', () => {
     expect(menu.isEmpty()).toBe(true);
   });
   it('.dispose() removes all items', async () => {
-    await (async () => {
-      const options = {
-        type: 'root',
-        cssSelector
-      };
-      menu = new (_ContextMenu().default)(options);
-      menu.addItem({
-        label: 'two'
-      }, 20);
-      menu.addItem({
-        label: 'one'
-      }, 10);
-      menu.addItem({
-        label: 'four'
-      }, 40);
-      menu.addItem({
-        label: 'three'
-      }, 30);
-      const submenu = new (_ContextMenu().default)({
-        type: 'submenu',
-        label: 'sub',
-        parent: menu
-      });
-      menu.addSubmenu(submenu, 25);
-      submenu.addItem({
-        label: 'B'
-      }, 2);
-      submenu.addItem({
+    const options = {
+      type: 'root',
+      cssSelector
+    };
+    menu = new (_ContextMenu().default)(options);
+    menu.addItem({
+      label: 'two'
+    }, 20);
+    menu.addItem({
+      label: 'one'
+    }, 10);
+    menu.addItem({
+      label: 'four'
+    }, 40);
+    menu.addItem({
+      label: 'three'
+    }, 30);
+    const submenu = new (_ContextMenu().default)({
+      type: 'submenu',
+      label: 'sub',
+      parent: menu
+    });
+    menu.addSubmenu(submenu, 25);
+    submenu.addItem({
+      label: 'B'
+    }, 2);
+    submenu.addItem({
+      label: 'A'
+    }, 1);
+    submenu.addItem({
+      label: 'C'
+    }, 3);
+    await waitForNextTick();
+    expect(getTemplateForContextMenu()).toEqual([{
+      label: 'one'
+    }, {
+      label: 'two'
+    }, {
+      label: 'sub',
+      submenu: [{
         label: 'A'
-      }, 1);
-      submenu.addItem({
+      }, {
+        label: 'B'
+      }, {
         label: 'C'
-      }, 3);
-      await waitForNextTick();
-      expect(getTemplateForContextMenu()).toEqual([{
-        label: 'one'
-      }, {
-        label: 'two'
-      }, {
-        label: 'sub',
-        submenu: [{
-          label: 'A'
-        }, {
-          label: 'B'
-        }, {
-          label: 'C'
-        }]
-      }, {
-        label: 'three'
-      }, {
-        label: 'four'
-      }]);
-      expect(menu.isEmpty()).toBe(false);
-      menu.dispose();
-      expect(menu.isEmpty()).toBe(true);
-      expect(getTemplateForContextMenu()).toEqual([]);
-    })();
+      }]
+    }, {
+      label: 'three'
+    }, {
+      label: 'four'
+    }]);
+    expect(menu.isEmpty()).toBe(false);
+    menu.dispose();
+    expect(menu.isEmpty()).toBe(true);
+    expect(getTemplateForContextMenu()).toEqual([]);
   });
 
   function getTemplateForContextMenu() {

@@ -33,6 +33,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  *
  * 
  * @format
+ * @emails oncall+nuclide
  */
 _temp().default.track();
 
@@ -57,17 +58,15 @@ describe('fileAppender', () => {
     });
   });
   it('flushes immediately on shutdown', async () => {
-    await (async () => {
-      const times = 10;
+    const times = 10;
 
-      const logger = _log4js().default.getLogger('testCategory');
+    const logger = _log4js().default.getLogger('testCategory');
 
-      for (let i = 0; i < times; i++) {
-        logger.info('test1234');
-      }
+    for (let i = 0; i < times; i++) {
+      logger.info('test1234');
+    }
 
-      await new Promise(resolve => _log4js().default.shutdown(resolve));
-      expect(_fs.default.readFileSync(tempFile, 'utf8')).toBe('INFO testCategory - test1234\n'.repeat(times));
-    })();
+    await new Promise(resolve => _log4js().default.shutdown(resolve));
+    expect(_fs.default.readFileSync(tempFile, 'utf8')).toBe('INFO testCategory - test1234\n'.repeat(times));
   });
 });

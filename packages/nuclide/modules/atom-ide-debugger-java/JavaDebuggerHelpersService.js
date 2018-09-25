@@ -156,7 +156,7 @@ async function javaDebugWaitForJdwpProcessExit(jvmSuspendArgs) {
 }
 
 async function _getJavaArgs(debug) {
-  const baseJavaArgs = ['-classpath', await _getClassPath(), 'com.facebook.nuclide.debugger.JavaDbg', '--vsp'];
+  const baseJavaArgs = ['-classpath', await _getClassPath(), 'com.facebook.nuclide.debugger.JavaDbg'];
   const debugArgs = debug ? ['-Xdebug', '-Xrunjdwp:transport=dt_socket,address=127.0.0.1:' + (await (0, _serverPort().getAvailableServerPort)()).toString() + ',server=y,suspend=n'] : [];
   return debugArgs.concat(baseJavaArgs);
 }

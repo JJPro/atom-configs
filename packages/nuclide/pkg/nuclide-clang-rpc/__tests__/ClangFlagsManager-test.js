@@ -63,6 +63,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  *
  *  strict-local
  * @format
+ * @emails oncall+nuclide
  */
 jest.setTimeout(30000);
 describe('ClangFlagsManager', () => {

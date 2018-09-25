@@ -31,6 +31,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  *
  * 
  * @format
+ * @emails oncall+nuclide
  */
 describe('HyperclickProvider', () => {
   let projectPath = null;
@@ -58,10 +59,8 @@ describe('HyperclickProvider', () => {
   });
   describe('parseLoadTarget', () => {
     it('resolves a path for //pkg/subpkg:ext.bzl', async () => {
-      await (async () => {
-        const target = await (0, _HyperclickProvider().resolveLoadTargetPath)(['//pkg/subpkg:ext.bzl', '', '//pkg/subpkg', 'ext.bzl'], projectPath);
-        expect(target).toEqual(projectPath + 'pkg/subpkg/ext.bzl');
-      })();
+      const target = await (0, _HyperclickProvider().resolveLoadTargetPath)(['//pkg/subpkg:ext.bzl', '', '//pkg/subpkg', 'ext.bzl'], projectPath);
+      expect(target).toEqual(projectPath + 'pkg/subpkg/ext.bzl');
     });
   });
   describe('findTargetLocation', () => {

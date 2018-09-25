@@ -83,24 +83,8 @@ class ConfigCache {
   }
 
   async _findConfigDir(path) {
-    const configDirs = await Promise.all(this._configPatterns.map(configFile => {
-      if (this._searchStrategy === 'furthest') {
-        return _fsPromise().default.findFurthestFile(configFile, path);
-      } else {
-        return _fsPromise().default.findNearestFile(configFile, path);
-      }
-    }));
-
-    if (this._searchStrategy === 'nearest') {
-      // Find the result with the greatest length (the closest match).
-      return configDirs.filter(Boolean).reduce((previous, configDir) => {
-        if (previous == null || configDir.length > previous.length) {
-          return configDir;
-        }
-
-        return previous;
-      }, null);
-    } else if (this._searchStrategy === 'furthest') {
+    if (this._searchStrategy === 'eclipse') {
+      const configDirs = await Promise.all(this._configPatterns.map(configFile => _fsPromise().default.findFurthestFile(configFile, path)));
       return configDirs.filter(Boolean).reduce((previous, configDir) => {
         if (previous == null || configDir.length < previous.length) {
           return configDir;
@@ -108,7 +92,7 @@ class ConfigCache {
 
         return previous;
       }, null);
-    } else if (this._searchStrategy === 'pathMatch') {
+    } else if (this._searchStrategy === 'thrift') {
       // Find the first occurrence of a config segment in the path.
       const pathSplit = _nuclideUri().default.split(path);
 
@@ -118,9 +102,55 @@ class ConfigCache {
         const foundIndex = (0, _collection().findSubArrayIndex)(pathSplit, configSplit);
         return foundIndex !== -1 ? _nuclideUri().default.join(...pathSplit.slice(0, foundIndex + configSplit.length)) : null;
       }).find(Boolean);
+    } else if (this._searchStrategy === 'ocaml') {
+      // ocaml-language-server (the LSP server) is the same single LSP server binary
+      // for all ocaml projects and for all versions of merlin.
+      //
+      // It uses initializationOptions.path.ocamlmerlin from the initialize request
+      // (or just the string "ocamlmerlin" if that was absent) to determine what
+      // command to use for spawning merlin. (merlin itself has no notion of project root).
+      //
+      // It also uses projectRoot, but solely to customize which merlin binary to launch:
+      // if it finds projectRoot/node_modules/.cache/_esy/build/bin/command-exec[.bat]
+      // then it will launch "command-exec <ocamlmerlin>"; otherwise it just launches <ocamlmerlin>
+      // using projectRoot as the current working directory.
+      //
+      // Therefore: to find project root for a given file, we'll either use the nearest
+      // containing parent such that directory parent/node_modules/.cache/_esy/build/bin exists,
+      // or "/" otherwise.
+      let dir = _nuclideUri().default.dirname(path);
+
+      while (true) {
+        const wrapper = _nuclideUri().default.join(dir, 'node_modules', '.cache', '_esy', 'build', 'bin'); // eslint-disable-next-line no-await-in-loop
+
+
+        if (await _fsPromise().default.exists(wrapper)) {
+          return dir;
+        } else if (_nuclideUri().default.isRoot(dir)) {
+          return dir;
+        } else {
+          dir = _nuclideUri().default.dirname(dir);
+        }
+      }
+    } else if (this._searchStrategy === 'aurora') {
+      const candidateDir = await _fsPromise().default.findNearestFile('.hhconfig', path);
+
+      if (candidateDir != null && (await _fsPromise().default.exists(_nuclideUri().default.join(candidateDir, '.arcconfig')))) {
+        return candidateDir;
+      }
+
+      return null;
     } else {
-      // Find the first match.
-      return configDirs.find(Boolean);
+      this._searchStrategy; // Find the result with the greatest length (the closest match).
+
+      const configDirs = await Promise.all(this._configPatterns.map(configFile => _fsPromise().default.findNearestFile(configFile, path)));
+      return configDirs.filter(Boolean).reduce((previous, configDir) => {
+        if (previous == null || configDir.length > previous.length) {
+          return configDir;
+        }
+
+        return previous;
+      }, null);
     }
   }
 

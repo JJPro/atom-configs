@@ -157,7 +157,7 @@ class ScopesComponent extends React.Component {
       viewModel
     } = this.props.service;
 
-    this._disposables.add(_RxMin.Observable.merge((0, _event().observableFromSubscribeFunction)(viewModel.onDidFocusStackFrame.bind(viewModel)), (0, _event().observableFromSubscribeFunction)(viewModel.onDidChangeExpressionContext.bind(viewModel))).debounceTime(100).startWith(null).switchMap(() => this._getScopes()).subscribe(scopes => {
+    this._disposables.add(_RxMin.Observable.merge((0, _event().observableFromSubscribeFunction)(viewModel.onDidChangeDebuggerFocus.bind(viewModel)), (0, _event().observableFromSubscribeFunction)(viewModel.onDidChangeExpressionContext.bind(viewModel))).debounceTime(100).startWith(null).switchMap(() => this._getScopes()).subscribe(scopes => {
       this.setState({
         scopes
       });
@@ -242,9 +242,6 @@ class ScopesComponent extends React.Component {
     const {
       scopes
     } = this.state;
-    const {
-      service
-    } = this.props;
 
     if (scopes.isError) {
       return React.createElement("span", null, "Error fetching scopes: ", scopes.error.toString());
@@ -255,8 +252,7 @@ class ScopesComponent extends React.Component {
     }
 
     const scopeSections = scopes.value.map(scope => this._renderScopeSection(scope));
-    const processName = (service.viewModel.focusedProcess == null || service.viewModel.focusedProcess.configuration.processName == null ? 'Unknown Process' : service.viewModel.focusedProcess.configuration.processName) + (service.viewModel.focusedStackFrame == null ? ' (Unknown Frame)' : ' (' + service.viewModel.focusedStackFrame.name + ')');
-    return React.createElement("div", null, React.createElement("span", null, processName), React.createElement("div", {
+    return React.createElement("div", null, React.createElement("div", {
       className: "debugger-expression-value-list"
     }, scopeSections));
   }

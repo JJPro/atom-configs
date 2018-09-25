@@ -59,7 +59,7 @@ function _nuclideRemoteConnection() {
 async function connectionToGraphQLService(connection) {
   const [fileNotifier, host] = await Promise.all([(0, _nuclideOpenFiles().getNotifierByConnection)(connection), (0, _nuclideLanguageService().getHostServices)()]);
   const graphqlCommand = 'graphql-language-service/bin/graphql.js';
-  const lspService = await (0, _nuclideRemoteConnection().getVSCodeLanguageServiceByConnection)(connection).createMultiLspLanguageService('graphql', [graphqlCommand], ['server', '--method', 'stream'], {
+  const lspService = await (0, _nuclideRemoteConnection().getVSCodeLanguageServiceByConnection)(connection).createMultiLspLanguageService('graphql', graphqlCommand, ['server', '--method', 'stream'], {
     fileNotifier,
     host,
     projectFileNames: ['.graphqlconfig'],

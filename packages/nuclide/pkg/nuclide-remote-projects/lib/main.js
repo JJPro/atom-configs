@@ -216,14 +216,6 @@ class Activation {
     this._remoteProjectsService = new (_RemoteProjectsService().default)();
 
     this._openRemoteFile = (uri = '') => {
-      if (_nuclideUri().default.looksLikeImageUri(uri) && atom.packages.getLoadedPackage('nuclide-image-view') != null) {
-        // Images will be handled by the nuclide-remote-images package. Ideally, all remote files
-        // would go through one code path and then be delegated to the appropriate handler (instead
-        // of having this need to be aware of the nuclide-remote-images package implementation), but
-        // this is quick and dirty.
-        return;
-      }
-
       if (!uri.startsWith('nuclide:') && !_nuclideUri().default.isInArchive(uri)) {
         return;
       }
@@ -239,6 +231,13 @@ class Activation {
           // is re-established, the `onDidAddRemoteConnection` logic above will restore the
           // editor contents as appropriate.
           return;
+        } // Handle service provided fileOpeners
+
+
+        const htmlElement = this._handleRemoteFileOpeners(serverConnection, uri);
+
+        if (htmlElement != null) {
+          return htmlElement;
         }
 
         const connection = _nuclideRemoteConnection().RemoteConnection.getForUri(uri); // On Atom restart, it tries to open the uri path as a file tab because it's not a local
@@ -307,6 +306,7 @@ class Activation {
 
     const remoteProjectsConfig = validateRemoteProjectConfig(typeof state === 'object' ? (_ref = state) != null ? _ref.remoteProjectsConfig : _ref : null);
     reloadRemoteProjects(remoteProjectsConfig, this._remoteProjectsService);
+    this._remoteFileOpeners = [];
   }
 
   dispose() {
@@ -361,9 +361,34 @@ class Activation {
     };
   }
 
-  //
+  _handleRemoteFileOpeners(serverConnection, uri) {
+    let remoteFile;
+    let htmlElement;
+
+    try {
+      remoteFile = new (_nuclideRemoteConnection().RemoteFile)(serverConnection, uri);
+
+      for (let i = 0; i < this._remoteFileOpeners.length; i++) {
+        htmlElement = this._remoteFileOpeners[i](remoteFile);
+
+        if (htmlElement != null) {
+          break;
+        }
+      }
+    } catch (error) {
+      _constants().logger.warn(`Error opening file ${uri}`, error);
+    } finally {
+      if (remoteFile != null) {
+        remoteFile.dispose();
+      }
+    }
+
+    return htmlElement;
+  } //
   // Services
   //
+
+
   getHomeFragments() {
     return {
       feature: {
@@ -402,6 +427,20 @@ class Activation {
 
   consumeWorkingSetsStore(store) {
     this._workingSetsStore = store;
+  }
+
+  provideRemoteFileOpenerService() {
+    return {
+      register: opener => {
+        this._remoteFileOpeners.push(opener);
+
+        return new (_UniversalDisposable().default)(() => {
+          const index = this._remoteFileOpeners.indexOf(opener);
+
+          this._remoteFileOpeners.splice(index, 1);
+        });
+      }
+    };
   } //
   // Deserializers
   //

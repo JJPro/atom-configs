@@ -45,18 +45,18 @@ class BreakpointListCommand {
 
     const lastBreakpoint = breakpoints[breakpoints.length - 1];
     const indexSize = String(lastBreakpoint.index).length;
+
+    const stopped = this._debugger.getStoppedAtBreakpoint();
+
     breakpoints.forEach(bpt => {
-      const attributes = [];
+      const attributes = [bpt.state];
 
       if (!bpt.verified) {
         attributes.push('unverified');
       }
 
-      if (!bpt.enabled) {
-        attributes.push('disabled');
-      }
-
-      const index = (0, _Format().default)(`#${bpt.index}`, indexSize);
+      const stoppedHere = bpt.id != null && stopped === bpt;
+      const index = (0, _Format().default)(`${stoppedHere ? '*' : ' '}#${bpt.index}`, indexSize + 1);
       const attrs = attributes.length === 0 ? '' : `(${attributes.join(',')})`;
 
       this._console.outputLine(`${index} ${bpt.toString()} ${attrs}`);

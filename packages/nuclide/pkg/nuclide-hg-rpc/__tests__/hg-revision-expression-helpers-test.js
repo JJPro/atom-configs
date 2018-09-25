@@ -29,6 +29,7 @@ function _hgConstants() {
  *
  *  strict-local
  * @format
+ * @emails oncall+nuclide
  */
 describe('hg-revision-expression-helpers', () => {
   describe('expressionForRevisionsBeforeHead', () => {

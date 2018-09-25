@@ -24,6 +24,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  *
  *  strict-local
  * @format
+ * @emails oncall+nuclide
  */
 describe('which', () => {
   let runCommand;
@@ -61,11 +62,9 @@ describe('which', () => {
       expect(runCommand).toHaveBeenCalledWith('where', [''], {});
     });
     it('returns the first match', async () => {
-      await (async () => {
-        runCommandReturn = 'hello' + os.EOL + 'hello.exe' + os.EOL;
-        const ret = await (0, _which().default)('bla');
-        expect(ret).toEqual('hello');
-      })();
+      runCommandReturn = 'hello' + os.EOL + 'hello.exe' + os.EOL;
+      const ret = await (0, _which().default)('bla');
+      expect(ret).toEqual('hello');
     });
   });
   describe('on linux', () => {
@@ -93,11 +92,9 @@ describe('which', () => {
       expect(runCommand).toHaveBeenCalledWith('which', [param], {});
     });
     it('returns the first match', async () => {
-      await (async () => {
-        runCommandReturn = 'hello' + os.EOL + '/bin/hello' + os.EOL;
-        const ret = await (0, _which().default)('bla');
-        expect(ret).toEqual('hello');
-      })();
+      runCommandReturn = 'hello' + os.EOL + '/bin/hello' + os.EOL;
+      const ret = await (0, _which().default)('bla');
+      expect(ret).toEqual('hello');
     });
   });
 });

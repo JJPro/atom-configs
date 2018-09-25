@@ -21,7 +21,7 @@ function _log4js() {
 }
 
 function _keytarWrapper() {
-  const data = _interopRequireDefault(require("../../commons-node/keytarWrapper"));
+  const data = _interopRequireDefault(require("../../../modules/nuclide-commons/keytarWrapper"));
 
   _keytarWrapper = function () {
     return data;

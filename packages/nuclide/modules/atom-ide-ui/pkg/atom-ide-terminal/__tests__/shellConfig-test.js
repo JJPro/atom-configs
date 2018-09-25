@@ -20,6 +20,7 @@ function _shellConfig() {
  *
  *  strict-local
  * @format
+ * @emails oncall+nuclide
  */
 describe('shellConfig', () => {
   describe('parseConfig', () => {

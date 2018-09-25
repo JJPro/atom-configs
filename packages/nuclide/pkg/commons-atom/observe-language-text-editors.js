@@ -18,7 +18,7 @@ function _UniversalDisposable() {
 }
 
 function _observeGrammarForTextEditors() {
-  const data = _interopRequireDefault(require("./observe-grammar-for-text-editors"));
+  const data = _interopRequireDefault(require("../../modules/nuclide-commons-atom/observe-grammar-for-text-editors"));
 
   _observeGrammarForTextEditors = function () {
     return data;

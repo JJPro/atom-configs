@@ -19,6 +19,7 @@ function _HyperclickProviderHelpers() {
  *
  *  strict-local
  * @format
+ * @emails oncall+nuclide
  */
 function expectMatch(urlText, expectedMatch) {
   const match = (0, _HyperclickProviderHelpers().matchUrl)(urlText);

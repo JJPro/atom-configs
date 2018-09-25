@@ -3,12 +3,12 @@
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-exports.FileTreeEntryComponent = void 0;
+exports.default = void 0;
 
-function _FileTreeActions() {
-  const data = _interopRequireDefault(require("../lib/FileTreeActions"));
+function _reactRedux() {
+  const data = require("react-redux");
 
-  _FileTreeActions = function () {
+  _reactRedux = function () {
     return data;
   };
 
@@ -26,9 +26,19 @@ function _FileTreeHelpers() {
 }
 
 function Selectors() {
-  const data = _interopRequireWildcard(require("../lib/FileTreeSelectors"));
+  const data = _interopRequireWildcard(require("../lib/redux/Selectors"));
 
   Selectors = function () {
+    return data;
+  };
+
+  return data;
+}
+
+function Actions() {
+  const data = _interopRequireWildcard(require("../lib/redux/Actions"));
+
+  Actions = function () {
     return data;
   };
 
@@ -109,16 +119,6 @@ function _hgConstants() {
   return data;
 }
 
-function _FileTreeStore() {
-  const data = _interopRequireDefault(require("../lib/FileTreeStore"));
-
-  _FileTreeStore = function () {
-    return data;
-  };
-
-  return data;
-}
-
 function _FileTreeHgHelpers() {
   const data = _interopRequireDefault(require("../lib/FileTreeHgHelpers"));
 
@@ -168,7 +168,6 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 const SUBSEQUENT_FETCH_SPINNER_DELAY = 500;
 const INITIAL_FETCH_SPINNER_DELAY = 25;
 const INDENT_LEVEL = 17;
-const CHAR_EM_SCALE_FACTOR = 0.9;
 
 class FileTreeEntryComponent extends React.Component {
   // Keep track of the # of dragenter/dragleave events in order to properly decide
@@ -184,25 +183,28 @@ class FileTreeEntryComponent extends React.Component {
         return;
       }
 
-      const node = this.props.node;
-      const isSelected = this.props.selectedNodes.has(node);
+      const {
+        isSelected
+      } = this.props;
 
       const selectionMode = _FileTreeHelpers().default.getSelectionMode(event);
 
       if (selectionMode === 'multi-select' && !isSelected) {
-        this.props.actions.addSelectedNode(node.rootUri, node.uri);
+        this.props.addSelectedNode();
       } else if (selectionMode === 'range-select') {
-        this.props.actions.rangeSelectToNode(node.rootUri, node.uri);
+        this.props.rangeSelectToNode();
       } else if (selectionMode === 'single-select' && !isSelected) {
-        this.props.actions.setSelectedNode(node.rootUri, node.uri);
+        this.props.setSelectedNode();
       }
     };
 
     this._onClick = event => {
       event.stopPropagation();
-      const node = this.props.node;
-      const isSelected = this.props.selectedNodes.has(node);
-      const isFocused = this.props.focusedNodes.has(node);
+      const {
+        node,
+        isSelected,
+        isFocused
+      } = this.props;
       const deep = event.altKey;
 
       if (this._isToggleNodeExpand(event)) {
@@ -219,30 +221,29 @@ class FileTreeEntryComponent extends React.Component {
 
       if (selectionMode === 'multi-select') {
         if (isFocused) {
-          this.props.actions.unselectNode(node.rootUri, node.uri); // If this node was just unselected, immediately return and skip
+          this.props.unselectNode(); // If this node was just unselected, immediately return and skip
           // the statement below that sets this node to focused.
 
           return;
         }
       } else {
         if (node.isContainer) {
-          if (isFocused || node.conf.usePreviewTabs) {
+          if (isFocused || this.props.usePreviewTabs) {
             this._toggleNodeExpanded(deep);
           }
         } else {
-          if (node.conf.usePreviewTabs) {
-            this.props.actions.confirmNode(node.rootUri, node.uri, true // pending
-            );
+          if (this.props.usePreviewTabs) {
+            this.props.confirmNode(true);
           }
         } // Set selected node to clear any other selected nodes (i.e. in the case of
         // previously having multiple selections).
 
 
-        this.props.actions.setSelectedNode(node.rootUri, node.uri);
+        this.props.setSelectedNode();
       }
 
       if (isSelected) {
-        this.props.actions.setFocusedNode(node.rootUri, node.uri);
+        this.props.setFocusedNode();
       }
     };
 
@@ -253,15 +254,15 @@ class FileTreeEntryComponent extends React.Component {
         return;
       }
 
-      this.props.actions.confirmNode(this.props.node.rootUri, this.props.node.uri);
+      this.props.confirmNode(false);
     };
 
     this._onDragEnter = event => {
       event.stopPropagation();
-      const nodes = Selectors().getSelectedNodes(this.props.store);
+      const nodes = this.props.selectedNodes;
 
       if (!this.props.isPreview && nodes.size === 1 && (0, _nullthrows().default)(nodes.first()).isRoot) {
-        this.props.actions.reorderDragInto(this.props.node.rootUri);
+        this.props.reorderDragInto();
         return;
       }
 
@@ -273,7 +274,7 @@ class FileTreeEntryComponent extends React.Component {
 
       if (this.dragEventCount <= 0) {
         this.dragEventCount = 0;
-        this.props.actions.setDragHoveredNode(this.props.node.rootUri, this.props.node.uri);
+        this.props.setDragHoveredNode();
       }
 
       this.dragEventCount++;
@@ -290,7 +291,7 @@ class FileTreeEntryComponent extends React.Component {
 
       if (this.dragEventCount <= 0) {
         this.dragEventCount = 0;
-        this.props.actions.unhoverNode(this.props.node.rootUri, this.props.node.uri);
+        this.props.unhoverNode();
       }
     };
 
@@ -335,7 +336,7 @@ class FileTreeEntryComponent extends React.Component {
       });
 
       if (this.props.node.isRoot) {
-        this.props.actions.startReorderDrag(this.props.node.uri);
+        this.props.startReorderDrag();
       }
     };
 
@@ -346,29 +347,29 @@ class FileTreeEntryComponent extends React.Component {
 
     this._onDragEnd = event => {
       if (this.props.node.isRoot) {
-        this.props.actions.endReorderDrag();
+        this.props.endReorderDrag();
       }
     };
 
     this._onDrop = event => {
       event.preventDefault();
       event.stopPropagation();
-      const dragNode = Selectors().getSingleSelectedNode(this.props.store);
+      const dragNode = this.props.selectedNodes.size === 1 ? this.props.selectedNodes.first() : null;
 
       if (dragNode != null && dragNode.isRoot) {
-        this.props.actions.reorderRoots();
+        this.props.reorderRoots();
       } else {
         // Reset the dragEventCount for the currently dragged node upon dropping.
         this.dragEventCount = 0;
-        this.props.actions.moveToNode(this.props.node.rootUri, this.props.node.uri);
+        this.props.moveToNode();
       }
     };
 
     this._checkboxOnChange = isChecked => {
       if (isChecked) {
-        this.props.actions.checkNode(this.props.node.rootUri, this.props.node.uri);
+        this.props.checkNode();
       } else {
-        this.props.actions.uncheckNode(this.props.node.rootUri, this.props.node.uri);
+        this.props.uncheckNode();
       }
     };
 
@@ -387,9 +388,14 @@ class FileTreeEntryComponent extends React.Component {
       isLoading: props.node.isLoading
     };
   }
+  /**
+   * react-redux will cause a rerender every time because it remaps the dispatch props. Therefore
+   * we can't use PureComponent.
+   */
+
 
   shouldComponentUpdate(nextProps, nextState) {
-    return nextProps.node !== this.props.node || nextProps.node.isLoading !== this.props.node.isLoading || nextState.isLoading !== this.state.isLoading || nextProps.selectedNodes !== this.props.selectedNodes || nextProps.focusedNodes !== this.props.focusedNodes;
+    return nextProps.node !== this.props.node || nextProps.isSelected !== this.props.isSelected || nextProps.isFocused !== this.props.isFocused || nextProps.isPreview !== this.props.isPreview || nextProps.usePreviewTabs !== this.props.usePreviewTabs || nextProps.isEditingWorkingSet !== this.props.isEditingWorkingSet || nextState.isLoading !== this.state.isLoading;
   }
 
   UNSAFE_componentWillReceiveProps(nextProps) {
@@ -436,8 +442,10 @@ class FileTreeEntryComponent extends React.Component {
   }
 
   render() {
-    const node = this.props.node;
-    const isSelected = this.props.selectedNodes.has(node);
+    const {
+      node,
+      isSelected
+    } = this.props;
     const outerClassName = (0, _classnames().default)('entry', {
       'file list-item': !node.isContainer,
       'directory list-nested-item': node.isContainer,
@@ -456,7 +464,7 @@ class FileTreeEntryComponent extends React.Component {
     });
     let statusClass;
 
-    if (!node.conf.isEditingWorkingSet) {
+    if (!this.props.isEditingWorkingSet) {
       const vcsStatusCode = node.vcsStatusCode;
 
       if (vcsStatusCode === _hgConstants().StatusCodeNumber.MODIFIED) {
@@ -504,16 +512,6 @@ class FileTreeEntryComponent extends React.Component {
       }
     }
 
-    let min_width = 'max-content';
-
-    if (this.props.store != null) {
-      const size = Selectors().getMaxComponentWidth(this.props.store);
-
-      if (size != null && typeof size === 'number' && size > 0) {
-        min_width = size * CHAR_EM_SCALE_FACTOR + 'em';
-      }
-    }
-
     return React.createElement("li", {
       className: (0, _classnames().default)(outerClassName, statusClass, generatedClass, {
         // `atom/find-and-replace` looks for this class to determine if a
@@ -525,7 +523,6 @@ class FileTreeEntryComponent extends React.Component {
         // at one depth level more than they actually are. Compensate by
         // adding the appearance of an extra level of depth for files.
         this.props.node.getDepth() * INDENT_LEVEL + INDENT_LEVEL,
-        minWidth: min_width,
         marginLeft: 0
       },
       draggable: true,
@@ -539,7 +536,6 @@ class FileTreeEntryComponent extends React.Component {
       ,
       ref: el => {
         this._arrowContainer = el;
-        this.props.actions.updateMaxComponentWidth(this.props.node.name.length);
       }
     }, React.createElement(_PathWithFileIcon().default, {
       className: (0, _classnames().default)('name', 'nuclide-file-tree-path', {
@@ -560,7 +556,7 @@ class FileTreeEntryComponent extends React.Component {
   }
 
   _renderCheckbox() {
-    if (!this.props.node.conf.isEditingWorkingSet) {
+    if (!this.props.isEditingWorkingSet) {
       return;
     }
 
@@ -601,7 +597,7 @@ class FileTreeEntryComponent extends React.Component {
     _reactDom.default.findDOMNode(this._pathContainer).getBoundingClientRect().left;
 
     if (shouldToggleExpand) {
-      this.props.actions.clearTrackedNode();
+      this.props.clearTrackedNode();
     }
 
     return shouldToggleExpand;
@@ -610,19 +606,91 @@ class FileTreeEntryComponent extends React.Component {
   _toggleNodeExpanded(deep) {
     if (this.props.node.isExpanded) {
       if (deep) {
-        this.props.actions.collapseNodeDeep(this.props.node.rootUri, this.props.node.uri);
+        this.props.collapseNodeDeep();
       } else {
-        this.props.actions.collapseNode(this.props.node.rootUri, this.props.node.uri);
+        this.props.collapseNode();
       }
     } else {
       if (deep) {
-        this.props.actions.expandNodeDeep(this.props.node.rootUri, this.props.node.uri);
+        this.props.expandNodeDeep();
       } else {
-        this.props.actions.expandNode(this.props.node.rootUri, this.props.node.uri);
+        this.props.expandNode();
       }
     }
   }
 
 }
 
-exports.FileTreeEntryComponent = FileTreeEntryComponent;
+const mapStateToProps = (state, ownProps) => ({
+  isSelected: Selectors().getSelectedNodes(state).includes(ownProps.node),
+  isFocused: Selectors().getFocusedNodes(state).includes(ownProps.node),
+  usePreviewTabs: Selectors().getConf(state).usePreviewTabs,
+  isEditingWorkingSet: Selectors().isEditingWorkingSet(state)
+});
+
+const mapDispatchToProps = (dispatch, ownProps) => ({
+  clearTrackedNode: () => {
+    dispatch(Actions().clearTrackedNode());
+  },
+  rangeSelectToNode: () => {
+    dispatch(Actions().rangeSelectToNode(ownProps.node.rootUri, ownProps.node.uri));
+  },
+  confirmNode: pending => {
+    dispatch(Actions().confirmNode(ownProps.node.rootUri, ownProps.node.uri, pending));
+  },
+  unselectNode: () => {
+    dispatch(Actions().unselectNode(ownProps.node.rootUri, ownProps.node.uri));
+  },
+  setSelectedNode: () => {
+    dispatch(Actions().setSelectedNode(ownProps.node.rootUri, ownProps.node.uri));
+  },
+  addSelectedNode: () => {
+    dispatch(Actions().addSelectedNode(ownProps.node.rootUri, ownProps.node.uri));
+  },
+  collapseNode: () => {
+    dispatch(Actions().collapseNode(ownProps.node.rootUri, ownProps.node.uri));
+  },
+  collapseNodeDeep: () => {
+    dispatch(Actions().collapseNodeDeep(ownProps.node.rootUri, ownProps.node.uri));
+  },
+  checkNode: () => {
+    dispatch(Actions().checkNode(ownProps.node.rootUri, ownProps.node.uri));
+  },
+  uncheckNode: () => {
+    dispatch(Actions().uncheckNode(ownProps.node.rootUri, ownProps.node.uri));
+  },
+  expandNode: () => {
+    dispatch(Actions().expandNode(ownProps.node.rootUri, ownProps.node.uri));
+  },
+  expandNodeDeep: () => {
+    dispatch(Actions().expandNodeDeep(ownProps.node.rootUri, ownProps.node.uri));
+  },
+  reorderDragInto: () => {
+    dispatch(Actions().reorderDragInto(ownProps.node.rootUri));
+  },
+  setDragHoveredNode: () => {
+    dispatch(Actions().setDragHoveredNode(ownProps.node.rootUri, ownProps.node.uri));
+  },
+  setFocusedNode: () => {
+    dispatch(Actions().setFocusedNode(ownProps.node.rootUri, ownProps.node.uri));
+  },
+  unhoverNode: () => {
+    dispatch(Actions().unhoverNode(ownProps.node.rootUri, ownProps.node.uri));
+  },
+  startReorderDrag: () => {
+    dispatch(Actions().startReorderDrag(ownProps.node.uri));
+  },
+  endReorderDrag: () => {
+    dispatch(Actions().endReorderDrag());
+  },
+  reorderRoots: () => {
+    dispatch(Actions().reorderRoots());
+  },
+  moveToNode: () => {
+    dispatch(Actions().moveToNode(ownProps.node.rootUri, ownProps.node.uri));
+  }
+});
+
+var _default = (0, _reactRedux().connect)(mapStateToProps, mapDispatchToProps)(FileTreeEntryComponent);
+
+exports.default = _default;

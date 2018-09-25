@@ -56,6 +56,7 @@ function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj;
  *
  * 
  * @format
+ * @emails oncall+nuclide
  */
 describe('Epics', () => {
   describe('fetchCodeActions', () => {
@@ -82,10 +83,8 @@ describe('Epics', () => {
         }
 
       }));
-      await (async () => {
-        expect((await (0, _Epics().fetchCodeActions)(new (_reduxObservable().ActionsObservable)(_RxMin.Observable.of(Actions().fetchCodeActions(fakeEditor, fakeMessages), // Identical requests should be de-deped.
-        Actions().fetchCodeActions(fakeEditor, [...fakeMessages]))), store).toArray().toPromise())).toEqual([Actions().setCodeActions(new Map([[fakeMessages[0], new Map([['test', TEST_ACTION]])], [fakeMessages[1], new Map()]]))]);
-      })();
+      expect((await (0, _Epics().fetchCodeActions)(new (_reduxObservable().ActionsObservable)(_RxMin.Observable.of(Actions().fetchCodeActions(fakeEditor, fakeMessages), // Identical requests should be de-deped.
+      Actions().fetchCodeActions(fakeEditor, [...fakeMessages]))), store).toArray().toPromise())).toEqual([Actions().setCodeActions(new Map([[fakeMessages[0], new Map([['test', TEST_ACTION]])], [fakeMessages[1], new Map()]]))]);
     });
   });
 });

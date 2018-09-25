@@ -50,16 +50,6 @@ function _destroyItemWhere() {
   return data;
 }
 
-function _ToolbarUtils() {
-  const data = require("../../../modules/nuclide-commons-ui/ToolbarUtils");
-
-  _ToolbarUtils = function () {
-    return data;
-  };
-
-  return data;
-}
-
 function _openSettingsView() {
   const data = _interopRequireDefault(require("./openSettingsView"));
 
@@ -106,12 +96,12 @@ function consumeToolBar(getToolBar) {
   toolBar.addSpacer({
     priority: -501
   });
-  toolBar.addButton((0, _ToolbarUtils().makeToolbarButtonSpec)({
+  toolBar.addButton({
     icon: 'gear',
     callback: 'nuclide-settings:toggle',
     tooltip: 'Open Nuclide Settings',
     priority: -500
-  }));
+  });
   const disposable = new (_UniversalDisposable().default)(() => {
     toolBar.removeItems();
   });

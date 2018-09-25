@@ -43,6 +43,7 @@ function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj;
  *
  *  strict-local
  * @format
+ * @emails oncall+nuclide
  */
 describe('LazyTreeNode', () => {
   it('caches the fetched children', async () => {

@@ -2,39 +2,39 @@
   "_args": [
     [
       {
-        "raw": "/private/var/folders/yc/qws8qx4n65d13181gwm4m_vh0000gn/T/d-118110-73584-1ohjnav.6vzehfr/package.tgz",
+        "raw": "/private/var/folders/yc/qws8qx4n65d13181gwm4m_vh0000gn/T/d-118722-59877-1e5mxp4.nq8v2qehfr/package.tgz",
         "scope": null,
         "escapedName": null,
         "name": null,
-        "rawSpec": "/private/var/folders/yc/qws8qx4n65d13181gwm4m_vh0000gn/T/d-118110-73584-1ohjnav.6vzehfr/package.tgz",
-        "spec": "/private/var/folders/yc/qws8qx4n65d13181gwm4m_vh0000gn/T/d-118110-73584-1ohjnav.6vzehfr/package.tgz",
+        "rawSpec": "/private/var/folders/yc/qws8qx4n65d13181gwm4m_vh0000gn/T/d-118722-59877-1e5mxp4.nq8v2qehfr/package.tgz",
+        "spec": "/private/var/folders/yc/qws8qx4n65d13181gwm4m_vh0000gn/T/d-118722-59877-1e5mxp4.nq8v2qehfr/package.tgz",
         "type": "local"
       },
-      "/private/var/folders/yc/qws8qx4n65d13181gwm4m_vh0000gn/T/apm-install-dir-118110-73584-1smn2fl.ty8g33ow29"
+      "/private/var/folders/yc/qws8qx4n65d13181gwm4m_vh0000gn/T/apm-install-dir-118722-59877-1lrm15s.no702ro1or"
     ]
   ],
-  "_from": "../d-118110-73584-1ohjnav.6vzehfr/package.tgz",
-  "_id": "language-elixir@0.22.0",
+  "_from": "../d-118722-59877-1e5mxp4.nq8v2qehfr/package.tgz",
+  "_id": "language-elixir@0.22.1",
   "_inCache": true,
   "_location": "/language-elixir",
   "_phantomChildren": {},
   "_requested": {
-    "raw": "/private/var/folders/yc/qws8qx4n65d13181gwm4m_vh0000gn/T/d-118110-73584-1ohjnav.6vzehfr/package.tgz",
+    "raw": "/private/var/folders/yc/qws8qx4n65d13181gwm4m_vh0000gn/T/d-118722-59877-1e5mxp4.nq8v2qehfr/package.tgz",
     "scope": null,
     "escapedName": null,
     "name": null,
-    "rawSpec": "/private/var/folders/yc/qws8qx4n65d13181gwm4m_vh0000gn/T/d-118110-73584-1ohjnav.6vzehfr/package.tgz",
-    "spec": "/private/var/folders/yc/qws8qx4n65d13181gwm4m_vh0000gn/T/d-118110-73584-1ohjnav.6vzehfr/package.tgz",
+    "rawSpec": "/private/var/folders/yc/qws8qx4n65d13181gwm4m_vh0000gn/T/d-118722-59877-1e5mxp4.nq8v2qehfr/package.tgz",
+    "spec": "/private/var/folders/yc/qws8qx4n65d13181gwm4m_vh0000gn/T/d-118722-59877-1e5mxp4.nq8v2qehfr/package.tgz",
     "type": "local"
   },
   "_requiredBy": [
     "#USER"
   ],
-  "_resolved": "file:../d-118110-73584-1ohjnav.6vzehfr/package.tgz",
-  "_shasum": "d44363dc39fb726ce1586b507e960bfb94ca9e3b",
+  "_resolved": "file:../d-118722-59877-1e5mxp4.nq8v2qehfr/package.tgz",
+  "_shasum": "8277bcfedd97fc0f4962e50fad407c8835bf5dbe",
   "_shrinkwrap": null,
-  "_spec": "/private/var/folders/yc/qws8qx4n65d13181gwm4m_vh0000gn/T/d-118110-73584-1ohjnav.6vzehfr/package.tgz",
-  "_where": "/private/var/folders/yc/qws8qx4n65d13181gwm4m_vh0000gn/T/apm-install-dir-118110-73584-1smn2fl.ty8g33ow29",
+  "_spec": "/private/var/folders/yc/qws8qx4n65d13181gwm4m_vh0000gn/T/d-118722-59877-1e5mxp4.nq8v2qehfr/package.tgz",
+  "_where": "/private/var/folders/yc/qws8qx4n65d13181gwm4m_vh0000gn/T/apm-install-dir-118722-59877-1lrm15s.no702ro1or",
   "bugs": {
     "url": "https://github.com/elixir-lang/language-elixir/issues"
   },
@@ -54,5 +54,5 @@
     "type": "git",
     "url": "git+https://github.com/elixir-lang/language-elixir.git"
   },
-  "version": "0.22.0"
+  "version": "0.22.1"
 }

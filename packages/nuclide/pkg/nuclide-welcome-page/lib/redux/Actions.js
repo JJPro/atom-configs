@@ -6,20 +6,7 @@ Object.defineProperty(exports, "__esModule", {
 exports.addWelcomePage = addWelcomePage;
 exports.deleteWelcomePage = deleteWelcomePage;
 exports.updateWelcomePageVisibility = updateWelcomePageVisibility;
-exports.hideUnhideTopics = hideUnhideTopics;
-exports.setShowAll = setShowAll;
-exports.setShowOne = setShowOne;
-exports.clearShowOption = clearShowOption;
-
-function _ShowOptions() {
-  const data = require("../ShowOptions");
-
-  _ShowOptions = function () {
-    return data;
-  };
-
-  return data;
-}
+exports.setTopicHidden = setTopicHidden;
 
 function ActionTypes() {
   const data = _interopRequireWildcard(require("./ActionTypes"));
@@ -70,39 +57,12 @@ function updateWelcomePageVisibility(isVisible) {
   };
 }
 
-function hideUnhideTopics(topicsToHide, topicsToUnhide) {
+function setTopicHidden(topic, shouldHide) {
   return {
-    type: ActionTypes().HIDE_UNHIDE_TOPICS,
+    type: ActionTypes().SET_TOPIC_HIDDEN,
     payload: {
-      topicsToHide,
-      topicsToUnhide
-    }
-  };
-}
-
-function setShowAll() {
-  return {
-    type: ActionTypes().SET_SHOW_OPTION,
-    payload: {
-      showOption: (0, _ShowOptions().showAll)()
-    }
-  };
-}
-
-function setShowOne(topic) {
-  return {
-    type: ActionTypes().SET_SHOW_OPTION,
-    payload: {
-      showOption: (0, _ShowOptions().showOne)(topic)
-    }
-  };
-}
-
-function clearShowOption() {
-  return {
-    type: ActionTypes().SET_SHOW_OPTION,
-    payload: {
-      showOption: undefined
+      topic,
+      shouldHide
     }
   };
 }

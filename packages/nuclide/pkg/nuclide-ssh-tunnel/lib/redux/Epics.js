@@ -263,15 +263,14 @@ function requestTunnelEpic(actions, store) {
         });
       } else {
         logger.info(`using Big Dig to create a tunnel: ${localTunnelHost.port}<=>${remoteTunnelHost.port}`);
-
-        try {
-          newTunnelPromise = bigDigClient.createTunnel(localTunnelHost.port, remoteTunnelHost.port, isReverse, useIPv4);
-        } catch (error) {
+        newTunnelPromise = bigDigClient.createTunnel(localTunnelHost.port, remoteTunnelHost.port, {
+          isReverse,
+          useIPv4
+        }).catch(error => {
           onOpen(error);
           store.dispatch(Actions().closeTunnel(tunnel, error));
           throw error;
-        }
-
+        });
         newTunnelPromise.then(newTunnel => {
           newTunnel.on('error', error => {
             logger.error('error from tunnel: ', error);
@@ -346,7 +345,7 @@ function closeTunnelEpic(actions, store) {
       if (error != null) {
         const friendlyString = `${(0, _Tunnel().tunnelDescription)(tunnel)} (${activeTunnel.subscriptions.map(s => s.description).join(', ')})`;
         store.getState().consoleOutput.next({
-          text: `Tunnel error: ${friendlyString}\n${error.message}`,
+          text: `Tunnel error: ${friendlyString}\n${error.message != null ? error.message : error.code}`,
           level: 'error'
         });
       }

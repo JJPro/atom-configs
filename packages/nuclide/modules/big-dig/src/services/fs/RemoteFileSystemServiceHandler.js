@@ -9,6 +9,16 @@ var _fs = _interopRequireDefault(require("fs"));
 
 var _path = _interopRequireDefault(require("path"));
 
+function _uuid() {
+  const data = _interopRequireDefault(require("uuid"));
+
+  _uuid = function () {
+    return data;
+  };
+
+  return data;
+}
+
 function _rimraf() {
   const data = _interopRequireDefault(require("rimraf"));
 
@@ -92,6 +102,7 @@ class RemoteFileSystemServiceHandler {
     this._fileChangeEvents = [];
     this._watcher = watcher;
     this._logger = (0, _log4js().getLogger)('fs-thrift-server-handler');
+    this._watchIdToChangeList = new Map();
   }
 
   async watch(uri, options) {
@@ -112,10 +123,10 @@ class RemoteFileSystemServiceHandler {
 
     this._logger.info(`Watching ${uri} ${JSON.stringify(opts)}`);
 
-    const subName = `big-dig-thrift-filewatcher-${uri}`;
+    const watchId = `big-dig-thrift-filewatcher-${_uuid().default.v4()}`;
 
     try {
-      const sub = await this._watcher.watchDirectoryRecursive(uri, subName, opts);
+      const sub = await this._watcher.watchDirectoryRecursive(uri, watchId, opts);
       sub.on('error', error => {
         this._logger.error(`Watchman Subscription Error: big-dig-thrift-filewatcher-${uri}`);
 
@@ -141,7 +152,10 @@ class RemoteFileSystemServiceHandler {
           }
         }); // Add new changes into the list of file changes
 
-        this._fileChangeEvents.push(...changes);
+        const fileChangeList = this._watchIdToChangeList.get(watchId) || [];
+        fileChangeList.push(...changes);
+
+        this._watchIdToChangeList.set(watchId, fileChangeList);
       });
     } catch (err) {
       this._logger.error('BigDig Thrift FS Server Watchman Subscription Creation Error');
@@ -149,13 +163,23 @@ class RemoteFileSystemServiceHandler {
       this._logger.error(err);
     }
 
-    return;
+    return watchId;
   }
 
-  pollFileChanges() {
-    const retEventChangeList = this._fileChangeEvents;
-    this._fileChangeEvents = [];
-    return retEventChangeList;
+  async unwatch(watchId) {
+    try {
+      await this._watcher.unwatch(watchId);
+    } catch (err) {
+      throw (0, _converter().createThriftError)(err);
+    }
+  }
+
+  pollFileChanges(watchId) {
+    const fileChangeList = this._watchIdToChangeList.get(watchId) || [];
+
+    this._watchIdToChangeList.set(watchId, []);
+
+    return fileChangeList;
   }
 
   async createDirectory(uri) {
@@ -167,6 +191,15 @@ class RemoteFileSystemServiceHandler {
   }
 
   async stat(uri) {
+    try {
+      const statData = await _fsPromise().default.stat(uri);
+      return (0, _converter().convertToThriftFileStat)(statData);
+    } catch (err) {
+      throw (0, _converter().createThriftError)(err);
+    }
+  }
+
+  async lstat(uri) {
     try {
       const statData = await _fsPromise().default.lstat(uri);
       return (0, _converter().convertToThriftFileStat)(statData);
@@ -187,11 +220,23 @@ class RemoteFileSystemServiceHandler {
 
   async writeFile(uri, content, options) {
     try {
-      const flags = [_fs.default.constants.O_WRONLY, _fs.default.constants.O_TRUNC, options.create ? _fs.default.constants.O_CREAT : 0, options.overwrite || !options.create ? 0 : _fs.default.constants.O_EXCL] // eslint-disable-next-line no-bitwise
-      .reduce((acc, f) => acc | f, 0);
-      await _fsPromise().default.writeFile(uri, content, {
-        flags
-      });
+      let writeOptions = {};
+
+      if (options.encoding != null || options.mode != null || options.flag != null) {
+        // used in Nuclide
+        writeOptions.encoding = options.encoding;
+        writeOptions.mode = options.mode;
+        writeOptions.flag = options.flag;
+      } else {
+        // used in VSCode
+        const flags = [_fs.default.constants.O_WRONLY, _fs.default.constants.O_TRUNC, options.create ? _fs.default.constants.O_CREAT : 0, options.overwrite || !options.create ? 0 : _fs.default.constants.O_EXCL] // eslint-disable-next-line no-bitwise
+        .reduce((acc, f) => acc | f, 0);
+        writeOptions = {
+          flags
+        };
+      }
+
+      await _fsPromise().default.writeFile(uri, content, writeOptions);
     } catch (err) {
       throw (0, _converter().createThriftError)(err);
     }
@@ -268,7 +313,13 @@ class RemoteFileSystemServiceHandler {
     }
   }
 
-  dispose() {}
+  dispose() {
+    for (const watchId of this._watchIdToChangeList.keys()) {
+      this._watcher.unwatch(watchId);
+    }
+
+    this._watchIdToChangeList.clear();
+  }
 
 }
 

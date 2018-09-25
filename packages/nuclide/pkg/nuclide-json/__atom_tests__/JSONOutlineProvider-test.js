@@ -21,6 +21,7 @@ function _JSONOutlineProvider() {
  *
  *  strict-local
  * @format
+ * @emails oncall+nuclide
  */
 describe('getOutline', () => {
   it('should outline the top-level properties of an object', () => {

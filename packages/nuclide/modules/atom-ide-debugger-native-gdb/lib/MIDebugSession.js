@@ -183,6 +183,7 @@ class MIDebugSession extends _vscodeDebugadapter().LoggingDebugSession {
 
     super(logfile);
     this._steppingThread = 0;
+    this._silenceSIGINT = false;
     this._hasTarget = false;
     this._configurationDone = false;
     const client = new (_MIProxy().default)();
@@ -225,7 +226,12 @@ class MIDebugSession extends _vscodeDebugadapter().LoggingDebugSession {
   _streamRecord(record) {
     // NB we never get target output here, that's handled by the pty. The
     // output here is mainly from raw pass-through gdb commands.
-    if (record.streamTarget === 'console' || record.streamTarget === 'log') {
+    if ((record.streamTarget === 'console' || record.streamTarget === 'log') && !this._silenceSIGINT) {
+      // remove hint about fbload since it doesn't directly work from here
+      if (record.text.indexOf('fbload') !== -1) {
+        return;
+      }
+
       const event = new (_vscodeDebugadapter().OutputEvent)();
       event.body = {
         category: 'log',
@@ -249,6 +255,7 @@ class MIDebugSession extends _vscodeDebugadapter().LoggingDebugSession {
     response.body.supportsConfigurationDoneRequest = true;
     response.body.supportsSetVariable = true;
     response.body.supportsValueFormattingOptions = true;
+    response.body.supportsBreakpointIdOnStop = true;
     response.body.exceptionBreakpointFilters = [{
       filter: 'uncaught',
       label: 'Uncaught exceptions',
@@ -322,6 +329,10 @@ class MIDebugSession extends _vscodeDebugadapter().LoggingDebugSession {
 
     if (!this._setSourcePaths(response, args)) {
       return;
+    }
+
+    if (args.pid == null) {
+      this._sendFailureResponse(response, 'to attach, process id must be given');
     }
 
     this._attachPID = args.pid;
@@ -799,7 +810,13 @@ class MIDebugSession extends _vscodeDebugadapter().LoggingDebugSession {
       // NB there is a race condition in gdb where if you send a SIGINT too soon
       // after the target is changed from stopped to running, it doesn't send another
       // stopped event. This really should be a throttle, not done every time.
-      setTimeout(() => this._client.pause(), 125);
+      setTimeout(() => {
+        // prevent the norma logging of messages about SIGINT, which are just
+        // confusing since the user won't know why we're stopping
+        this._silenceSIGINT = true;
+
+        this._client.pause();
+      }, 125);
     }
   }
 
@@ -816,7 +833,30 @@ class MIDebugSession extends _vscodeDebugadapter().LoggingDebugSession {
     }
   }
 
+  _breakpointIdFromStop(stop) {
+    const bkptno = stop.bkptno;
+
+    if (bkptno == null) {
+      return null;
+    }
+
+    const bkptid = parseInt(bkptno, 10);
+
+    if (isNaN(bkptid)) {
+      return null;
+    }
+
+    const bp = this._breakpoints.breakpointByDebuggerId(bkptid);
+
+    if (bp == null) {
+      return null;
+    }
+
+    return this._breakpoints.handleForBreakpoint(bp);
+  }
+
   async _onAsyncStopped(record) {
+    this._silenceSIGINT = false;
     const stopped = (0, _MITypes().stoppedEventResult)(record);
     await this._processPauseQueue(); // if we're stepping and we get a signal in the stepping thread, then
     // we shouldn't ignore the signal, even if exception breakpoints aren't
@@ -846,6 +886,7 @@ class MIDebugSession extends _vscodeDebugadapter().LoggingDebugSession {
 
     let reason = 'pause';
     let description = 'Execution paused';
+    let breakpointId = null;
 
     const exceptionReason = this._exceptionBreakpoints.stopEventReason(stopped);
 
@@ -855,6 +896,7 @@ class MIDebugSession extends _vscodeDebugadapter().LoggingDebugSession {
     } else if (stopped.reason === 'breakpoint-hit') {
       reason = 'breakpoint';
       description = 'Breakpoint hit';
+      breakpointId = this._breakpointIdFromStop(stopped);
     } else if (stopped.reason === 'end-stepping-range') {
       reason = 'step';
       description = 'Execution stepped';
@@ -889,6 +931,7 @@ class MIDebugSession extends _vscodeDebugadapter().LoggingDebugSession {
     event.body = {
       reason,
       description,
+      breakpointId,
       threadId: parseInt(stopped['thread-id'], 10),
       preserveFocusHint: false,
       allThreadsStopped: true

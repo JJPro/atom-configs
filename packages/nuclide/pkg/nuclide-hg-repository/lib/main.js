@@ -156,11 +156,15 @@ function activate(state) {
   subscriptions = new (_UniversalDisposable().default)();
   subscriptions.add(atom.commands.add('atom-text-editor', 'nuclide-hg-repository:confirm-and-revert', event => {
     const editorElement = event.currentTarget;
-    (0, _nuclideVcsBase().confirmAndRevertPath)(editorElement.getModel().getPath());
+    const path = editorElement.getModel().getPath();
+    const repository = path == null ? null : (0, _nuclideVcsBase().repositoryForPath)(path);
+    (0, _nuclideVcsBase().confirmAndRevertPath)(repository, path);
   }));
   subscriptions.add(atom.commands.add('atom-text-editor', 'nuclide-hg-repository:add', event => {
     const editorElement = event.currentTarget;
-    (0, _nuclideVcsBase().addPath)(editorElement.getModel().getPath());
+    const path = editorElement.getModel().getPath();
+    const repository = path == null ? null : (0, _nuclideVcsBase().repositoryForPath)(path);
+    (0, _nuclideVcsBase().addPath)(repository, path);
   })); // Text editor context menu items.
 
   subscriptions.add(atom.contextMenu.add({
@@ -208,7 +212,9 @@ function addItemsToFileTreeContextMenu(contextMenu) {
     callback() {
       // TODO(most): support reverting multiple nodes at once.
       const revertNode = contextMenu.getSingleSelectedNode();
-      (0, _nuclideVcsBase().confirmAndRevertPath)(revertNode == null ? null : revertNode.uri);
+      const path = revertNode == null ? null : revertNode.uri;
+      const repository = path == null ? null : (0, _nuclideVcsBase().repositoryForPath)(path);
+      (0, _nuclideVcsBase().confirmAndRevertPath)(repository, path);
     },
 
     shouldDisplay() {
@@ -224,7 +230,9 @@ function addItemsToFileTreeContextMenu(contextMenu) {
       const nodes = contextMenu.getSelectedNodes();
 
       for (const addNode of nodes) {
-        (0, _nuclideVcsBase().addPath)(addNode == null ? null : addNode.uri);
+        const path = addNode == null ? addNode : addNode.uri;
+        const repository = path == null ? null : (0, _nuclideVcsBase().repositoryForPath)(path);
+        (0, _nuclideVcsBase().addPath)(repository, path);
       }
     },
 

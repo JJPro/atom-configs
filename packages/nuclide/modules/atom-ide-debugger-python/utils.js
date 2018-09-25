@@ -131,7 +131,8 @@ function getPythonAttachTargetProcessConfig(targetRootUri, target) {
     targetUri: targetRootUri,
     debugMode: 'attach',
     adapterType: _nuclideDebuggerCommon().VsAdapterTypes.PYTHON,
-    config: getPythonAttachTargetConfig(target)
+    config: getPythonAttachTargetConfig(target),
+    servicedFileExtensions: ['py']
   };
 }
 

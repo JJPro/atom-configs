@@ -65,6 +65,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  *
  * 
  * @format
+ * @emails oncall+nuclide
  */
 _temp().default.track();
 
@@ -205,51 +206,43 @@ describe('RemoteDirectory::delete()', () => {
     tempDir = _temp().default.mkdirSync('delete_test');
   });
   it('deletes the existing directory', async () => {
-    await (async () => {
-      const directoryPath = _nuclideUri().default.join(tempDir, 'directory_to_delete');
+    const directoryPath = _nuclideUri().default.join(tempDir, 'directory_to_delete');
 
-      _fs.default.mkdirSync(directoryPath);
+    _fs.default.mkdirSync(directoryPath);
 
-      _fs.default.mkdirSync(_nuclideUri().default.join(directoryPath, 'subdir'));
+    _fs.default.mkdirSync(_nuclideUri().default.join(directoryPath, 'subdir'));
 
-      const directory = new (_RemoteDirectory().RemoteDirectory)(_connection_mock().default, `nuclide://host13${directoryPath}`);
-      expect(_fs.default.existsSync(directoryPath)).toBe(true);
-      await directory.delete();
-      expect(_fs.default.existsSync(directoryPath)).toBe(false);
-    })();
+    const directory = new (_RemoteDirectory().RemoteDirectory)(_connection_mock().default, `nuclide://host13${directoryPath}`);
+    expect(_fs.default.existsSync(directoryPath)).toBe(true);
+    await directory.delete();
+    expect(_fs.default.existsSync(directoryPath)).toBe(false);
   });
   it('deletes the non-existent directory', async () => {
-    await (async () => {
-      const directoryPath = _nuclideUri().default.join(tempDir, 'directory_to_delete');
+    const directoryPath = _nuclideUri().default.join(tempDir, 'directory_to_delete');
 
-      const directory = new (_RemoteDirectory().RemoteDirectory)(_connection_mock().default, `nuclide://host13${directoryPath}`);
-      await directory.delete();
-      expect(_fs.default.existsSync(directoryPath)).toBe(false);
-    })();
+    const directory = new (_RemoteDirectory().RemoteDirectory)(_connection_mock().default, `nuclide://host13${directoryPath}`);
+    await directory.delete();
+    expect(_fs.default.existsSync(directoryPath)).toBe(false);
   });
 });
 describe('RemoteDirectory::exists()', () => {
   it('verifies existence', async () => {
-    await (async () => {
-      const directoryPath = _temp().default.mkdirSync('exists_test');
+    const directoryPath = _temp().default.mkdirSync('exists_test');
 
-      expect(_fs.default.existsSync(directoryPath)).toBe(true);
-      const directory = new (_RemoteDirectory().RemoteDirectory)(_connection_mock().default, `nuclide://host13${directoryPath}`);
-      const exists = await directory.exists();
-      expect(exists).toBe(true);
-    })();
+    expect(_fs.default.existsSync(directoryPath)).toBe(true);
+    const directory = new (_RemoteDirectory().RemoteDirectory)(_connection_mock().default, `nuclide://host13${directoryPath}`);
+    const exists = await directory.exists();
+    expect(exists).toBe(true);
   });
   it('verifies non-existence', async () => {
-    await (async () => {
-      const tempDir = _temp().default.mkdirSync('exists_test');
+    const tempDir = _temp().default.mkdirSync('exists_test');
 
-      const directoryPath = _nuclideUri().default.join(tempDir, '/directory_that_doesnt_exist');
+    const directoryPath = _nuclideUri().default.join(tempDir, '/directory_that_doesnt_exist');
 
-      expect(_fs.default.existsSync(directoryPath)).toBe(false);
-      const directory = new (_RemoteDirectory().RemoteDirectory)(_connection_mock().default, `nuclide://host13${directoryPath}`);
-      const exists = await directory.exists();
-      expect(exists).toBe(false);
-    })();
+    expect(_fs.default.existsSync(directoryPath)).toBe(false);
+    const directory = new (_RemoteDirectory().RemoteDirectory)(_connection_mock().default, `nuclide://host13${directoryPath}`);
+    const exists = await directory.exists();
+    expect(exists).toBe(false);
   });
 });
 describe('RemoteDirectory::isSymbolicLink()', () => {
@@ -379,14 +372,12 @@ describe('RemoteDirectory::onDidDelete()', () => {
     tempDir = _temp().default.mkdirSync('on_did_delete');
   });
   it('calls on delete', async () => {
-    await (async () => {
-      const dirPath = _nuclideUri().default.join(tempDir, 'dir_to_delete');
+    const dirPath = _nuclideUri().default.join(tempDir, 'dir_to_delete');
 
-      const dir = new (_RemoteDirectory().RemoteDirectory)(_connection_mock().default, `nuclide://host13${dirPath}`);
-      const callbackSpy = jest.fn();
-      dir.onDidDelete(callbackSpy);
-      await dir.delete();
-      expect(callbackSpy.mock.calls.length).toBe(1);
-    })();
+    const dir = new (_RemoteDirectory().RemoteDirectory)(_connection_mock().default, `nuclide://host13${dirPath}`);
+    const callbackSpy = jest.fn();
+    dir.onDidDelete(callbackSpy);
+    await dir.delete();
+    expect(callbackSpy.mock.calls.length).toBe(1);
   });
 });

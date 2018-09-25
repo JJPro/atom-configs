@@ -49,16 +49,6 @@ function _BuiltinProviders() {
   return data;
 }
 
-function _ToolbarUtils() {
-  const data = require("../../../modules/nuclide-commons-ui/ToolbarUtils");
-
-  _ToolbarUtils = function () {
-    return data;
-  };
-
-  return data;
-}
-
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 /**
@@ -101,12 +91,12 @@ class Activation {
     toolBar.addSpacer({
       priority: 900
     });
-    toolBar.addButton((0, _ToolbarUtils().makeToolbarButtonSpec)({
+    toolBar.addButton({
       icon: 'eye',
       callback: 'nuclide-distraction-free-mode:toggle',
       tooltip: 'Toggle Distraction-Free Mode',
       priority: 901
-    }));
+    });
     const disposable = new (_UniversalDisposable().default)(() => {
       toolBar.removeItems();
     });

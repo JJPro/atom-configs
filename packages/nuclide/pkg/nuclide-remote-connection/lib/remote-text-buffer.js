@@ -19,16 +19,6 @@ function _nuclideUri() {
   return data;
 }
 
-function _nuclideFsAtom() {
-  const data = require("../../nuclide-fs-atom");
-
-  _nuclideFsAtom = function () {
-    return data;
-  };
-
-  return data;
-}
-
 function _RemoteFile() {
   const data = require("./RemoteFile");
 
@@ -90,11 +80,7 @@ async function loadBufferForUri(uri) {
 
 function loadBufferForUriStatic(uri) {
   if (_nuclideUri().default.isLocal(uri)) {
-    if (_nuclideUri().default.isInArchive(uri)) {
-      return _atom.TextBuffer.load(_nuclideFsAtom().ROOT_ARCHIVE_FS.newArchiveFile(uri), TEXT_BUFFER_PARAMS);
-    } else {
-      return _atom.TextBuffer.load(uri, TEXT_BUFFER_PARAMS);
-    }
+    return _atom.TextBuffer.load(uri, TEXT_BUFFER_PARAMS);
   }
 
   const connection = _ServerConnection().ServerConnection.getForUri(uri);
@@ -128,10 +114,6 @@ function createBufferForUri(uri) {
 
   if (_nuclideUri().default.isLocal(uri)) {
     buffer = new _atom.TextBuffer(params);
-
-    if (_nuclideUri().default.isInArchive(uri)) {
-      buffer.setFile(_nuclideFsAtom().ROOT_ARCHIVE_FS.newArchiveFile(uri));
-    }
   } else {
     const connection = _ServerConnection().ServerConnection.getForUri(uri);
 

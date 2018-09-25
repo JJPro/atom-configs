@@ -5,7 +5,6 @@
   "description": "Provides support for OCaml in Nuclide",
   "author": "NEEDS OWNER",
   "activationCommands": {},
-  "atomTestRunner": "../../lib/test-runner-entry.js",
   "nuclide": {
     "configMetadata": {
       "pathComponents": [
@@ -61,8 +60,7 @@
         "default": true
       }
     },
-    "packageType": "Atom",
-    "testRunner": "apm"
+    "packageType": "AtomPackage"
   },
   "activationHooks": [
     "language-ocaml:grammar-used",

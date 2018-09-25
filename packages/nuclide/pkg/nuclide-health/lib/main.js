@@ -144,16 +144,6 @@ function _trackStalls() {
   return data;
 }
 
-function _ToolbarUtils() {
-  const data = require("../../../modules/nuclide-commons-ui/ToolbarUtils");
-
-  _ToolbarUtils = function () {
-    return data;
-  };
-
-  return data;
-}
-
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) { var desc = Object.defineProperty && Object.getOwnPropertyDescriptor ? Object.getOwnPropertyDescriptor(obj, key) : {}; if (desc.get || desc.set) { Object.defineProperty(newObj, key, desc); } else { newObj[key] = obj[key]; } } } } newObj.default = obj; return newObj; } }
@@ -214,12 +204,12 @@ class Activation {
 
   consumeToolBar(getToolBar) {
     const toolBar = getToolBar('nuclide-health');
-    this._healthButton = toolBar.addButton((0, _ToolbarUtils().makeToolbarButtonSpec)({
+    this._healthButton = toolBar.addButton({
       icon: 'dashboard',
       callback: 'nuclide-health:toggle',
       tooltip: 'Toggle Nuclide Health Stats',
       priority: -400
-    })).element;
+    }).element;
 
     this._healthButton.classList.add('nuclide-health-jewel');
 

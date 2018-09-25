@@ -206,6 +206,28 @@ class DiagnosticsViewModel {
     const visibility = (0, _observePaneItemVisibility().default)(this).distinctUntilChanged();
     this._disposables = new (_UniversalDisposable().default)(visibility.let((0, _observable().fastDebounce)(1000)).distinctUntilChanged().filter(Boolean).subscribe(() => {
       _analytics().default.track('diagnostics-show-table');
+    }), atom.commands.add('.diagnostics-ui-table-container', 'diagnostics:copy', () => {
+      if (window.getSelection().toString() === '') {
+        // if there is a selectedMessage and no selected text, copy
+        // selectedMessage.text to the clipboard
+        const currentMessageText = this._model.state.selectedMessage ? this._model.state.selectedMessage.text : null;
+
+        if (currentMessageText != null) {
+          atom.clipboard.write(currentMessageText);
+        }
+      } else {
+        document.execCommand('copy');
+      }
+    }), atom.contextMenu.add({
+      '.diagnostics-ui-table-container .nuclide-ui-table-row-selected': [{
+        command: 'diagnostics:copy',
+        label: 'Copy',
+
+        shouldDisplay() {
+          return window.getSelection().toString() !== '';
+        }
+
+      }]
     })); // Combine the state that's shared between instances, the state that's unique to this instance,
     // and unchanging callbacks, to get the props for our component.
 

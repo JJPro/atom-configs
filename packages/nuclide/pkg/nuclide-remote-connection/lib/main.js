@@ -5,6 +5,7 @@ Object.defineProperty(exports, "__esModule", {
 });
 exports.getBigDigClientByNuclideUri = getBigDigClientByNuclideUri;
 exports.getBuckServiceByNuclideUri = getBuckServiceByNuclideUri;
+exports.getBuckServiceByConnection = getBuckServiceByConnection;
 exports.getClangServiceByNuclideUri = getClangServiceByNuclideUri;
 exports.getCodeSearchServiceByNuclideUri = getCodeSearchServiceByNuclideUri;
 exports.getCtagsServiceByNuclideUri = getCtagsServiceByNuclideUri;
@@ -31,8 +32,6 @@ exports.getSocketServiceByNuclideUri = getSocketServiceByNuclideUri;
 exports.getSourceControlServiceByNuclideUri = getSourceControlServiceByNuclideUri;
 exports.getVSCodeLanguageServiceByConnection = getVSCodeLanguageServiceByConnection;
 exports.getVSCodeLanguageServiceByNuclideUri = getVSCodeLanguageServiceByNuclideUri;
-exports.getCqueryLSPServiceByConnection = getCqueryLSPServiceByConnection;
-exports.getCqueryLSPServiceByNuclideUri = getCqueryLSPServiceByNuclideUri;
 Object.defineProperty(exports, "RemoteConnection", {
   enumerable: true,
   get: function () {
@@ -250,6 +249,10 @@ function getBuckServiceByNuclideUri(uri) {
   return (0, _nullthrows().default)((0, _serviceManager().getServiceByNuclideUri)('BuckService', uri));
 }
 
+function getBuckServiceByConnection(connection) {
+  return (0, _nullthrows().default)((0, _serviceManager().getServiceByConnection)('BuckService', connection));
+}
+
 function getClangServiceByNuclideUri(uri) {
   return (0, _nullthrows().default)((0, _serviceManager().getServiceByNuclideUri)('ClangService', uri));
 }
@@ -352,12 +355,4 @@ function getVSCodeLanguageServiceByConnection(connection) {
 
 function getVSCodeLanguageServiceByNuclideUri(uri) {
   return (0, _nullthrows().default)((0, _serviceManager().getServiceByNuclideUri)('VSCodeLanguageService', uri));
-}
-
-function getCqueryLSPServiceByConnection(connection) {
-  return (0, _nullthrows().default)((0, _serviceManager().getServiceByConnection)('CqueryLSPService', connection));
-}
-
-function getCqueryLSPServiceByNuclideUri(uri) {
-  return (0, _nullthrows().default)((0, _serviceManager().getServiceByNuclideUri)('CqueryLSPService', uri));
 }

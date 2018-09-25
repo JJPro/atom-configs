@@ -10,6 +10,7 @@
  *
  *  strict-local
  * @format
+ * @emails oncall+nuclide
  */
 test('test', () => {
   expect(2).toMatchSnapshot();

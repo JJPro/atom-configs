@@ -122,10 +122,10 @@ function _reduxMin() {
   return data;
 }
 
-function _ToolbarUtils() {
-  const data = require("../../../../nuclide-commons-ui/ToolbarUtils");
+function _nullthrows() {
+  const data = _interopRequireDefault(require("nullthrows"));
 
-  _ToolbarUtils = function () {
+  _nullthrows = function () {
     return data;
   };
 
@@ -144,6 +144,7 @@ const MAXIMUM_SERIALIZED_HISTORY_CONFIG = 'atom-ide-console.maximumSerializedHis
 class Activation {
   constructor(rawState) {
     this._rawState = rawState;
+    this._nextMessageId = 0;
     this._disposables = new (_UniversalDisposable().default)(atom.contextMenu.add({
       '.console-record': [{
         label: 'Copy Message',
@@ -179,12 +180,12 @@ class Activation {
 
   consumeToolBar(getToolBar) {
     const toolBar = getToolBar('nuclide-console');
-    toolBar.addButton((0, _ToolbarUtils().makeToolbarButtonSpec)({
+    toolBar.addButton({
       icon: 'nuclicon-console',
       callback: 'console:toggle',
       tooltip: 'Toggle Console',
       priority: 700
-    }));
+    });
 
     this._disposables.add(() => {
       toolBar.removeItems();
@@ -256,7 +257,8 @@ class Activation {
       store: this._getStore(),
       initialFilterText: state.filterText,
       initialEnableRegExpFilter: state.enableRegExpFilter,
-      initialUnselectedSourceIds: state.unselectedSourceIds
+      initialUnselectedSourceIds: state.unselectedSourceIds,
+      initialUnselectedSeverities: new Set(state.unselectedSeverities || [])
     });
   }
   /**
@@ -279,7 +281,52 @@ class Activation {
 
     this._disposables.add(() => {
       activation = null;
-    });
+    }); // Creates an objet with callbacks to request manipulations on the current
+    // console message entry.
+
+
+    const createToken = messageId => {
+      const findMessage = () => {
+        if (!(activation != null)) {
+          throw new Error("Invariant violation: \"activation != null\"");
+        }
+
+        return (0, _nullthrows().default)(activation._getStore().getState().incompleteRecords.find(r => r.messageId === messageId));
+      };
+
+      return Object.freeze({
+        // Message needs to be looked up lazily at call time rather than
+        // cached in this object to avoid requiring the update action to
+        // operate synchronously. When we append text, we don't know the
+        // full new text without looking up the new message object in the
+        // new store state after the mutation.
+        getCurrentText: () => {
+          return findMessage().text;
+        },
+        getCurrentLevel: () => {
+          return findMessage().level;
+        },
+        setLevel: newLevel => {
+          return updateMessage(messageId, null, newLevel, false);
+        },
+        appendText: text => {
+          return updateMessage(messageId, text, null, false);
+        },
+        setComplete: () => {
+          updateMessage(messageId, null, null, true);
+        }
+      });
+    };
+
+    const updateMessage = (messageId, appendText, overrideLevel, setComplete) => {
+      if (!(activation != null)) {
+        throw new Error("Invariant violation: \"activation != null\"");
+      }
+
+      activation._getStore().dispatch(Actions().recordUpdated(messageId, appendText, overrideLevel, setComplete));
+
+      return createToken(messageId);
+    };
 
     return sourceInfo => {
       if (!(activation != null)) {
@@ -293,35 +340,35 @@ class Activation {
       const console = {
         // TODO: Update these to be (object: any, ...objects: Array<any>): void.
         log(object) {
-          console.append({
+          return console.append({
             text: object,
             level: 'log'
           });
         },
 
         warn(object) {
-          console.append({
+          return console.append({
             text: object,
             level: 'warning'
           });
         },
 
         error(object) {
-          console.append({
+          return console.append({
             text: object,
             level: 'error'
           });
         },
 
         info(object) {
-          console.append({
+          return console.append({
             text: object,
             level: 'info'
           });
         },
 
         success(object) {
-          console.append({
+          return console.append({
             text: object,
             level: 'success'
           });
@@ -332,7 +379,10 @@ class Activation {
             throw new Error("Invariant violation: \"activation != null && !disposed\"");
           }
 
-          activation._getStore().dispatch(Actions().recordReceived({
+          const incomplete = Boolean(message.incomplete);
+          const record = {
+            // A unique message ID is not required for complete messages,
+            // since they cannot be updated they don't need to be found later.
             text: message.text,
             level: message.level,
             format: message.format,
@@ -343,8 +393,21 @@ class Activation {
             kind: message.kind || 'message',
             timestamp: new Date(),
             // TODO: Allow this to come with the message?
-            repeatCount: 1
-          }));
+            repeatCount: 1,
+            incomplete
+          };
+          let token = null;
+
+          if (incomplete) {
+            // An ID is only required for incomplete messages, which need
+            // to be looked up for mutations.
+            record.messageId = activation._nextMessageId++;
+            token = createToken(record.messageId);
+          }
+
+          activation._getStore().dispatch(Actions().recordReceived(record));
+
+          return token;
         },
 
         setStatus(status) {
@@ -454,6 +517,7 @@ function deserializeAppState(rawState) {
     createPasteFunction: null,
     currentExecutorId: null,
     records: rawState && rawState.records ? (0, _immutable().List)(rawState.records.map(deserializeRecord)) : (0, _immutable().List)(),
+    incompleteRecords: rawState && rawState.incompleteRecords ? (0, _immutable().List)(rawState.incompleteRecords.map(deserializeRecord)) : (0, _immutable().List)(),
     history: rawState && rawState.history ? rawState.history : [],
     providers: new Map(),
     providerStatuses: new Map(),

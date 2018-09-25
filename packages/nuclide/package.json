@@ -2,39 +2,39 @@
   "_args": [
     [
       {
-        "raw": "/private/var/folders/yc/qws8qx4n65d13181gwm4m_vh0000gn/T/d-11867-57268-2sp63.gf44ukrzfr/package.tgz",
+        "raw": "/private/var/folders/yc/qws8qx4n65d13181gwm4m_vh0000gn/T/d-118722-59885-3cw2qo.2c1d8nz5mi/package.tgz",
         "scope": null,
         "escapedName": null,
         "name": null,
-        "rawSpec": "/private/var/folders/yc/qws8qx4n65d13181gwm4m_vh0000gn/T/d-11867-57268-2sp63.gf44ukrzfr/package.tgz",
-        "spec": "/private/var/folders/yc/qws8qx4n65d13181gwm4m_vh0000gn/T/d-11867-57268-2sp63.gf44ukrzfr/package.tgz",
+        "rawSpec": "/private/var/folders/yc/qws8qx4n65d13181gwm4m_vh0000gn/T/d-118722-59885-3cw2qo.2c1d8nz5mi/package.tgz",
+        "spec": "/private/var/folders/yc/qws8qx4n65d13181gwm4m_vh0000gn/T/d-118722-59885-3cw2qo.2c1d8nz5mi/package.tgz",
         "type": "local"
       },
-      "/private/var/folders/yc/qws8qx4n65d13181gwm4m_vh0000gn/T/apm-install-dir-11867-57268-b3kgym.5nojbrzfr"
+      "/private/var/folders/yc/qws8qx4n65d13181gwm4m_vh0000gn/T/apm-install-dir-118722-59885-dm310h.9d1q9tfbt9"
     ]
   ],
-  "_from": "../d-11867-57268-2sp63.gf44ukrzfr/package.tgz",
-  "_id": "nuclide@0.321.0",
+  "_from": "../d-118722-59885-3cw2qo.2c1d8nz5mi/package.tgz",
+  "_id": "nuclide@0.338.0",
   "_inCache": true,
   "_location": "/nuclide",
   "_phantomChildren": {},
   "_requested": {
-    "raw": "/private/var/folders/yc/qws8qx4n65d13181gwm4m_vh0000gn/T/d-11867-57268-2sp63.gf44ukrzfr/package.tgz",
+    "raw": "/private/var/folders/yc/qws8qx4n65d13181gwm4m_vh0000gn/T/d-118722-59885-3cw2qo.2c1d8nz5mi/package.tgz",
     "scope": null,
     "escapedName": null,
     "name": null,
-    "rawSpec": "/private/var/folders/yc/qws8qx4n65d13181gwm4m_vh0000gn/T/d-11867-57268-2sp63.gf44ukrzfr/package.tgz",
-    "spec": "/private/var/folders/yc/qws8qx4n65d13181gwm4m_vh0000gn/T/d-11867-57268-2sp63.gf44ukrzfr/package.tgz",
+    "rawSpec": "/private/var/folders/yc/qws8qx4n65d13181gwm4m_vh0000gn/T/d-118722-59885-3cw2qo.2c1d8nz5mi/package.tgz",
+    "spec": "/private/var/folders/yc/qws8qx4n65d13181gwm4m_vh0000gn/T/d-118722-59885-3cw2qo.2c1d8nz5mi/package.tgz",
     "type": "local"
   },
   "_requiredBy": [
     "#USER"
   ],
-  "_resolved": "file:../d-11867-57268-2sp63.gf44ukrzfr/package.tgz",
-  "_shasum": "1ce07c7d0cd45023164e91402ac0cc1698ad2deb",
+  "_resolved": "file:../d-118722-59885-3cw2qo.2c1d8nz5mi/package.tgz",
+  "_shasum": "fd715921b4661d863492b24d9d0e8f384c0e5635",
   "_shrinkwrap": null,
-  "_spec": "/private/var/folders/yc/qws8qx4n65d13181gwm4m_vh0000gn/T/d-11867-57268-2sp63.gf44ukrzfr/package.tgz",
-  "_where": "/private/var/folders/yc/qws8qx4n65d13181gwm4m_vh0000gn/T/apm-install-dir-11867-57268-b3kgym.5nojbrzfr",
+  "_spec": "/private/var/folders/yc/qws8qx4n65d13181gwm4m_vh0000gn/T/d-118722-59885-3cw2qo.2c1d8nz5mi/package.tgz",
+  "_where": "/private/var/folders/yc/qws8qx4n65d13181gwm4m_vh0000gn/T/apm-install-dir-118722-59885-dm310h.9d1q9tfbt9",
   "atomTestRunner": "./lib/test-runner-entry.js",
   "bin": {
     "nuclide-start-server": "./pkg/nuclide-server/nuclide-start-server"
@@ -43,14 +43,14 @@
     "url": "https://github.com/facebook/nuclide/issues"
   },
   "dependencies": {
-    "@babel/traverse": "7.0.0-beta.47",
-    "@babel/types": "7.0.0-beta.47",
+    "@babel/parser": "7.0.0-beta.48",
+    "@babel/traverse": "7.0.0-beta.48",
+    "@babel/types": "7.0.0-beta.48",
     "adm-zip": "0.4.7",
     "anser": "1.4.6",
     "ansi-to-react": "2.0.6",
     "arch": "2.1.0",
     "atom-package-deps": "4.6.0",
-    "babylon": "7.0.0-beta.47",
     "big-integer": "1.6.17",
     "bplist-parser": "0.1.1",
     "chalk": "1.1.3",
@@ -74,6 +74,7 @@
     "event-kit": "2.2.0",
     "event-target-shim": "3.0.1",
     "fb-watchman": "2.0.0",
+    "fix-path": "2.1.0",
     "flatten-source-map": "0.0.2",
     "fs-extra": "4.0.3",
     "fs-plus": "2.9.3",
@@ -105,7 +106,7 @@
     "mkdirp": "0.5.1",
     "mv": "2.1.1",
     "node-fetch": "1.6.3",
-    "nuclide-prebuilt-libs": "0.5.1",
+    "nuclide-prebuilt-libs": "0.5.2",
     "nullthrows": "1.0.0",
     "plist": "2.0.1",
     "q": "1.4.1",
@@ -161,14 +162,14 @@
     "vscode-uri": "1.0.1",
     "ws": "3.2.0",
     "xml2js": "0.4.17",
-    "xterm": "3.4.1",
+    "xterm": "3.6.0",
     "yargs": "3.32.0"
   },
   "description": "A unified developer experience for web and mobile development, built as a suite of features on top of Atom to provide hackability and the support of an active community.",
   "devDependencies": {
-    "@babel/generator": "7.0.0-beta.47",
+    "@babel/generator": "7.0.0-beta.48",
     "atom-grammar-test": "0.6.3",
-    "eslint": "5.0.1",
+    "eslint": "5.1.0",
     "eslint-plugin-dependencies": "2.4.0",
     "eslint-plugin-flowtype": "2.39.1",
     "eslint-plugin-jasmine": "2.9.1",
@@ -177,11 +178,12 @@
     "eslint-plugin-prettier": "2.3.1",
     "eslint-plugin-react": "7.9.1",
     "eslint-plugin-unicorn": "4.0.3",
-    "flow-bin": "0.75.0",
+    "flow-bin": "0.78.0",
     "jasmine-node": "1.14.5",
-    "jest-cli": "23.1.0",
-    "jest-mock": "23.1.0",
-    "jest-util": "23.1.0",
+    "jest-circus": "23.4.1",
+    "jest-cli": "23.4.1",
+    "jest-mock": "23.2.0",
+    "jest-util": "23.4.0",
     "lerna": "2.9.0",
     "mock-spawn": "0.2.6",
     "node-ipc": "9.1.1",
@@ -219,7 +221,7 @@
   "name": "nuclide",
   "optionalDependencies": {},
   "package-deps": [
-    "file-icons:2.1.21",
+    "file-icons",
     "tool-bar",
     "highlight-selected",
     "language-babel",
@@ -246,7 +248,7 @@
   "scripts": {
     "fix-all": "eslint --fix .",
     "flow": "flow check --show-all-errors --max-warnings 0",
-    "jest": "./jest/fb-jest",
+    "jest": "JEST_ENVIRONMENT='nuclide:yarn-jest' ./jest/fb-jest",
     "lint": "eslint",
     "lint-all": "eslint .",
     "release-transpile": "./modules/nuclide-node-transpiler/bin/release-transpile.js",
@@ -256,7 +258,7 @@
     "method": "handleURI",
     "deferActivation": false
   },
-  "version": "0.321.0",
+  "version": "0.338.0",
   "warnings": [
     {
       "code": "ENOTSUP",
@@ -264,7 +266,7 @@
         "atom": ">=1.27.0",
         "node": ">=7.9.0"
       },
-      "pkgid": "nuclide@0.321.0"
+      "pkgid": "nuclide@0.338.0"
     },
     {
       "code": "ENOTSUP",
@@ -272,7 +274,7 @@
         "atom": ">=1.27.0",
         "node": ">=7.9.0"
       },
-      "pkgid": "nuclide@0.321.0"
+      "pkgid": "nuclide@0.338.0"
     }
   ],
   "workspaces": [

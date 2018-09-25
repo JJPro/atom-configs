@@ -20,6 +20,7 @@ function _ps() {
  *
  *  strict-local
  * @format
+ * @emails oncall+nuclide
  */
 describe('parsePsOutput', () => {
   it('splits the output by message', () => {

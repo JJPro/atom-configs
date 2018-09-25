@@ -41,26 +41,25 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  *
  *  strict-local
  * @format
+ * @emails oncall+nuclide
  */
 describe('loadServicesConfig()', () => {
   let configPath;
   beforeEach(async () => {
-    await (async () => {
-      const services3json = [{
-        implementation: './FooService.js',
-        name: 'FooService'
-      }, {
-        definition: './BarServiceDefinition.js',
-        implementation: './BarServiceImplementation.js',
-        name: 'BarService'
-      }];
-      const fbservices3json = [{
-        implementation: './BazService.js',
-        name: 'BazService',
-        preserveFunctionNames: true
-      }];
-      configPath = await (0, _testHelpers().generateFixture)('services', new Map([['services-3.json', JSON.stringify(services3json)], ['fb-services-3.json', JSON.stringify(fbservices3json)]]));
-    })();
+    const services3json = [{
+      implementation: './FooService.js',
+      name: 'FooService'
+    }, {
+      definition: './BarServiceDefinition.js',
+      implementation: './BarServiceImplementation.js',
+      name: 'BarService'
+    }];
+    const fbservices3json = [{
+      implementation: './BazService.js',
+      name: 'BazService',
+      preserveFunctionNames: true
+    }];
+    configPath = await (0, _testHelpers().generateFixture)('services', new Map([['services-3.json', JSON.stringify(services3json)], ['fb-services-3.json', JSON.stringify(fbservices3json)]]));
   });
   it('resolves absolute paths', () => {
     // flowlint-next-line sketchy-null-string:off

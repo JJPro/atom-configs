@@ -56,9 +56,9 @@ function app(state, action) {
       return Object.assign({}, state, {
         device: null,
         devices: _expected().Expect.pending(),
+        deviceTasks: new Map(),
         infoTables: _expected().Expect.pending(),
         processes: _expected().Expect.pending(),
-        actions: [],
         processTasks: [],
         deviceTypeComponents: Immutable().Map(),
         isDeviceConnected: false,
@@ -78,9 +78,9 @@ function app(state, action) {
         deviceType,
         device: null,
         devices: _expected().Expect.pending(),
+        deviceTasks: new Map(),
         infoTables: _expected().Expect.pending(),
         processes: _expected().Expect.pending(),
-        actions: [],
         processTasks: [],
         deviceTypeComponents: Immutable().Map(),
         isDeviceConnected: false
@@ -193,7 +193,7 @@ function isDeviceConnected(device, deviceList) {
   }
 
   for (const _device of deviceList.value) {
-    if (device.name === _device.name) {
+    if (device.identifier === _device.identifier) {
       return true;
     }
   }

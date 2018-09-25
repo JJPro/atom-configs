@@ -4,7 +4,7 @@ Object.defineProperty(exports, "__esModule", {
   value: true
 });
 exports.createCustomLineNumberGutter = createCustomLineNumberGutter;
-exports.default = exports.HunkDiff = void 0;
+exports.LoadingFileChanges = exports.default = exports.HunkDiff = void 0;
 
 function _AtomTextEditor() {
   const data = require("./AtomTextEditor");
@@ -20,6 +20,16 @@ function _goToLocation() {
   const data = require("../nuclide-commons-atom/go-to-location");
 
   _goToLocation = function () {
+    return data;
+  };
+
+  return data;
+}
+
+function _LoadingSpinner() {
+  const data = require("./LoadingSpinner");
+
+  _LoadingSpinner = function () {
     return data;
   };
 
@@ -187,11 +197,29 @@ class HunkDiff extends React.Component {
   constructor(props) {
     super(props);
     this._disposables = new (_UniversalDisposable().default)( // enable copying filename
+    // core:copy isn't used because it breaks the custom copy behavior below,
+    // and this selection doesn't work easily with cmd-c anyway.
     atom.contextMenu.add({
       '.nuclide-ui-file-changes-item': [{
         label: 'Copy',
-        command: 'core:copy'
+        command: 'nuclide-ui-file-changes-item:copy'
       }]
+    }), atom.commands.add('.nuclide-ui-file-changes-item', 'nuclide-ui-file-changes-item:copy', event => {
+      // need to strip out zero-width spaces that were added to the filename
+      if (!(event.target instanceof HTMLElement)) {
+        return;
+      }
+
+      const element = event.target;
+      const text = element.innerText;
+
+      if (text == null) {
+        return;
+      }
+
+      const allSpacesRegex = new RegExp(_string().ZERO_WIDTH_SPACE, 'g');
+      atom.clipboard.write(text.replace(allSpacesRegex, ''));
+      event.stopPropagation();
     }));
   }
 
@@ -340,43 +368,96 @@ class HunkDiff extends React.Component {
   }
 
 }
-/* Renders changes to a single file. */
-
 
 exports.HunkDiff = HunkDiff;
 
-class FileChanges extends React.Component {
-  constructor(...args) {
-    var _temp;
-
-    return _temp = super(...args), this._handleFilenameClick = event => {
-      const {
-        fullPath
-      } = this.props;
-
-      if (fullPath == null) {
-        return;
-      }
-
-      (0, _goToLocation().goToLocation)(fullPath);
-      event.stopPropagation();
-    }, _temp;
+function handleFilenameClick(fullPath, event) {
+  if (fullPath == null) {
+    return;
   }
 
+  (0, _goToLocation().goToLocation)(fullPath);
+  event.stopPropagation();
+}
+
+function renderFileChangeContainer(content, isPreview, collapsable, fullPath, displayPath, collapsedByDefault, hideHeadline, diff) {
+  const {
+    additions,
+    annotation,
+    deletions,
+    from: fromFileName,
+    to: toFileName
+  } = diff != null ? diff : {
+    additions: null,
+    annotation: null,
+    deletions: null,
+    from: fullPath,
+    to: fullPath
+  };
+
+  if (toFileName == null || fromFileName == null) {
+    // sanity check: toFileName & fromFileName should always be given
+    return null;
+  }
+
+  const fileName = displayPath != null ? displayPath : toFileName !== '/dev/null' ? toFileName : fromFileName;
+  let annotationComponent;
+
+  if (!isPreview && annotation != null) {
+    annotationComponent = React.createElement("span", null, annotation.split('\n').map((line, index) => React.createElement("span", {
+      key: index
+    }, line, React.createElement("br", null))));
+  }
+
+  let addedOrDeletedString = '';
+
+  if (toFileName === '/dev/null') {
+    addedOrDeletedString = 'file deleted - ';
+  } else if (fromFileName === '/dev/null') {
+    addedOrDeletedString = 'file added - ';
+  }
+
+  const diffDetails = isPreview ? null : React.createElement("span", {
+    className: "nuclide-ui-file-changes-details"
+  }, annotationComponent, " (", addedOrDeletedString, additions + deletions, " ", (0, _string().pluralize)('line', additions + deletions), ")"); // insert zero-width spaces so filenames are wrapped at '/'
+
+  const breakableFilename = fileName.replace(/\//g, '/' + _string().ZERO_WIDTH_SPACE);
+  const renderedFilename = fullPath != null ? React.createElement("a", {
+    className: "nuclide-ui-file-changes-name",
+    onClick: handleFilenameClick.bind(null, fullPath)
+  }, breakableFilename) : breakableFilename;
+
+  if (hideHeadline) {
+    return content;
+  }
+
+  const headline = React.createElement("span", {
+    className: (0, _classnames().default)('nuclide-ui-file-changes-item', 'native-key-bindings'),
+    tabIndex: -1
+  }, renderedFilename, " ", diffDetails);
+  return React.createElement(_Section().Section, {
+    collapsable: collapsable === true,
+    collapsedByDefault: collapsedByDefault === true,
+    headline: headline,
+    title: "Click to open"
+  }, content);
+}
+/* Renders changes to a single file. */
+
+
+class FileChanges extends React.Component {
   render() {
     const {
+      collapsable,
+      fullPath,
+      displayPath,
+      collapsedByDefault,
       hideHeadline,
       diff,
-      fullPath,
-      collapsable,
-      collapsedByDefault,
       grammar
     } = this.props;
     const {
-      additions,
-      annotation,
       chunks,
-      deletions,
       from: fromFileName,
       to: toFileName
     } = diff;
@@ -408,46 +489,9 @@ class FileChanges extends React.Component {
       i++;
     }
 
-    let annotationComponent;
-
-    if (annotation != null) {
-      annotationComponent = React.createElement("span", null, annotation.split('\n').map((line, index) => React.createElement("span", {
-        key: index
-      }, line, React.createElement("br", null))));
-    }
-
-    let addedOrDeletedString = '';
-
-    if (toFileName === '/dev/null') {
-      addedOrDeletedString = 'file deleted - ';
-    } else if (fromFileName === '/dev/null') {
-      addedOrDeletedString = 'file added - ';
-    }
-
-    const diffDetails = React.createElement("span", {
-      className: "nuclide-ui-file-changes-details"
-    }, annotationComponent, " (", addedOrDeletedString, additions + deletions, " ", (0, _string().pluralize)('line', additions + deletions), ")"); // insert zero-width spaces so filenames are wrapped at '/'
-
-    const breakableFilename = fileName.replace(/\//g, '/' + _string().ZERO_WIDTH_SPACE);
-    const renderedFilename = fullPath != null ? React.createElement("a", {
-      className: "nuclide-ui-file-changes-name",
-      onClick: this._handleFilenameClick
-    }, breakableFilename) : breakableFilename;
-
-    if (hideHeadline) {
-      return hunks;
-    }
-
-    const headline = React.createElement("span", {
-      className: (0, _classnames().default)('nuclide-ui-file-changes-item', 'native-key-bindings'),
-      tabIndex: -1
-    }, renderedFilename, " ", diffDetails);
-    return React.createElement(_Section().Section, {
-      collapsable: collapsable,
-      collapsedByDefault: collapsedByDefault,
-      headline: headline,
-      title: "Click to open"
-    }, hunks);
+    return renderFileChangeContainer(hunks,
+    /* isPreview */
+    false, collapsable, fullPath, displayPath, collapsedByDefault, hideHeadline, diff);
   }
 
 }
@@ -456,3 +500,44 @@ exports.default = FileChanges;
 FileChanges.defaultProps = {
   hunkComponentClass: HunkDiff
 };
+
+class LoadingFileChanges extends React.Component {
+  constructor(...args) {
+    var _temp;
+
+    return _temp = super(...args), this._handleFilenameClick = event => {
+      const {
+        fullPath
+      } = this.props;
+
+      if (fullPath == null) {
+        return;
+      }
+
+      (0, _goToLocation().goToLocation)(fullPath);
+      event.stopPropagation();
+    }, _temp;
+  }
+
+  render() {
+    const spinner = React.createElement(_LoadingSpinner().LoadingSpinner, {
+      size: _LoadingSpinner().LoadingSpinnerSizes.EXTRA_SMALL,
+      className: "nuclide-ui-file-changes-file-spinner"
+    });
+    const {
+      collapsable,
+      fullPath,
+      displayPath,
+      collapsedByDefault,
+      hideHeadline
+    } = this.props;
+    return renderFileChangeContainer(spinner,
+    /* isPreview */
+    true, collapsable, fullPath, displayPath, collapsedByDefault, hideHeadline,
+    /* diff */
+    null);
+  }
+
+}
+
+exports.LoadingFileChanges = LoadingFileChanges;

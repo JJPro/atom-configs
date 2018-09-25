@@ -19,6 +19,7 @@ function _immutableSnapshot() {
  *
  * 
  * @format
+ * @emails oncall+nuclide
  */
 describe('immutable-snapshot', () => {
   let snapshotter;

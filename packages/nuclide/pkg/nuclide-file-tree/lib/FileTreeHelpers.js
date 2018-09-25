@@ -63,16 +63,6 @@ var _crypto = _interopRequireDefault(require("crypto"));
 
 var _os = _interopRequireDefault(require("os"));
 
-function _nuclideFsAtom() {
-  const data = require("../../nuclide-fs-atom");
-
-  _nuclideFsAtom = function () {
-    return data;
-  };
-
-  return data;
-}
-
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 /**
@@ -157,14 +147,8 @@ function getDirectoryByKey(key) {
     } else {
       return connection.createDirectory(path);
     }
-  } else if (_nuclideUri().default.hasKnownArchiveExtension(key)) {
-    // $FlowFixMe(>=0.68.0) Flow suppress (T27187857)
-    return _nuclideFsAtom().ROOT_ARCHIVE_FS.newArchiveFileAsDirectory(path);
-  } else if (!_nuclideUri().default.isInArchive(path)) {
-    return new _atom.Directory(path);
   } else {
-    // $FlowFixMe(>=0.68.0) Flow suppress (T27187857)
-    return _nuclideFsAtom().ROOT_ARCHIVE_FS.newArchiveDirectory(path);
+    return new _atom.Directory(path);
   }
 }
 
@@ -181,11 +165,8 @@ function getFileByKey(key) {
     }
 
     return connection.createFile(path);
-  } else if (!_nuclideUri().default.isInArchive(path)) {
-    return new _atom.File(path);
   } else {
-    // $FlowFixMe(>=0.68.0) Flow suppress (T27187857)
-    return _nuclideFsAtom().ROOT_ARCHIVE_FS.newArchiveFile(path);
+    return new _atom.File(path);
   }
 }
 
@@ -293,6 +274,61 @@ function getSelectionMode(event) {
 
   return 'invalid-select';
 }
+/**
+ * Replace a node in the tree and return the new tree's root. The newNode is assumed to be prevNode
+ * after some manipulateion done to it therefore they are assumed to belong to the same parent.
+ *
+ * An optional transformation can be provided which will be applied to all of the node's ancestors
+ * (including the node itself).
+ */
+
+
+function replaceNode(prevNode, newNode, transform = node => node) {
+  const parent = prevNode.parent;
+
+  if (parent == null) {
+    return newNode;
+  }
+
+  const newParent = transform(parent.updateChild(newNode));
+  return replaceNode(parent, newParent, transform);
+}
+/**
+ * Use the predicate to update a node (or a branch) of the file-tree
+ */
+
+
+function updateNodeAtRoot(roots, rootKey, nodeKey, transform) {
+  const root = roots.get(rootKey);
+
+  if (root == null) {
+    return roots;
+  }
+
+  const node = root.find(nodeKey);
+
+  if (node == null) {
+    return roots;
+  }
+
+  return roots.set(rootKey, replaceNode(node, transform(node)));
+}
+/**
+ * Update a node or a branch under any of the roots it was found at
+ */
+
+
+function updateNodeAtAllRoots(roots, nodeKey, transform) {
+  return roots.map(root => {
+    const node = root.find(nodeKey);
+
+    if (node == null) {
+      return root;
+    }
+
+    return replaceNode(node, transform(node));
+  });
+}
 
 var _default = {
   dirPathToKey,
@@ -311,6 +347,9 @@ var _default = {
   buildHashKey,
   observeUncommittedChangesKindConfigKey,
   updatePathInOpenedEditors,
-  getSelectionMode
+  getSelectionMode,
+  replaceNode,
+  updateNodeAtRoot,
+  updateNodeAtAllRoots
 };
 exports.default = _default;

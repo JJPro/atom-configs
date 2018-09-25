@@ -173,10 +173,9 @@ function aFileSearchShould(typename, dirPathFn) {
         const querySuites = ['./ignored', 'ignored', _nuclideUri().default.join(dirPath, 'ignored')];
 
         for (const querySuite of querySuites) {
-          await (async () => {
-            const results = await search.query(querySuite);
-            expect(values(results)).toEqual([_nuclideUri().default.join(dirPath, 'ignored')]);
-          })();
+          // eslint-disable-next-line no-await-in-loop
+          const results = await search.query(querySuite);
+          expect(values(results)).toEqual([_nuclideUri().default.join(dirPath, 'ignored')]);
         }
       });
     });

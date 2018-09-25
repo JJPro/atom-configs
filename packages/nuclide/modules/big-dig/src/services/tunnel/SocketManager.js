@@ -82,8 +82,15 @@ class SocketManager extends _events.default {
     const socket = _net.default.createConnection(connectOptions);
 
     socket.on('error', error => {
-      this.emit('error', error);
       logger.error(error);
+
+      this._sendMessage({
+        event: 'error',
+        error,
+        clientId: message.clientId,
+        tunnelId: this._tunnelId
+      });
+
       socket.end();
     });
     socket.on('data', data => {
@@ -93,6 +100,17 @@ class SocketManager extends _events.default {
         clientId: message.clientId,
         tunnelId: this._tunnelId
       });
+    });
+    socket.on('close', () => {
+      logger.info(`received close event on socket ${message.clientId} in socketManager`);
+
+      this._sendMessage({
+        event: 'close',
+        clientId: message.clientId,
+        tunnelId: this._tunnelId
+      });
+
+      this._socketByClientId.delete(message.clientId);
     });
 
     this._socketByClientId.set(message.clientId, socket);

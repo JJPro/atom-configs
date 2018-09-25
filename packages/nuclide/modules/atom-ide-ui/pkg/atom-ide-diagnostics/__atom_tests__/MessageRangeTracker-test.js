@@ -34,6 +34,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  *
  * 
  * @format
+ * @emails oncall+nuclide
  */
 describe('MessageRangeTracker', () => {
   let tracker = null;
@@ -111,28 +112,26 @@ describe('MessageRangeTracker', () => {
     checkRep(tracker);
   });
   it('should add markers to files when they are opened', async () => {
-    await (async () => {
-      tracker.addFileMessages([messageForInitiallyClosedFile]);
-      checkRep(tracker);
-      expect(tracker.getCurrentRange(messageForInitiallyClosedFile)).toBeNull();
-      const initiallyClosedEditor = await atom.workspace.open(initiallyClosedFilePath);
-      let range = tracker.getCurrentRange(messageForInitiallyClosedFile);
+    tracker.addFileMessages([messageForInitiallyClosedFile]);
+    checkRep(tracker);
+    expect(tracker.getCurrentRange(messageForInitiallyClosedFile)).toBeNull();
+    const initiallyClosedEditor = await atom.workspace.open(initiallyClosedFilePath);
+    let range = tracker.getCurrentRange(messageForInitiallyClosedFile);
 
-      if (!(range != null)) {
-        throw new Error("Invariant violation: \"range != null\"");
-      }
+    if (!(range != null)) {
+      throw new Error("Invariant violation: \"range != null\"");
+    }
 
-      expect(range.isEqual(new _atom.Range([1, 4], [1, 31]))).toBeTruthy();
-      initiallyClosedEditor.setTextInBufferRange(new _atom.Range([0, 16], [0, 16]), '\n');
-      range = tracker.getCurrentRange(messageForInitiallyClosedFile);
+    expect(range.isEqual(new _atom.Range([1, 4], [1, 31]))).toBeTruthy();
+    initiallyClosedEditor.setTextInBufferRange(new _atom.Range([0, 16], [0, 16]), '\n');
+    range = tracker.getCurrentRange(messageForInitiallyClosedFile);
 
-      if (!(range != null)) {
-        throw new Error("Invariant violation: \"range != null\"");
-      }
+    if (!(range != null)) {
+      throw new Error("Invariant violation: \"range != null\"");
+    }
 
-      expect(range.isEqual(new _atom.Range([2, 4], [2, 31]))).toBeTruthy();
-      checkRep(tracker);
-    })();
+    expect(range.isEqual(new _atom.Range([2, 4], [2, 31]))).toBeTruthy();
+    checkRep(tracker);
   }); // The tests below break the MessageRangeTracker abstraction so that they can ensure that disposal
   // happens properly.
 

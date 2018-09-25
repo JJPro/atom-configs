@@ -62,6 +62,16 @@ function _viewableFromReactElement() {
   return data;
 }
 
+function _config() {
+  const data = require("./config");
+
+  _config = function () {
+    return data;
+  };
+
+  return data;
+}
+
 function Actions() {
   const data = _interopRequireWildcard(require("./redux/Actions"));
 
@@ -116,13 +126,26 @@ function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj;
  * 
  * @format
  */
-const SHOW_COMMAND_NAME = 'nuclide-welcome-page:show-welcome-page';
 const SHOW_ALL_COMMAND_NAME = 'nuclide-welcome-page:show-all-welcome-pages';
+const SHOW_COMMAND_NAME_PREFIX = 'nuclide-welcome-page:show-';
+
+function getShowCommandNameForTopic(topic) {
+  return SHOW_COMMAND_NAME_PREFIX + topic;
+} // Since we depend on the topic string format for the construction of pane URI
+// and show command, it must match this REGEX. Matches dash-delimited alphabetical
+// strings starting with a letter and ending with -welcome-page
+
+
+const WELCOME_PAGE_TOPIC_REGEX = /^[A-Za-z]+([-]?[A-Za-z]*)-welcome-page$/;
 
 class Activation {
-  constructor(serializedState) {
-    this._store = (0, _reduxMin().createStore)(_rootReducer().default, (0, _createEmptyAppState().createEmptyAppState)(serializedState));
-    this._disposables = new (_UniversalDisposable().default)(this._registerDisplayCommandAndOpener());
+  constructor() {
+    (0, _config().migrateShowOnboardingConfigValue)();
+    const hiddenTopics = (0, _config().getHiddenTopics)();
+    this._store = (0, _reduxMin().createStore)(_rootReducer().default, (0, _createEmptyAppState().createEmptyAppState)(hiddenTopics));
+    this._disposables = new (_UniversalDisposable().default)(this._registerDisplayAllCommand(), this._store.subscribe(() => {
+      (0, _config().setHiddenTopics)(this._store.getState().hiddenTopics);
+    }));
   }
 
   dispose() {
@@ -132,52 +155,63 @@ class Activation {
   consumeWelcomePage(welcomePage) {
     this._store.dispatch(Actions().addWelcomePage(welcomePage));
 
-    return new (_UniversalDisposable().default)(() => {
-      this._store.dispatch(Actions().deleteWelcomePage(welcomePage.topic));
+    const topic = welcomePage.topic;
+
+    if (!WELCOME_PAGE_TOPIC_REGEX.test(topic)) {
+      throw new Error("Invariant violation: \"WELCOME_PAGE_TOPIC_REGEX.test(topic)\"");
+    } // Add opener and command (based on topic) for individual welcome pages
+
+
+    return new (_UniversalDisposable().default)(atom.workspace.addOpener(uri => {
+      if (uri === (0, _WelcomePageGadget().getURIForTopic)(topic)) {
+        return this._createWelcomePageViewable(topic, welcomePage.paneProps);
+      }
+    }), this._registerCommandForTopic(topic, welcomePage.menuLabel), // clean up all welcome page panes before removing welcome pages from store
+    () => {
+      (0, _destroyItemWhere().destroyItemWhere)(item => item instanceof _WelcomePageGadget().default).then(() => this._store.dispatch(Actions().deleteWelcomePage(topic)));
     });
   }
 
-  _registerDisplayCommandAndOpener() {
-    return new (_UniversalDisposable().default)(atom.workspace.addOpener(uri => {
-      if (uri === _WelcomePageGadget().WELCOME_PAGE_VIEW_URI) {
-        return this._createWelcomePageViewable();
-      }
-    }), () => (0, _destroyItemWhere().destroyItemWhere)(item => item instanceof _WelcomePageGadget().default), // show non-hidden welcome page sections
-    atom.commands.add('atom-workspace', SHOW_COMMAND_NAME, () => {
-      if (this._hasWelcomePagesToShow()) {
-        this._store.dispatch(Actions().clearShowOption());
+  _registerCommandForTopic(topic, menuLabel) {
+    const showCommand = getShowCommandNameForTopic(topic);
+    return new (_UniversalDisposable().default)(atom.commands.add('atom-workspace', showCommand, () => {
+      this.showPageForTopic(topic, {
+        override: true
+      });
+    }), // Add menu item for individual welcome pages
+    atom.menu.add([{
+      label: 'Nuclide',
+      submenu: [{
+        label: 'Welcome Page',
+        submenu: [{
+          label: 'Topics',
+          submenu: [{
+            label: menuLabel,
+            command: showCommand
+          }]
+        }]
+      }]
+    }]));
+  }
 
-        (0, _goToLocation().goToLocation)(_WelcomePageGadget().WELCOME_PAGE_VIEW_URI);
-      }
-    }), // show all welcome page sections, hidden or not
+  _registerDisplayAllCommand() {
+    return new (_UniversalDisposable().default)( // show all welcome page sections, hidden or not
     atom.commands.add('atom-workspace', SHOW_ALL_COMMAND_NAME, () => {
-      this._store.dispatch(Actions().setShowAll());
-
-      (0, _goToLocation().goToLocation)(_WelcomePageGadget().WELCOME_PAGE_VIEW_URI);
+      for (const topic of this._store.getState().welcomePages.keys()) {
+        this.showPageForTopic(topic, {
+          override: true
+        });
+      }
     }));
   } // TODO: is there a better place to put this?
 
 
-  _createWelcomePageViewable() {
+  _createWelcomePageViewable(topic, paneProps) {
     return (0, _viewableFromReactElement().viewableFromReactElement)(React.createElement(_WelcomePageGadget().default, {
-      store: this._store
+      paneProps: paneProps,
+      store: this._store,
+      topic: topic
     }));
-  }
-
-  _hasWelcomePagesToShow() {
-    const {
-      welcomePages,
-      hiddenTopics
-    } = this._store.getState();
-
-    for (const topic of welcomePages.keys()) {
-      if (!hiddenTopics.has(topic)) {
-        // if any topic is not hidden
-        return true;
-      }
-    }
-
-    return false;
   }
 
   provideWelcomePageApi() {
@@ -194,16 +228,8 @@ class Activation {
 
     if (showAnyway || welcomePages.has(topic) && !hiddenTopics.has(topic)) {
       // if the topic exists and isn't hidden
-      this._store.dispatch(Actions().setShowOne(topic));
-
-      (0, _goToLocation().goToLocation)(_WelcomePageGadget().WELCOME_PAGE_VIEW_URI);
+      (0, _goToLocation().goToLocation)((0, _WelcomePageGadget().getURIForTopic)(topic));
     }
-  }
-
-  serialize() {
-    return {
-      hiddenTopics: Array.from(this._store.getState().hiddenTopics)
-    };
   }
 
 }

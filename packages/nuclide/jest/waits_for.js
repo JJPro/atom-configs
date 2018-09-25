@@ -20,7 +20,7 @@ exports.default = void 0;
  * Async implementation of Jasmine's waitsFor()
  */
 var waitsFor = async function waitsFor(fn, message, timeout = 4500) {
-  const error = new Error(message != null ? message : 'Expected the function to start returning "true" but it never did');
+  const error = new Error(message != null ? message : 'Expected the function to start returning "true" but it never did.');
   const startTime = Date.now();
 
   while (!Boolean(fn())) {
@@ -29,7 +29,7 @@ var waitsFor = async function waitsFor(fn, message, timeout = 4500) {
     } // eslint-disable-next-line no-await-in-loop
 
 
-    await new Promise(resolve => setTimeout(resolve, 50));
+    await new Promise(resolve => setTimeout(resolve, 40));
   }
 };
 

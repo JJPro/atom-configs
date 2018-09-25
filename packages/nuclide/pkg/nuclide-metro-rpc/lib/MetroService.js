@@ -112,7 +112,7 @@ async function getStartCommand(projectRoot) {
 
 
 function startMetro(projectRoot, editorArgs, port = 8081, extraArgs = []) {
-  const stdout = _RxMin.Observable.defer(() => getStartCommand(projectRoot)).switchMap(commandInfo => commandInfo == null ? _RxMin.Observable.throw(noMetroProjectError()) : _RxMin.Observable.of(commandInfo)).switchMap(commandInfo => {
+  const output = _RxMin.Observable.defer(() => getStartCommand(projectRoot)).switchMap(commandInfo => commandInfo == null ? _RxMin.Observable.throw(noMetroProjectError()) : _RxMin.Observable.of(commandInfo)).switchMap(commandInfo => {
     const {
       command,
       cwd
@@ -132,15 +132,15 @@ function startMetro(projectRoot, editorArgs, port = 8081, extraArgs = []) {
         return _RxMin.Observable.throw(error);
       }
     });
-  }).filter(event => event.kind === 'stdout').map(event => {
-    if (!(event.kind === 'stdout')) {
-      throw new Error("Invariant violation: \"event.kind === 'stdout'\"");
+  }).filter(event => event.kind === 'stdout' || event.kind === 'stderr').map(event => {
+    if (!(event.kind === 'stdout' || event.kind === 'stderr')) {
+      throw new Error("Invariant violation: \"event.kind === 'stdout' || event.kind === 'stderr'\"");
     }
 
     return event.data;
   });
 
-  return (0, _parseMessages().parseMessages)(stdout).publish();
+  return (0, _parseMessages().parseMessages)(output).publish();
 }
 
 function noMetroProjectError() {

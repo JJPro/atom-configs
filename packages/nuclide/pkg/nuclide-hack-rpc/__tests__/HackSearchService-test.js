@@ -19,6 +19,7 @@ function _SymbolSearch() {
  *
  *  strict-local
  * @format
+ * @emails oncall+nuclide
  */
 describe('Hack Symbol Search', () => {
   describe('convertSearchResults', () => {

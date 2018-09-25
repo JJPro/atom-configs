@@ -50,16 +50,6 @@ function _log4js() {
   return data;
 }
 
-function _ToolbarUtils() {
-  const data = require("../../../modules/nuclide-commons-ui/ToolbarUtils");
-
-  _ToolbarUtils = function () {
-    return data;
-  };
-
-  return data;
-}
-
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 /**
@@ -193,12 +183,12 @@ class Activation {
 
   consumeToolBar(getToolBar) {
     const toolBar = getToolBar('nuclide-test-runner');
-    toolBar.addButton((0, _ToolbarUtils().makeToolbarButtonSpec)({
+    toolBar.addButton({
       icon: 'checklist',
       callback: 'nuclide-test-runner:toggle-panel',
       tooltip: 'Toggle Test Runner',
       priority: 600
-    }));
+    });
     const disposable = new (_UniversalDisposable().default)(() => {
       toolBar.removeItems();
     });

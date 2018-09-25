@@ -19,6 +19,7 @@ function _computeDiff() {
  *
  *  strict-local
  * @format
+ * @emails oncall+nuclide
  */
 describe('diff-utils', () => {
   describe('computeDiff()', () => {

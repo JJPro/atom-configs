@@ -152,9 +152,6 @@ Object.defineProperty(module.exports, "defs", {
         }, {
           kind: "string-literal",
           value: "Booted"
-        }, {
-          kind: "string-literal",
-          value: "Unknown"
         }]
       }
     },
@@ -163,7 +160,7 @@ Object.defineProperty(module.exports, "defs", {
       location: {
         type: "source",
         fileName: "types.js",
-        line: 30
+        line: 28
       },
       name: "DeviceType",
       definition: {
@@ -182,7 +179,7 @@ Object.defineProperty(module.exports, "defs", {
       location: {
         type: "source",
         fileName: "types.js",
-        line: 21
+        line: 19
       },
       name: "FbsimctlDevice",
       definition: {

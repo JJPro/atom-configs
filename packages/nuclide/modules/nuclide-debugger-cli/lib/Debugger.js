@@ -26,7 +26,7 @@ function _BackTraceCommand() {
 }
 
 function _Breakpoint() {
-  const data = _interopRequireDefault(require("./Breakpoint"));
+  const data = _interopRequireWildcard(require("./Breakpoint"));
 
   _Breakpoint = function () {
     return data;
@@ -75,10 +75,30 @@ function _ContinueCommand() {
   return data;
 }
 
+function _DownCommand() {
+  const data = _interopRequireDefault(require("./DownCommand"));
+
+  _DownCommand = function () {
+    return data;
+  };
+
+  return data;
+}
+
 function _EnterCodeCommand() {
   const data = _interopRequireDefault(require("./EnterCodeCommand"));
 
   _EnterCodeCommand = function () {
+    return data;
+  };
+
+  return data;
+}
+
+function _FrameCommand() {
+  const data = _interopRequireDefault(require("./FrameCommand"));
+
+  _FrameCommand = function () {
     return data;
   };
 
@@ -175,16 +195,6 @@ function _ListCommand() {
   return data;
 }
 
-function _RestartCommand() {
-  const data = _interopRequireDefault(require("./RestartCommand"));
-
-  _RestartCommand = function () {
-    return data;
-  };
-
-  return data;
-}
-
 function _PrintCommand() {
   const data = _interopRequireDefault(require("./PrintCommand"));
 
@@ -209,6 +219,16 @@ function _ThreadCollection() {
   const data = _interopRequireDefault(require("./ThreadCollection"));
 
   _ThreadCollection = function () {
+    return data;
+  };
+
+  return data;
+}
+
+function _UpCommand() {
+  const data = _interopRequireDefault(require("./UpCommand"));
+
+  _UpCommand = function () {
     return data;
   };
 
@@ -242,17 +262,21 @@ function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj;
  */
 // program is gone and not coming back
 class Debugger {
-  constructor(logger, con, preset) {
+  constructor(logger, con, preset, muteOutputCategories) {
     this._capabilities = {};
     this._threads = new (_ThreadCollection().default)();
     this._state = 'INITIALIZING';
     this._breakpoints = new (_BreakpointCollection().default)();
     this._attachMode = false;
     this._readyForEvaluations = false;
+    this._attached = false;
+    this._configured = false;
+    this._stoppedAtBreakpoint = null;
     this._logger = logger;
     this._console = con;
     this._sourceFiles = new (_SourceFileCache().default)(this._getSourceByReference.bind(this));
     this._preset = preset;
+    this._muteOutputCategories = muteOutputCategories;
   }
 
   registerCommands(dispatcher) {
@@ -264,10 +288,12 @@ class Debugger {
     dispatcher.registerCommand(new (_BreakpointCommand().default)(this._console, this));
     dispatcher.registerCommand(new (_ContinueCommand().default)(this));
     dispatcher.registerCommand(new (_ListCommand().default)(this._console, this));
-    dispatcher.registerCommand(new (_RestartCommand().default)(this));
     dispatcher.registerCommand(new (_PrintCommand().default)(this._console, this));
     dispatcher.registerCommand(new (_RunCommand().default)(this));
     dispatcher.registerCommand(new (_EnterCodeCommand().default)(this._console, this));
+    dispatcher.registerCommand(new (_FrameCommand().default)(this._console, this));
+    dispatcher.registerCommand(new (_UpCommand().default)(this._console, this));
+    dispatcher.registerCommand(new (_DownCommand().default)(this._console, this));
   } // launch is for launching a process from scratch when we need a new
   // session
 
@@ -288,22 +314,32 @@ class Debugger {
       throw new Error('There is nothing to relaunch.');
     }
 
-    this._state = 'INITIALIZING';
-    await this.closeSession();
-    await this.createSession(adapter);
+    try {
+      this._state = 'INITIALIZING';
+      this._configured = false;
+      this._attached = false;
+      await this.closeSession();
+      await this.createSession(adapter);
 
-    if (!(adapter.action === 'attach' || adapter.action === 'launch')) {
-      throw new Error("Invariant violation: \"adapter.action === 'attach' || adapter.action === 'launch'\"");
-    }
+      if (!(adapter.action === 'attach' || adapter.action === 'launch')) {
+        throw new Error("Invariant violation: \"adapter.action === 'attach' || adapter.action === 'launch'\"");
+      }
 
-    this._attachMode = adapter.action === 'attach';
+      this._attachMode = adapter.action === 'attach';
 
-    const session = this._ensureDebugSession(true);
+      const session = this._ensureDebugSession(true);
 
-    if (this._attachMode) {
-      await session.attach((0, _nullthrows().default)(this._adapter).adapter.transformAttachArguments(adapter.attachArgs));
-    } else {
+      if (this._attachMode) {
+        const attachArgs = (0, _nullthrows().default)(this._adapter).adapter.transformAttachArguments(adapter.attachArgs);
+        await session.attach(attachArgs);
+        this._attached = true;
+        return this._pauseAfterAttach();
+      }
+
       await session.launch((0, _nullthrows().default)(this._adapter).adapter.transformLaunchArguments(adapter.launchArgs));
+    } catch (err) {
+      process.stderr.write(`Failed to debug target: ${err.message}\r\n`);
+      process.exit(0);
     }
   }
 
@@ -312,6 +348,14 @@ class Debugger {
 
     if (!(adapter != null)) {
       throw new Error("Invariant violation: \"adapter != null\"");
+    } // In attach mode, we don't have a separate configuation mode --
+    // we just let the attach finish and then force a stop
+    // Some adapters claim to support stopping on attach, but the ones
+    // supported so far don't do it reliably.
+
+
+    if (this._attachMode) {
+      return this._configurationDone();
     }
 
     this._state = 'CONFIGURING';
@@ -330,17 +374,61 @@ class Debugger {
     });
 
     if (this._capabilities.supportsConfigurationDoneRequest) {
-      await session.configurationDone();
+      try {
+        await session.configurationDone();
+      } catch (err) {
+        process.stderr.write(`Failed to debug target: ${err.message}\r\n`);
+        process.exit(0);
+      }
     }
 
-    this._cacheThreads();
+    await this._cacheThreads();
+
+    if (this._attachMode) {
+      this._configured = true;
+      return this._pauseAfterAttach();
+    }
 
     this._console.stopInput();
+  }
+
+  async _pauseAfterAttach() {
+    if (this._configured && this._attached) {
+      const session = this._ensureDebugSession(true);
+
+      let threadId = (0, _nullthrows().default)(this._adapter).adapter.asyncStopThread;
+
+      if (threadId == null) {
+        const threads = this._threads.allThreads;
+
+        if (threads.length !== 0) {
+          threadId = threads[0].id();
+        }
+      }
+
+      if (threadId == null) {
+        // nowhere to stop right now.
+        this._console.stopInput();
+
+        return;
+      }
+
+      await session.pause({
+        threadId
+      });
+    }
   }
 
   async run() {
     if (this._attachMode) {
       throw new Error('Cannot run an attached process; already attached.');
+    }
+
+    this._stoppedAtBreakpoint = null;
+
+    if (this._state === 'STOPPED') {
+      this.relaunch();
+      return;
     }
 
     if (this._state !== 'CONFIGURING') {
@@ -351,16 +439,25 @@ class Debugger {
   }
 
   breakInto() {
-    // if there is a focus thread from before, stop that one, else just
-    // pick the first.
-    const thread = this._threads.focusThread != null ? this._threads.focusThread : this._threads.allThreads[0];
+    const adapter = (0, _nullthrows().default)(this._adapter).adapter; // if there is a focus thread from before, stop that one, else pick
+    // a thread or use the adapter-specified default
 
-    if (thread == null) {
+    let threadId = null;
+
+    if (this._threads.focusThread != null) {
+      threadId = this._threads.focusThread.id();
+    } else if (adapter.asyncStopThread != null) {
+      threadId = adapter.asyncStopThread;
+    } else if (this._threads.allThreads.length !== 0) {
+      threadId = this._threads.allThreads[0].id();
+    }
+
+    if (threadId == null) {
       return;
     }
 
     this._ensureDebugSession().pause({
-      threadId: thread.id()
+      threadId
     });
   }
 
@@ -408,45 +505,72 @@ class Debugger {
   }
 
   async stepIn() {
-    await this._ensureDebugSession().stepIn({
-      threadId: this.getActiveThread().id()
-    });
+    try {
+      await this._ensureDebugSession().stepIn({
+        threadId: this.getActiveThread().id()
+      });
+    } catch (error) {
+      this._console.startInput();
+
+      throw error;
+    }
   }
 
   async stepOver() {
-    await this._ensureDebugSession().next({
-      threadId: this.getActiveThread().id()
-    });
+    try {
+      await this._ensureDebugSession().next({
+        threadId: this.getActiveThread().id()
+      });
+    } catch (error) {
+      this._console.startInput();
+
+      throw error;
+    }
   }
 
   async continue() {
-    const session = this._ensureDebugSession(true); // if we are attaching and still in configuration, this is where we'll
-    // send configuration done.
+    try {
+      // we stop console input once execution has restarted, but some adapters
+      // send output before that happens. since the continued notification is
+      // async, the debugger will treat that output as if it happened while
+      // the command prompt is up, and reprint the prompt after it. really,
+      // any output that happens while we're trying to continue should see that
+      // input is stopped.
+      this._console.stopInput();
 
+      const session = this._ensureDebugSession(true);
 
-    if (this._state === 'CONFIGURING') {
-      if (this._attachMode) {
-        return this._configurationDone();
+      this._stoppedAtBreakpoint = null; // if we are attaching and still in configuration, this is where we'll
+      // send configuration done.
+
+      if (this._state === 'CONFIGURING') {
+        if (this._attachMode) {
+          return this._configurationDone();
+        }
+
+        throw new Error('There is not yet a running process to continue.');
       }
 
-      throw new Error('There is not yet a running process to continue.');
-    }
+      if (this._state === 'STOPPED') {
+        await session.continue({
+          threadId: this.getActiveThread().id()
+        });
+        return;
+      }
 
-    if (this._state === 'STOPPED') {
-      await session.continue({
-        threadId: this.getActiveThread().id()
-      });
-      return;
-    }
+      if (this._state === 'TERMINATED') {
+        throw new Error('Cannot continue; process is terminated.');
+      }
 
-    if (this._state === 'TERMINATED') {
-      throw new Error('Cannot continue; process is terminated.');
-    }
+      throw new Error(`Continue called from unexpected state ${this._state}`);
+    } catch (error) {
+      this._console.startInput();
 
-    throw new Error(`Continue called from unexpected state ${this._state}`);
+      throw error;
+    }
   }
 
-  async getVariables(selectedScope) {
+  async getVariablesByScope(selectedScope) {
     const session = this._ensureDebugSession();
 
     const activeThread = this.getActiveThread();
@@ -498,11 +622,36 @@ class Debugger {
     });
   }
 
-  async setSourceBreakpoint(path, line) {
-    // NB this call is allowed before the program is launched
+  async getVariablesByReference(ref) {
+    const session = this._ensureDebugSession();
+
+    const {
+      body: {
+        variables
+      }
+    } = await session.variables({
+      variablesReference: ref
+    });
+    return variables;
+  }
+
+  supportsStoppedAtBreakpoint() {
+    return this._capabilities.supportsBreakpointIdOnStop === true;
+  }
+
+  getStoppedAtBreakpoint() {
+    return this._stoppedAtBreakpoint;
+  }
+
+  async setSourceBreakpoint(path, line, once) {
+    if (once && !this._breakpoints.supportsOnceState()) {
+      throw new Error(`The ${(0, _nullthrows().default)(this._adapter).type} debugger does not support one-shot breakpoints.`);
+    } // NB this call is allowed before the program is launched
+
+
     const session = this._ensureDebugSession(true);
 
-    const index = this._breakpoints.addSourceBreakpoint(path, line);
+    const index = this._breakpoints.addSourceBreakpoint(path, line, once);
 
     let message = 'Breakpoint pending until program starts.';
 
@@ -543,15 +692,19 @@ class Debugger {
     return breakpoint == null ? null : breakpoint[1];
   }
 
-  async setFunctionBreakpoint(func) {
+  async setFunctionBreakpoint(func, once) {
     if (!this._capabilities.supportsFunctionBreakpoints) {
       throw new Error(`The ${(0, _nullthrows().default)(this._adapter).type} debugger does not support function breakpoints.`);
+    }
+
+    if (once && !this._breakpoints.supportsOnceState()) {
+      throw new Error(`The ${(0, _nullthrows().default)(this._adapter).type} debugger does not support one-shot breakpoints.`);
     } // NB this call is allowed before the program is launched
 
 
     const session = this._ensureDebugSession(true);
 
-    const index = this._breakpoints.addFunctionBreakpoint(func);
+    const index = this._breakpoints.addFunctionBreakpoint(func, once);
 
     let message = 'Breakpoint pending until program starts.';
 
@@ -625,40 +778,89 @@ class Debugger {
     return this._breakpoints.getBreakpointByIndex(index);
   }
 
-  async setBreakpointEnabled(index, enabled) {
-    const session = this._ensureDebugSession();
+  async setAllBreakpointsEnabled(enabled) {
+    this._breakpoints.getAllBreakpoints().forEach(bp => bp.setState(_Breakpoint().BreakpointState.ENABLED));
 
-    const breakpoint = this._breakpoints.getBreakpointByIndex(index);
+    return this._resetAllBreakpoints();
+  }
+
+  async setBreakpointEnabled(breakpoint, enabled) {
+    const session = this._ensureDebugSession();
 
     const path = breakpoint.path;
 
-    if (breakpoint.enabled === enabled) {
+    if (breakpoint.state !== _Breakpoint().BreakpointState.ENABLED) {
       return;
     }
 
-    breakpoint.setEnabled(enabled);
+    const oldState = breakpoint.state;
+    breakpoint.setState(_Breakpoint().BreakpointState.ENABLED);
 
     if (path != null) {
       try {
-        await this._setSourceBreakpointsForPath(session, path, index);
+        await this._setSourceBreakpointsForPath(session, path, breakpoint.index);
       } catch (error) {
-        breakpoint.setEnabled(!enabled);
+        breakpoint.setState(oldState);
         throw error;
       }
 
       return;
-    } // $TODO function breakpoints
+    }
 
+    await this._resetAllFunctionBreakpoints();
   }
 
-  async deleteBreakpoint(index) {
+  async toggleAllBreakpoints() {
+    this._breakpoints.getAllBreakpoints().forEach(bp => bp.toggleState());
+
+    return this._resetAllBreakpoints();
+  }
+
+  async toggleBreakpoint(breakpoint) {
     const session = this._ensureDebugSession();
 
-    const breakpoint = this._breakpoints.getBreakpointByIndex(index);
+    const path = breakpoint.path;
+    const oldState = breakpoint.state;
+    breakpoint.toggleState();
+
+    if (path != null) {
+      try {
+        await this._setSourceBreakpointsForPath(session, path, breakpoint.index);
+      } catch (error) {
+        breakpoint.setState(oldState);
+        throw error;
+      }
+
+      return;
+    }
+
+    await this._resetAllFunctionBreakpoints();
+  }
+
+  async deleteAllBreakpoints() {
+    const session = this._ensureDebugSession();
+
+    const promises = this._breakpoints.getAllBreakpointPaths().map(path => session.setBreakpoints({
+      source: {
+        path
+      },
+      breakpoints: []
+    }));
+
+    await Promise.all(promises);
+    await session.setFunctionBreakpoints({
+      breakpoints: []
+    });
+
+    this._breakpoints.deleteAllBreakpoints();
+  }
+
+  async deleteBreakpoint(breakpoint) {
+    const session = this._ensureDebugSession();
 
     const path = breakpoint.path;
 
-    this._breakpoints.deleteBreakpoint(index);
+    this._breakpoints.deleteBreakpoint(breakpoint.index);
 
     if (path != null) {
       const pathBreakpoints = this._breakpoints.getAllEnabledBreakpointsForSource(path);
@@ -695,6 +897,14 @@ class Debugger {
     }
 
     return session.evaluate(args);
+  }
+
+  supportsCodeBlocks() {
+    if (this._adapter == null) {
+      return false;
+    }
+
+    return this._adapter.adapter.supportsCodeBlocks;
   }
 
   async createSession(adapter) {
@@ -735,6 +945,10 @@ class Debugger {
 
     if (extraBody.supportsReadyForEvaluationsEvent === true) {
       this._readyForEvaluations = false;
+    }
+
+    if (extraBody.supportsBreakpointIdOnStop) {
+      this._breakpoints.enableOnceState();
     }
   }
 
@@ -839,7 +1053,7 @@ class Debugger {
         this.closeSession();
       }
     });
-    session.observeOutputEvents().filter(x => x.body.category !== 'stderr' && x.body.category !== 'telemetry').subscribe(this._onOutput.bind(this));
+    session.observeOutputEvents().filter(x => x.body.category != null && !this._muteOutputCategories.has(x.body.category)).subscribe(this._onOutput.bind(this));
     session.observeContinuedEvents().subscribe(this._onContinued.bind(this));
     session.observeStopEvents().subscribe(this._onStopped.bind(this));
     session.observeThreadEvents().subscribe(this._onThread.bind(this));
@@ -902,15 +1116,27 @@ class Debugger {
       body: {
         description,
         threadId,
-        allThreadsStopped
+        allThreadsStopped,
+        breakpointId
       }
     } = event;
+    this._stoppedAtBreakpoint = null;
 
-    if (description != null) {
-      this._console.outputLine(description);
+    if (breakpointId != null) {
+      try {
+        this._stoppedAtBreakpoint = this._breakpoints.getBreakpointById(breakpointId);
+      } catch (err) {
+        this._console.outputLine('Debugger stopped at unrecognized breakpoint -- current breakpoint will not be valid.');
+      }
     }
 
+    await this._disableBreakpointIfOneShot(breakpointId);
+
     const firstStop = this._threads.allThreadsRunning();
+
+    if (firstStop && description != null) {
+      this._console.outputLine(`Stopped: ${description}`);
+    }
 
     if (allThreadsStopped === true) {
       this._threads.markAllThreadsStopped();
@@ -939,15 +1165,32 @@ class Debugger {
         this._threads.setFocusThread(firstStopped);
       }
 
-      const topOfStack = await this._getTopOfStackSourceInfo((0, _nullthrows().default)(this._threads.focusThreadId));
+      try {
+        const topOfStack = await this._getTopOfStackSourceInfo((0, _nullthrows().default)(this._threads.focusThreadId));
 
-      if (topOfStack != null) {
-        this._console.outputLine(`${topOfStack.name}:${topOfStack.frame.line} ${topOfStack.line}`);
+        if (topOfStack != null) {
+          this._console.outputLine(`${topOfStack.name}:${topOfStack.frame.line} ${topOfStack.line}`);
+        }
+      } catch (err) {
+        this._console.outputLine(`failed to get source at stop point: ${err.message}`);
       }
 
       this._state = 'STOPPED';
 
       this._console.startInput();
+    }
+  }
+
+  async _disableBreakpointIfOneShot(breakpointId) {
+    if (breakpointId == null) {
+      return;
+    }
+
+    const bpt = this._breakpoints.getBreakpointById(breakpointId);
+
+    if (bpt.state === _Breakpoint().BreakpointState.ONCE) {
+      bpt.setState(_Breakpoint().BreakpointState.DISABLED);
+      return this._resetAllBreakpoints();
     }
   }
 
@@ -1034,10 +1277,13 @@ class Debugger {
   }
 
   _onAdapterExited(event) {
+    // If we're initializing, this is expected - relaunch() is tearing down
+    // the adapter to build a new one.
+    if (this._state === 'INITIALIZING') {
+      return;
+    }
+
     this._state = 'TERMINATED';
-
-    this._console.outputLine('The debug adapter has exited.');
-
     const adapter = this._adapter;
 
     if (!(adapter != null)) {
@@ -1129,14 +1375,18 @@ class Debugger {
   }
 
   async _getSourceByReference(sourceReference) {
-    const {
-      body: {
-        content
-      }
-    } = await this._ensureDebugSession().source({
-      sourceReference
-    });
-    return content;
+    try {
+      const {
+        body: {
+          content
+        }
+      } = await this._ensureDebugSession().source({
+        sourceReference
+      });
+      return content;
+    } catch (err) {
+      return `Failed to retrieve source: ${err.message}`;
+    }
   }
 
   _ensureDebugSession(allowBeforeLaunch = false) {

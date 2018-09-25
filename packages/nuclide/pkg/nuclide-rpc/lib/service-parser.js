@@ -196,10 +196,10 @@ function _clearFileParsers() {
 
 const memoizedBabylonParse = (0, _memoizeWithDisk().default)(function babylonParse(src, options) {
   // External dependency: ensure that it's included in the key below.
-  const babylon = require('babylon');
+  const babylon = require('@babel/parser');
 
   return babylon.parse(src, options).program;
-}, (src, options) => [src, options, require('babylon/package.json').version], _nuclideUri().default.join(_os.default.tmpdir(), 'nuclide-rpc-cache'));
+}, (src, options) => [src, options, require('@babel/parser/package.json').version], _nuclideUri().default.join(_os.default.tmpdir(), 'nuclide-rpc-cache'));
 
 class FileParser {
   // Whether this file defines the service (i.e. not an import)
@@ -246,7 +246,7 @@ class FileParser {
   parse(source) {
     const babylonOptions = {
       sourceType: 'module',
-      plugins: ['jsx', 'flow', 'exportExtensions', 'objectRestSpread', 'classProperties', 'optionalChaining']
+      plugins: ['jsx', 'flow', 'exportExtensions', 'objectRestSpread', 'classProperties', 'nullishCoalescingOperator', 'optionalChaining', 'optionalCatchBinding']
     };
     const program = memoizedBabylonParse(source, babylonOptions);
 
@@ -506,6 +506,10 @@ class FileParser {
     for (const method of classBody.body) {
       if (method.kind !== 'constructor') {
         if (!isPrivateMemberName(method.key.name)) {
+          if (method.type !== 'ClassMethod') {
+            throw this._error(method, 'Class fields that are not methods are not supported. If this ' + 'field is supposed to be private please prefix it with an ' + 'underscore.');
+          }
+
           const {
             name,
             type
@@ -607,7 +611,7 @@ class FileParser {
   _parseClassMethod(serviceParser, definition) {
     this._assert(definition, definition.type === 'ClassMethod', 'This is a ClassMethod object.');
 
-    this._assert(definition, definition.key && definition.key.type === 'Identifier', 'This method defintion has an key (a name).');
+    this._assert(definition, definition.key && definition.key.type === 'Identifier', 'This method definition has an key (a name).');
 
     this._assert(definition, definition.returnType && definition.returnType.type === 'TypeAnnotation', `${definition.key.name} missing a return type annotation.`);
 

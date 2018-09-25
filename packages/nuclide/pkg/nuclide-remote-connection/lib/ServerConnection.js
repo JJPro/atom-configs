@@ -97,6 +97,16 @@ function _nuclideMarshalersAtom() {
   return data;
 }
 
+function _nuclideAnalytics() {
+  const data = require("../../nuclide-analytics");
+
+  _nuclideAnalytics = function () {
+    return data;
+  };
+
+  return data;
+}
+
 function _eventKit() {
   const data = require("event-kit");
 
@@ -207,6 +217,36 @@ function _createBigDigRpcClient() {
   return data;
 }
 
+function _passesGK() {
+  const data = require("../../commons-node/passesGK");
+
+  _passesGK = function () {
+    return data;
+  };
+
+  return data;
+}
+
+function _createRfsClientAdapter() {
+  const data = require("./thrift-service-adapters/createRfsClientAdapter");
+
+  _createRfsClientAdapter = function () {
+    return data;
+  };
+
+  return data;
+}
+
+function _util() {
+  const data = require("./thrift-service-adapters/util");
+
+  _util = function () {
+    return data;
+  };
+
+  return data;
+}
+
 var _electron = _interopRequireDefault(require("electron"));
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
@@ -224,6 +264,8 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 const logger = (0, _log4js().getLogger)('nuclide-remote-connection');
 const remote = _electron.default.remote;
 const ipc = _electron.default.ipcRenderer;
+const THRIFT_RFS_GK = 'nuclide_thrift_rfs';
+const FILE_SYSTEM_PERFORMANCE_SAMPLE_RATE = 10;
 
 if (!remote) {
   throw new Error("Invariant violation: \"remote\"");
@@ -256,6 +298,8 @@ class ServerConnection {
     const newConnection = new ServerConnection(config);
 
     try {
+      await (0, _passesGK().onceGkInitializedAsync)(); // wait for GKs to be initialized
+
       await newConnection.initialize();
       return newConnection;
     } catch (e) {
@@ -279,7 +323,7 @@ class ServerConnection {
 
 
   static async closeAll(shutdown) {
-    await Promise.all(Array.from(ServerConnection._connections).map(([_, connection]) => {
+    await Promise.all(Array.from(ServerConnection._hostToConnection).map(([_, connection]) => {
       return connection._closeServerConnection(shutdown);
     }));
   } // Do NOT call this from outside this class. Use ServerConnection.getOrCreate() instead.
@@ -421,7 +465,7 @@ class ServerConnection {
 
     this._monitorConnectionHeartbeat();
 
-    ServerConnection._connections.set(this.getRemoteHostname(), this);
+    ServerConnection._hostToConnection.set(this.getRemoteHostname(), this);
 
     await (0, _RemoteConnectionConfigurationManager().setConnectionConfig)(this._config, ip.address);
 
@@ -449,7 +493,7 @@ class ServerConnection {
     } // Remove from _connections to not be considered in future connection queries.
 
 
-    if (ServerConnection._connections.delete(this.getRemoteHostname())) {
+    if (ServerConnection._hostToConnection.delete(this.getRemoteHostname())) {
       ServerConnection._emitter.emit('did-close', this);
     }
 
@@ -585,7 +629,7 @@ class ServerConnection {
 
 
   static connectionAdded() {
-    return _RxMin.Observable.concat(_RxMin.Observable.from(ServerConnection._connections.values()), (0, _event().observableFromSubscribeFunction)(ServerConnection.onDidAddServerConnection));
+    return _RxMin.Observable.concat(_RxMin.Observable.from(ServerConnection._hostToConnection.values()), (0, _event().observableFromSubscribeFunction)(ServerConnection.onDidAddServerConnection));
   }
 
   static onDidCancelServerConnection(handler) {
@@ -613,11 +657,11 @@ class ServerConnection {
   }
 
   static getByHostname(hostname) {
-    return ServerConnection._connections.get(hostname);
+    return ServerConnection._hostToConnection.get(hostname);
   }
 
   static observeConnections(handler) {
-    ServerConnection._connections.forEach(handler);
+    ServerConnection._hostToConnection.forEach(handler);
 
     return ServerConnection.onDidAddServerConnection(handler);
   }
@@ -645,7 +689,72 @@ class ServerConnection {
   }
 
   getService(serviceName) {
+    if (serviceName === 'FileSystemService') {
+      if ((0, _passesGK().isGkEnabled)(THRIFT_RFS_GK)) {
+        return this._getFileSystemProxy(serviceName);
+      }
+
+      return this._genRpcRfsProxy(serviceName);
+    }
+
     return this.getClient().getService(serviceName);
+  }
+
+  _genRpcRfsProxy(serviceName) {
+    const rpcService = this.getClient().getService(serviceName);
+    const handler = {
+      get: (target, propKey, receiver) => {
+        if (_createRfsClientAdapter().SUPPORTED_THRIFT_RFS_FUNCTIONS.has(propKey)) {
+          return (...args) => {
+            return (0, _nuclideAnalytics().trackTimingSampled)(`file-system-service:${propKey}`, // eslint-disable-next-line prefer-spread
+            () => target[propKey].apply(target, args), FILE_SYSTEM_PERFORMANCE_SAMPLE_RATE, {
+              serviceProvider: 'rpc'
+            });
+          };
+        }
+
+        return target[propKey];
+      }
+    };
+    return new Proxy(rpcService, handler);
+  }
+
+  _getFileSystemProxy(serviceName) {
+    const rpcService = this.getClient().getService(serviceName);
+    const handler = {
+      get: (target, propKey, receiver) => {
+        if (_createRfsClientAdapter().SUPPORTED_THRIFT_RFS_FUNCTIONS.has(propKey)) {
+          return (...args) => {
+            return this._makeThriftRfsCall(rpcService, propKey, args);
+          };
+        }
+
+        return target[propKey];
+      }
+    };
+    return new Proxy(rpcService, handler);
+  }
+
+  async _makeThriftRfsCall(rpcService, fname, args) {
+    try {
+      return await (0, _nuclideAnalytics().trackTimingSampled)(`file-system-service:${fname}`, async () => {
+        const serviceAdapter = await (0, _createRfsClientAdapter().getOrCreateRfsClientAdapter)(this.getBigDigClient()); // $FlowFixMe: suppress 'indexer property is missing warning'
+
+        const method = serviceAdapter[fname];
+        return method.apply(serviceAdapter, args);
+      }, FILE_SYSTEM_PERFORMANCE_SAMPLE_RATE, {
+        serviceProvider: 'thrift'
+      });
+    } catch (err) {
+      if (err instanceof _util().FallbackToRpcError) {
+        logger.error(`Thrift RFS method ${fname} exception, use RPC fallback`, err);
+        const func = rpcService[fname];
+        return func.apply(rpcService, args);
+      } // Otherwise throw legit file system errors
+
+
+      throw err;
+    }
   }
 
   _getInfoService() {
@@ -672,19 +781,19 @@ class ServerConnection {
   static observeRemoteConnections() {
     const emitter = ServerConnection._emitter;
     return _RxMin.Observable.merge((0, _event().observableFromSubscribeFunction)(cb => emitter.on('did-add', cb)), (0, _event().observableFromSubscribeFunction)(cb => emitter.on('did-close', cb)), _RxMin.Observable.of(null) // so subscribers get a full list immediately
-    ).map(() => Array.from(ServerConnection._connections.values()));
+    ).map(() => Array.from(ServerConnection._hostToConnection.values()));
   }
 
   static getAllConnections() {
-    return Array.from(ServerConnection._connections.values());
+    return Array.from(ServerConnection._hostToConnection.values());
   }
 
 }
 
 exports.ServerConnection = ServerConnection;
-ServerConnection._connections = new Map();
+ServerConnection._hostToConnection = new Map();
 ServerConnection._emitter = new (_eventKit().Emitter)();
 const __test__ = {
-  connections: ServerConnection._connections
+  connections: ServerConnection._hostToConnection
 };
 exports.__test__ = __test__;

@@ -29,6 +29,7 @@ function _testHelpers() {
  *
  * 
  * @format
+ * @emails oncall+nuclide
  */
 describe('HackSymbolProvider', () => {
   // These tests are set up so that calls to getHackLanguageForUri() will delegate to this
@@ -66,10 +67,8 @@ describe('HackSymbolProvider', () => {
   });
   describe('executeQuery()', () => {
     it('returns an empty array for an empty query', async () => {
-      await (async () => {
-        const results = await _HackSymbolProvider().HackSymbolProvider.executeQuery('', []);
-        expect(results).toEqual([]);
-      })();
+      const results = await _HackSymbolProvider().HackSymbolProvider.executeQuery('', []);
+      expect(results).toEqual([]);
     });
     it('local search returns local paths when searching local directories', async () => {
       await (async () => {

@@ -21,6 +21,7 @@ function _NPMHyperclickProvider() {
  *
  *  strict-local
  * @format
+ * @emails oncall+nuclide
  */
 const sampleJSON = `{
   "someProperty": {

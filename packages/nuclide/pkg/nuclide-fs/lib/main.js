@@ -11,16 +11,6 @@ Object.defineProperty(exports, "FileSystem", {
 });
 exports.ROOT_FS = void 0;
 
-function _CompositeFileSystem() {
-  const data = require("./CompositeFileSystem");
-
-  _CompositeFileSystem = function () {
-    return data;
-  };
-
-  return data;
-}
-
 function _FsFileSystem() {
   const data = require("./FsFileSystem");
 
@@ -51,5 +41,5 @@ function _FileSystem() {
  *  strict-local
  * @format
  */
-const ROOT_FS = new (_CompositeFileSystem().CompositeFileSystem)(new (_FsFileSystem().FsFileSystem)());
+const ROOT_FS = new (_FsFileSystem().FsFileSystem)();
 exports.ROOT_FS = ROOT_FS;

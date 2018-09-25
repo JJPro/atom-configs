@@ -10,16 +10,6 @@ function _FindReferences() {
   return data;
 }
 
-function _nuclideTestHelpers() {
-  const data = require("../../nuclide-test-helpers");
-
-  _nuclideTestHelpers = function () {
-    return data;
-  };
-
-  return data;
-}
-
 /**
  * Copyright (c) 2015-present, Facebook, Inc.
  * All rights reserved.
@@ -29,6 +19,7 @@ function _nuclideTestHelpers() {
  *
  *  strict-local
  * @format
+ * @emails oncall+nuclide
  */
 const projectRoot = '/test/';
 const file1Path = '/test/file1.php';

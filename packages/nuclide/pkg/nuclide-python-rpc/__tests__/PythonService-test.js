@@ -75,6 +75,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  *
  * 
  * @format
+ * @emails oncall+nuclide
  */
 jest.setTimeout(20000); // make sure we don't save absolute paths in snapshots
 
@@ -96,7 +97,7 @@ function bufferOfContents(contents) {
 
 describe('PythonService', () => {
   let serverManager = null;
-  beforeEach(function () {
+  beforeEach(() => {
     serverManager = new (_JediServerManager().default)(); // Don't try to retrieve additional paths from Buck/etc.
 
     jest.spyOn(serverManager, 'getSysPath').mockReturnValue([]);

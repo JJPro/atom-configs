@@ -289,51 +289,51 @@ async function activateLsp() {
     } : undefined,
     status: {
       version: '0.1.0',
-      priority: 1,
+      priority: 99,
       observeEventName: 'flow.status.observe',
       clickEventName: 'flow.status.click',
       icon: 'nuclicon-flow',
       description: `__Flow__ provides provides autocomplete, hyperclick, hover, errors and outline. [more...](${aboutUrl})`
-    }
+    },
+    rename: (await shouldEnableRename()) ? {
+      version: '0.0.0',
+      priority: 1,
+      analyticsEventName: 'flow.rename'
+    } : undefined
   };
 
   const languageServiceFactory = async connection => {
     const [fileNotifier, host] = await Promise.all([(0, _nuclideOpenFiles().getNotifierByConnection)(connection), (0, _nuclideLanguageService().getHostServices)()]);
     const service = (0, _nuclideRemoteConnection().getVSCodeLanguageServiceByConnection)(connection);
-    const pathToFlow = String(_featureConfig().default.get('nuclide-flow.pathToFlow'));
-    const canUseFlowBin = Boolean(_featureConfig().default.get('nuclide-flow.canUseFlowBin'));
-    const win32 = (await service.processPlatform()) === 'win32';
-    const commands = [];
 
-    if (canUseFlowBin && win32) {
-      commands.push('./node_modules/.bin/flow.cmd');
-    }
+    const config = _featureConfig().default.getWithDefaults('nuclide-flow', {
+      pathToFlow: 'flow',
+      canUseFlowBin: false,
+      stopFlowOnExit: true,
+      liveSyntaxErrors: true,
+      logLevel: 'INFO'
+    });
 
-    if (canUseFlowBin) {
-      commands.push('./node_modules/.bin/flow');
-    }
-
-    if (win32) {
-      commands.push(`${pathToFlow}.cmd`);
-    }
-
-    commands.push(pathToFlow);
+    const command = JSON.stringify({
+      kind: 'flow',
+      pathToFlow: config.pathToFlow,
+      canUseFlowBin: config.canUseFlowBin
+    });
     const lazy = (0, _passesGK().isGkEnabled)('nuclide_flow_lazy_mode_ide') ? ['--lazy-mode', 'ide'] : [];
-    const autostop = Boolean(_featureConfig().default.get('nuclide-flow.stopFlowOnExit')) ? ['--autostop'] : [];
-    const liveSyntaxErrors = Boolean(_featureConfig().default.get('nuclide-flow.liveSyntaxErrors'));
-    const lspService = await service.createMultiLspLanguageService('flow', commands, ['lsp', '--from', 'nuclide', ...lazy, ...autostop], {
+    const autostop = config.stopFlowOnExit ? ['--autostop'] : [];
+    const lspService = await service.createMultiLspLanguageService('flow', command, ['lsp', '--from', 'nuclide', ...lazy, ...autostop], {
       fileNotifier,
       host,
       projectFileNames: ['.flowconfig'],
       fileExtensions: ['.js', '.jsx'],
       logCategory: 'flow-language-server',
-      logLevel: 'ALL',
+      logLevel: config.logLevel,
       additionalLogFilesRetentionPeriod: 5 * 60 * 1000,
       // 5 minutes
       waitForDiagnostics: true,
       waitForStatus: true,
       initializationOptions: {
-        liveSyntaxErrors
+        liveSyntaxErrors: config.liveSyntaxErrors
       }
     });
     return lspService || new (_nuclideLanguageServiceRpc().NullLanguageService)();
@@ -593,5 +593,10 @@ async function getLanguageServiceConfig() {
 
 async function shouldEnableFindRefs() {
   return (0, _passesGK().default)('nuclide_flow_find_refs', // Wait 15 seconds for the gk check
+  15 * 1000);
+}
+
+async function shouldEnableRename() {
+  return (0, _passesGK().default)('nuclide_flow_rename', // Wait 15 seconds for the gk check
   15 * 1000);
 }

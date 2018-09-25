@@ -22,6 +22,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  *
  *  strict
  * @format
+ * @emails oncall+nuclide
  */
 describe('Hasher', () => {
   it('creates a new hash for each object', () => {

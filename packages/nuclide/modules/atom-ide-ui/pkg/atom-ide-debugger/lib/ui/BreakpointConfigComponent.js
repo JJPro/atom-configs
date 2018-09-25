@@ -129,7 +129,8 @@ class BreakpointConfigComponent extends React.Component {
     super(props);
     this._disposables = new (_UniversalDisposable().default)();
     this.state = {
-      bpId: this.props.breakpoint.getId()
+      bpId: this.props.breakpoint.getId(),
+      enabledChecked: this.props.breakpoint.enabled
     };
     const model = this.props.service.getModel();
 
@@ -166,6 +167,10 @@ class BreakpointConfigComponent extends React.Component {
       breakpoint,
       service
     } = this.props;
+    const {
+      enabledChecked
+    } = this.state;
+    service.enableOrDisableBreakpoints(enabledChecked, this.props.breakpoint);
     const condition = (0, _nullthrows().default)(this._condition).getText().trim();
 
     if (condition === (breakpoint.condition || '')) {
@@ -210,9 +215,11 @@ class BreakpointConfigComponent extends React.Component {
         (0, _analytics().track)(_constants().AnalyticsEvents.DEBUGGER_BREAKPOINT_TOGGLE_ENABLED, {
           enabled: isChecked
         });
-        this.props.service.enableOrDisableBreakpoints(isChecked, this.props.breakpoint);
+        this.setState({
+          enabledChecked: isChecked
+        });
       },
-      checked: this.props.breakpoint.enabled,
+      checked: this.state.enabledChecked,
       label: "Enable breakpoint"
     })), React.createElement("div", {
       className: "block"

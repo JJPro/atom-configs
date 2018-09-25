@@ -19,6 +19,7 @@ function _parseMessageText() {
  *
  *  strict-local
  * @format
+ * @emails oncall+nuclide
  */
 describe('parseMessageText', () => {
   /* eslint-disable max-len */

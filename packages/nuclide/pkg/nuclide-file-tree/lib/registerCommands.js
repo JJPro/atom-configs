@@ -15,30 +15,20 @@ function _FileTreeConstants() {
   return data;
 }
 
-function _FileTreeActions() {
-  const data = _interopRequireDefault(require("./FileTreeActions"));
-
-  _FileTreeActions = function () {
-    return data;
-  };
-
-  return data;
-}
-
-function _FileTreeStore() {
-  const data = _interopRequireDefault(require("./FileTreeStore"));
-
-  _FileTreeStore = function () {
-    return data;
-  };
-
-  return data;
-}
-
 function Selectors() {
-  const data = _interopRequireWildcard(require("./FileTreeSelectors"));
+  const data = _interopRequireWildcard(require("./redux/Selectors"));
 
   Selectors = function () {
+    return data;
+  };
+
+  return data;
+}
+
+function Actions() {
+  const data = _interopRequireWildcard(require("./redux/Actions"));
+
+  Actions = function () {
     return data;
   };
 
@@ -77,9 +67,9 @@ function _UniversalDisposable() {
 
 var _electron = require("electron");
 
-function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) { var desc = Object.defineProperty && Object.getOwnPropertyDescriptor ? Object.getOwnPropertyDescriptor(obj, key) : {}; if (desc.get || desc.set) { Object.defineProperty(newObj, key, desc); } else { newObj[key] = obj[key]; } } } } newObj.default = obj; return newObj; } }
-
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) { var desc = Object.defineProperty && Object.getOwnPropertyDescriptor ? Object.getOwnPropertyDescriptor(obj, key) : {}; if (desc.get || desc.set) { Object.defineProperty(newObj, key, desc); } else { newObj[key] = obj[key]; } } } } newObj.default = obj; return newObj; } }
 
 /**
  * Copyright (c) 2015-present, Facebook, Inc.
@@ -93,131 +83,133 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  */
 const VALID_FILTER_CHARS = '!#./0123456789-:;?@ABCDEFGHIJKLMNOPQRSTUVWXYZ' + '_abcdefghijklmnopqrstuvwxyz~';
 
-function registerCommands(store, actions) {
+function registerCommands(store) {
   const disposables = new (_UniversalDisposable().default)(); // Subsequent root directories updated on change
 
   disposables.add(atom.project.onDidChangePaths(() => {
-    actions.updateRootDirectories();
+    store.dispatch(Actions().updateRootDirectories());
   }), atom.commands.add('atom-workspace', {
     'tree-view:reveal-active-file': event => {
-      revealActiveFile(event, actions);
+      revealActiveFile(event, store);
     },
     'tree-view:recursive-collapse-all': () => {
-      actions.collapseAll();
+      store.dispatch(Actions().collapseAll());
     },
     'tree-view:add-file-relative': () => {
-      actions.openAddFileDialogRelative(filePath => {
-        actions.openAndRevealFilePath(filePath);
-      });
+      store.dispatch(Actions().openAddFileDialogRelative(filePath => {
+        store.dispatch(Actions().openAndRevealFilePath(filePath));
+      }));
     }
   }));
   const letterKeyBindings = {
     'tree-view:remove-letter': () => {
-      if (!store.usePrefixNav()) {
+      if (!Selectors().usePrefixNav(store.getState())) {
         return;
       }
 
-      actions.removeFilterLetter();
+      store.dispatch(Actions().removeFilterLetter());
     },
-    'tree-view:clear-filter': () => actions.clearFilter()
+    'tree-view:clear-filter': () => {
+      store.dispatch(Actions().clearFilter());
+    }
   };
 
   for (let i = 0, c = VALID_FILTER_CHARS.charCodeAt(0); i < VALID_FILTER_CHARS.length; i++, c = VALID_FILTER_CHARS.charCodeAt(i)) {
     const char = String.fromCharCode(c);
 
     letterKeyBindings[`tree-view:go-to-letter-${char}`] = () => {
-      if (!store.usePrefixNav()) {
+      if (!Selectors().usePrefixNav(store.getState())) {
         return;
       }
 
-      actions.addFilterLetter(char);
+      store.dispatch(Actions().addFilterLetter(char));
     };
   }
 
   disposables.add(atom.commands.add(_FileTreeConstants().COMMANDS_SELECTOR, Object.assign({
     'core:move-down': () => {
-      actions.moveSelectionDown();
+      store.dispatch(Actions().moveSelectionDown());
     },
     'core:move-up': () => {
-      actions.moveSelectionUp();
+      store.dispatch(Actions().moveSelectionUp());
     },
     'core:move-to-top': () => {
-      actions.moveSelectionToTop();
+      store.dispatch(Actions().moveSelectionToTop());
     },
     'core:move-to-bottom': () => {
-      actions.moveSelectionToBottom();
+      store.dispatch(Actions().moveSelectionToBottom());
     },
     'core:select-up': () => {
-      actions.rangeSelectUp();
+      store.dispatch(Actions().rangeSelectUp());
     },
     'core:select-down': () => {
-      actions.rangeSelectDown();
+      store.dispatch(Actions().rangeSelectDown());
     },
     'tree-view:add-file': () => {
-      actions.openAddFileDialog(filePath => {
-        actions.openAndRevealFilePath(filePath);
-      });
+      store.dispatch(Actions().openAddFileDialog(filePath => {
+        store.dispatch(Actions().openAndRevealFilePath(filePath));
+      }));
     },
     'tree-view:add-folder': () => {
-      actions.openAddFolderDialog(filePath => {
-        actions.openAndRevealDirectoryPath(filePath);
-      });
+      store.dispatch(Actions().openAddFolderDialog(filePath => {
+        store.dispatch(Actions().openAndRevealDirectoryPath(filePath));
+      }));
     },
     'tree-view:collapse-directory': () => {
-      actions.collapseSelection(false);
+      store.dispatch(Actions().collapseSelection(false));
     },
     'tree-view:recursive-collapse-directory': () => {
-      actions.collapseSelection(true);
+      store.dispatch(Actions().collapseSelection(true));
     },
     'tree-view:expand-directory': () => {
-      actions.expandSelection(false);
+      store.dispatch(Actions().expandSelection(false));
     },
     'tree-view:recursive-expand-directory': () => {
-      actions.expandSelection(true);
+      store.dispatch(Actions().expandSelection(true));
     },
     'tree-view:open-selected-entry': () => {
-      actions.openSelectedEntry();
+      store.dispatch(Actions().openSelectedEntry());
     },
     'tree-view:open-selected-entry-up': () => {
-      actions.openSelectedEntrySplitUp();
+      store.dispatch(Actions().openSelectedEntrySplitUp());
     },
     'tree-view:open-selected-entry-down': () => {
-      actions.openSelectedEntrySplitDown();
+      store.dispatch(Actions().openSelectedEntrySplitDown());
     },
     'tree-view:open-selected-entry-left': () => {
-      actions.openSelectedEntrySplitLeft();
+      store.dispatch(Actions().openSelectedEntrySplitLeft());
     },
     'tree-view:open-selected-entry-right': () => {
-      actions.openSelectedEntrySplitRight();
+      store.dispatch(Actions().openSelectedEntrySplitRight());
     },
     'tree-view:remove': () => {
-      actions.deleteSelection();
+      store.dispatch(Actions().deleteSelection());
     },
     'core:delete': () => {
-      actions.deleteSelection();
+      store.dispatch(Actions().deleteSelection());
     },
     'tree-view:remove-project-folder-selection': () => {
-      actions.removeRootFolderSelection();
+      store.dispatch(Actions().removeRootFolderSelection());
     },
     'tree-view:rename-selection': () => {
-      actions.openRenameDialog();
+      store.dispatch(Actions().openRenameDialog());
     },
     'tree-view:duplicate-selection': () => {
-      actions.openDuplicateDialog(filePaths => {
-        actions.openAndRevealFilePaths(filePaths);
-      });
+      store.dispatch(Actions().openDuplicateDialog(filePaths => {
+        store.dispatch(Actions().openAndRevealFilePaths(filePaths));
+      }));
     },
     'tree-view:copy-selection': () => {
-      actions.copyFilenamesWithDir();
+      store.dispatch(Actions().copyFilenamesWithDir());
     },
     'tree-view:paste-selection': () => {
-      actions.openPasteDialog();
+      store.dispatch(Actions().openPasteDialog());
     },
     'tree-view:search-in-directory': event => {
       searchInDirectory(event, store);
     },
     'tree-view:set-current-working-root': () => {
-      actions.setCwdToSelection();
+      store.dispatch(Actions().setCwdToSelection());
     }
   }, letterKeyBindings)), atom.commands.add('atom-workspace', {
     // eslint-disable-next-line nuclide-internal/atom-apis
@@ -240,7 +232,7 @@ function copyFullPath(event) {
   atom.clipboard.write(parsed.path);
 }
 
-function revealActiveFile(event, actions) {
+function revealActiveFile(event, store) {
   let path = (0, _getElementFilePath().default)(event.target, true);
 
   if (path == null) {
@@ -257,7 +249,7 @@ function revealActiveFile(event, actions) {
     }
   }
 
-  actions.revealFilePath(path);
+  store.dispatch(Actions().revealFilePath(path));
 }
 
 function searchInDirectory(event, store) {
@@ -265,7 +257,7 @@ function searchInDirectory(event, store) {
   // the path to work on from the current selection.
 
   if (targetElement.classList.contains('nuclide-file-tree')) {
-    const node = Selectors().getSingleSelectedNode(store);
+    const node = Selectors().getSingleSelectedNode(store.getState());
 
     if (node == null) {
       return;

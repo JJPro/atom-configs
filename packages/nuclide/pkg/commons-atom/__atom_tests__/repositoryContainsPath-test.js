@@ -73,16 +73,14 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  *
  * 
  * @format
+ * @emails oncall+nuclide
  */
 describe('repositoryContainsPath', () => {
   let tempFolder = null;
   let repoRoot = null;
   beforeEach(async () => {
-    // Create a temporary Hg repository.
-    await (async () => {
-      tempFolder = await (0, _testHelpers().generateFixture)('hg-git-bridge', new Map([['repoRoot/file.txt', 'hello world']]));
-      repoRoot = _nuclideUri().default.join(tempFolder, 'repoRoot');
-    })();
+    tempFolder = await (0, _testHelpers().generateFixture)('hg-git-bridge', new Map([['repoRoot/file.txt', 'hello world']]));
+    repoRoot = _nuclideUri().default.join(tempFolder, 'repoRoot');
   });
   it('is accurate for GitRepository.', async () => {
     await (async () => {
@@ -111,34 +109,32 @@ describe('repositoryContainsPath', () => {
     })();
   });
   it('is accurate for HgRepositoryClient.', async () => {
-    await (async () => {
-      // Create temporary Hg repository.
-      await (0, _process().runCommand)('hg', ['init'], {
-        cwd: repoRoot
-      }).toPromise();
-      const mockService = new (_MockHgService().default)();
-      const mockHgService = mockService;
-      const hgRepositoryClient = new (_nuclideHgRepositoryClient().HgRepositoryClient)(
-      /* repoPath */
-      _nuclideUri().default.join(repoRoot, '.hg'),
-      /* hgService */
-      mockHgService,
-      /* options */
-      {
-        originURL: 'testURL',
-        workingDirectoryPath: repoRoot,
-        projectDirectoryPath: repoRoot
-      });
-      const hgRepository = hgRepositoryClient;
-      expect((0, _nuclideVcsBase().repositoryContainsPath)(hgRepository, repoRoot)).toBe(true);
+    // Create temporary Hg repository.
+    await (0, _process().runCommand)('hg', ['init'], {
+      cwd: repoRoot
+    }).toPromise();
+    const mockService = new (_MockHgService().default)();
+    const mockHgService = mockService;
+    const hgRepositoryClient = new (_nuclideHgRepositoryClient().HgRepositoryClient)(
+    /* repoPath */
+    _nuclideUri().default.join(repoRoot, '.hg'),
+    /* hgService */
+    mockHgService,
+    /* options */
+    {
+      originURL: 'testURL',
+      workingDirectoryPath: repoRoot,
+      projectDirectoryPath: repoRoot
+    });
+    const hgRepository = hgRepositoryClient;
+    expect((0, _nuclideVcsBase().repositoryContainsPath)(hgRepository, repoRoot)).toBe(true);
 
-      const subdir = _nuclideUri().default.join(repoRoot, 'subdir');
+    const subdir = _nuclideUri().default.join(repoRoot, 'subdir');
 
-      expect((0, _nuclideVcsBase().repositoryContainsPath)(hgRepository, subdir)).toBe(true);
+    expect((0, _nuclideVcsBase().repositoryContainsPath)(hgRepository, subdir)).toBe(true);
 
-      const parentDir = _nuclideUri().default.resolve(tempFolder, '..');
+    const parentDir = _nuclideUri().default.resolve(tempFolder, '..');
 
-      expect((0, _nuclideVcsBase().repositoryContainsPath)(hgRepository, parentDir)).toBe(false);
-    })();
+    expect((0, _nuclideVcsBase().repositoryContainsPath)(hgRepository, parentDir)).toBe(false);
   });
 });

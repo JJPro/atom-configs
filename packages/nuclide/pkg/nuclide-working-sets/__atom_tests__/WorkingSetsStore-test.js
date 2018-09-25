@@ -19,6 +19,7 @@ function _WorkingSetsStore() {
  *
  *  strict-local
  * @format
+ * @emails oncall+nuclide
  */
 describe('WorkingSetStore', () => {
   it('Aggregates all URIs of active defs', () => {
@@ -26,18 +27,21 @@ describe('WorkingSetStore', () => {
       getPath: () => '/aaa'
     }]);
     const store = new (_WorkingSetsStore().WorkingSetsStore)();
-    store.updateSavedDefinitions([{
+    store.updateUserDefinitions([{
       name: '1',
       active: true,
-      uris: ['/aaa/bbb1']
+      uris: ['/aaa/bbb1'],
+      sourceType: 'user'
     }, {
       name: '2',
       active: true,
-      uris: ['/aaa/bbb2']
+      uris: ['/aaa/bbb2'],
+      sourceType: 'user'
     }, {
       name: '3',
       active: false,
-      uris: ['/aaa/bbb3']
+      uris: ['/aaa/bbb3'],
+      sourceType: 'user'
     }]);
     expect(store.getCurrent().getUris()).toEqual(['/aaa/bbb1', '/aaa/bbb2']);
   });
@@ -53,20 +57,23 @@ describe('WorkingSetStore', () => {
     const d1 = {
       name: '1',
       active: true,
-      uris: ['/aaa/bbb1/ccc']
+      uris: ['/aaa/bbb1/ccc'],
+      sourceType: 'user'
     };
     const d2 = {
       name: '2',
       active: true,
-      uris: ['/aaa/bbb2/ccc']
+      uris: ['/aaa/bbb2/ccc'],
+      sourceType: 'user'
     };
     const d3 = {
       name: '3',
       active: false,
-      uris: ['/aaa/bbb3/ccc']
+      uris: ['/aaa/bbb3/ccc'],
+      sourceType: 'user'
     };
     const store = new (_WorkingSetsStore().WorkingSetsStore)();
-    store.updateSavedDefinitions([d1, d2, d3]);
+    store.updateUserDefinitions([d1, d2, d3]);
     expect(store.getApplicableDefinitions()).toEqual([d1]);
     expect(store.getNotApplicableDefinitions()).toEqual([d2, d3]);
     expect(store.getCurrent().getUris()).toEqual(['/aaa/bbb1/ccc']);

@@ -19,6 +19,7 @@ function _searchResultHelpers() {
  *
  *  strict-local
  * @format
+ * @emails oncall+nuclide
  */
 const SEARCH_RESULTS_FIXTURE = {
   searchService: {

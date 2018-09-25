@@ -45,6 +45,16 @@ function _activatePackages() {
   return data;
 }
 
+function _nuclideConfig() {
+  const data = _interopRequireDefault(require("./nuclide-config"));
+
+  _nuclideConfig = function () {
+    return data;
+  };
+
+  return data;
+}
+
 function _featureConfig() {
   const data = _interopRequireDefault(require("./feature-config"));
 
@@ -135,7 +145,9 @@ class FeatureLoader {
 
     }));
 
-    _featureConfig().default.setPackageName(this._pkgName); //
+    _featureConfig().default.setPackageName(this._pkgName);
+
+    _nuclideConfig().default.setPackageName(this._pkgName); //
     // Build the "config" object. This determines the config defaults and
     // it's what is shown by the Settings view. It includes:
     // (1) An entry to enable/disable each feature - called "${pkgName}.use.*".

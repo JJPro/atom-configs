@@ -31,6 +31,7 @@ function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj;
  *
  *  strict-local
  * @format
+ * @emails oncall+nuclide
  */
 // $FlowIgnore #yolo
 pathSearch().fileSearchForDirectory = () => {
@@ -46,35 +47,28 @@ pathSearch().fileSearchForDirectory = () => {
 
 describe('FuzzyFileSearchService.isFuzzySearchAvailableFor', () => {
   it('can search existing directories', async () => {
-    await (async () => {
-      expect((await (0, _().isFuzzySearchAvailableFor)(__dirname))).toBe(true);
-    })();
+    expect((await (0, _().isFuzzySearchAvailableFor)(__dirname))).toBe(true);
   });
   it('cant search non-existing directories', async () => {
-    await (async () => {
-      // eslint-disable-next-line no-path-concat
-      const nonExistentPath = __dirname + 'xxx';
-      expect((await (0, _().isFuzzySearchAvailableFor)(nonExistentPath))).toBe(false);
-    })();
+    // eslint-disable-next-line no-path-concat
+    const nonExistentPath = __dirname + 'xxx';
+    expect((await (0, _().isFuzzySearchAvailableFor)(nonExistentPath))).toBe(false);
   });
   it("doesn't get confused by atom:// paths", async () => {
-    await (async () => {
-      expect((await (0, _().isFuzzySearchAvailableFor)('atom://about'))).toBe(false);
-    })();
+    expect((await (0, _().isFuzzySearchAvailableFor)('atom://about'))).toBe(false);
   });
 });
 describe('FuzzyFileSearchService.queryFuzzyFile', () => {
   it('finds a file in a directory that exists', async () => {
-    await (async () => {
-      // This test can't actually perform a search because path-search
-      // uses watchman and we don't have a good way to mock dependencies.
-      const fileSearchResults = await (0, _().queryFuzzyFile)({
-        rootDirectory: __dirname,
-        queryString: 'anything',
-        ignoredNames: [],
-        preferCustomSearch: false
-      });
-      expect(fileSearchResults).toEqual([]);
-    })();
+    // This test can't actually perform a search because path-search
+    // uses watchman and we don't have a good way to mock dependencies.
+    const fileSearchResults = await (0, _().queryFuzzyFile)({
+      rootDirectory: __dirname,
+      queryString: 'anything',
+      ignoredNames: [],
+      preferCustomSearch: false,
+      context: null
+    });
+    expect(fileSearchResults).toEqual([]);
   });
 });

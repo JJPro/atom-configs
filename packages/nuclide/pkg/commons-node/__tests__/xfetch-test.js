@@ -35,6 +35,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  *
  * 
  * @format
+ * @emails oncall+nuclide
  */
 describe('xfetch', () => {
   beforeEach(() => {
@@ -88,24 +89,20 @@ describe('xfetch', () => {
       server.close();
     });
     it('can do a 2xx GET request', async () => {
-      await (async () => {
-        const realFilename = __filename;
-        const response = await (0, _xfetch().default)(`http://0.0.0.0:${port}${realFilename}`);
-        expect(response.ok).toBe(true);
-        const text = await response.text();
-        const contents = await _fsPromise().default.readFile(realFilename, 'utf8');
-        expect(text).toEqual(contents);
-      })();
+      const realFilename = __filename;
+      const response = await (0, _xfetch().default)(`http://0.0.0.0:${port}${realFilename}`);
+      expect(response.ok).toBe(true);
+      const text = await response.text();
+      const contents = await _fsPromise().default.readFile(realFilename, 'utf8');
+      expect(text).toEqual(contents);
     });
     it('can do a 404 GET request', async () => {
-      await (async () => {
-        // eslint-disable-next-line no-path-concat
-        const nonexistingFilename = __filename + 'XXX';
-        const response = await (0, _xfetch().default)(`http://0.0.0.0:${port}${nonexistingFilename}`);
-        expect(response.ok).toBe(false);
-        expect(response.status).toBe(404);
-        expect(response.statusText).toBe('Not Found');
-      })();
+      // eslint-disable-next-line no-path-concat
+      const nonexistingFilename = __filename + 'XXX';
+      const response = await (0, _xfetch().default)(`http://0.0.0.0:${port}${nonexistingFilename}`);
+      expect(response.ok).toBe(false);
+      expect(response.status).toBe(404);
+      expect(response.statusText).toBe('Not Found');
     });
   });
 });

@@ -30,16 +30,6 @@ function _flowChildrenOutput() {
   return data;
 }
 
-function _flowChildrenDiagnostic() {
-  const data = _interopRequireDefault(require("../__mocks__/fixtures/flow-children-diagnostic.json"));
-
-  _flowChildrenDiagnostic = function () {
-    return data;
-  };
-
-  return data;
-}
-
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 /**
@@ -51,6 +41,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  *
  * 
  * @format
+ * @emails oncall+nuclide
  */
 const flowOutput = {
   passed: false,

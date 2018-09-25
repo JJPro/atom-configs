@@ -48,7 +48,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 // This package creates, queries and decomposes NuclideUris.
 // eslint-disable-next-line nuclide-internal/prefer-nuclide-uri
 const ARCHIVE_SEPARATOR = '!';
-const KNOWN_ARCHIVE_EXTENSIONS = ['.jar', '.zip'];
+const KNOWN_ARCHIVE_EXTENSIONS = [];
 const REMOTE_PATH_URI_PREFIX = 'nuclide://'; // TODO(ljw): following regex is incorrect. A URI scheme must start with
 // [A-Za-z] not [0-9_-]. Also, not all schemes require // after them.
 
@@ -656,18 +656,14 @@ function parsePath(uri) {
 
   const uriPathModule = _pathModuleFor(uri);
 
-  if (!isInArchive(uri)) {
-    return uriPathModule.parse(getPath(uri));
-  } else {
-    const parsed = uriPathModule.parse(_archiveEncode(uriPathModule, getPath(uri)));
-    return {
-      root: _archiveDecode(uriPathModule, parsed.root),
-      dir: _archiveDecode(uriPathModule, parsed.dir),
-      base: _archiveDecode(uriPathModule, parsed.base),
-      ext: _archiveDecode(uriPathModule, parsed.ext),
-      name: _archiveDecode(uriPathModule, parsed.name)
-    };
-  }
+  const parsed = uriPathModule.parse(_archiveEncode(uriPathModule, getPath(uri)));
+  return {
+    root: _archiveDecode(uriPathModule, parsed.root),
+    dir: _archiveDecode(uriPathModule, parsed.dir),
+    base: _archiveDecode(uriPathModule, parsed.base),
+    ext: _archiveDecode(uriPathModule, parsed.ext),
+    name: _archiveDecode(uriPathModule, parsed.name)
+  };
 }
 
 function pathSeparatorFor(uri) {
@@ -712,7 +708,9 @@ function _pathModuleFor(uri) {
 
   if (uri[1] === ':' && uri[2] === _path.default.win32.sep) {
     return _path.default.win32;
-  }
+  } // This little russian roulette here is blocking T29990593. I didn't
+  // clean it because we might see posix paths on windows and vice versa.
+
 
   if (uri.split(_path.default.win32.sep).length > uri.split(_path.default.posix.sep).length) {
     return _path.default.win32;

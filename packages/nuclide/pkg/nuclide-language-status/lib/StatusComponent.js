@@ -101,7 +101,15 @@ class StatusComponent extends React.Component {
     };
 
     this._renderBar = statuses => {
-      const kind = statuses.map(([s, visible]) => s.data.kind).sort((k1, k2) => kindPriorities.indexOf(k1) - kindPriorities.indexOf(k2))[0];
+      const {
+        settings
+      } = this.props;
+      const kind = statuses.filter(([status, _]) => {
+        // Don't show the success bar for servers unless the setting is
+        // 'Show Always'.
+        const setting = settings.get(status.provider.name);
+        return !(setting !== 'green' && status.data.kind === 'green');
+      }).map(([s, _]) => s.data.kind).sort((k1, k2) => kindPriorities.indexOf(k1) - kindPriorities.indexOf(k2))[0];
       return React.createElement("div", {
         className: (0, _classnames().default)('nuclide-language-status-bar', {
           'nuclide-language-status-bar-green': kind === 'green',
@@ -111,7 +119,7 @@ class StatusComponent extends React.Component {
       });
     };
 
-    this._renderProvider = (status, visible) => {
+    this._renderProvider = (status, visible, hovered) => {
       const {
         provider,
         data
@@ -122,13 +130,18 @@ class StatusComponent extends React.Component {
       const progress = this._renderProgress(data);
 
       return React.createElement("div", {
-        className: (0, _classnames().default)('nuclide-language-status-provider', 'nuclide-language-status-provider-' + data.kind),
+        className: (0, _classnames().default)('nuclide-language-status-provider', 'nuclide-language-status-provider-' + data.kind, {
+          // CSS class with transitions to apply visual debounce on the
+          // provider tab to help reduce flicker, but still feel responsive
+          // on hover.
+          'nuclide-language-status-provider-debounce': !hovered
+        }),
         onMouseOver: this._onMouseOver,
         onMouseOut: this._onMouseOut,
         "data-name": status.provider.name,
         key: status.provider.name,
         style: {
-          opacity: visible ? 1 : 0
+          opacity: visible || hovered ? 1 : 0
         },
         ref: this._setTooltipRef
       }, icon, progress, this.state.hoveredProviderName !== provider.name ? null : React.createElement(_StatusTooltip().default, {
@@ -178,14 +191,16 @@ class StatusComponent extends React.Component {
       // For a status to be potentially visible, (1) the user has to have set its
       // preference to be shown (always/on-progress/on-errors), and (2) the status
       // provider must have reported a non-null status.data.kind.
-      const settingKind = settings.get(status.provider);
+      const settingKind = settings.get(status.provider.name);
       return settingKind != null && settingKind !== 'null' && status.data.kind !== 'null';
     }).map(status => {
       // A status tab will be either "visible" (because of a combination
       // of the user's preference plus the current status.data.kind) or just
       // "contingently-visible" (i.e. visible only when you hover)
-      const kind = settings.get(status.provider);
-      const visible = kindPriorities.indexOf(kind) >= kindPriorities.indexOf(status.data.kind);
+      // There's no extra value in showing the tab when things are working
+      // so visible === false whenever status.data.kind === 'green'.
+      const kind = settings.get(status.provider.name);
+      const visible = status.data.kind !== 'green' && kindPriorities.indexOf(kind) >= kindPriorities.indexOf(status.data.kind);
       return [status, visible];
     }).sort(([a, aVisible], [b, bVisible]) => {
       // We'll sort the contingently-visible ones all to the left and the visible
@@ -203,7 +218,7 @@ class StatusComponent extends React.Component {
       className: "nuclide-language-status-container"
     }, this._renderBar(statuses), React.createElement("div", {
       className: "nuclide-language-status-providers-container"
-    }, this._renderSettings(), statuses.map(([status, visible]) => this._renderProvider(status, this.state.hoveredProviderName != null || visible))));
+    }, this._renderSettings(), statuses.map(([status, visible]) => this._renderProvider(status, visible, this.state.hoveredProviderName != null))));
   }
 
   _renderSettings() {
@@ -257,11 +272,18 @@ class StatusComponent extends React.Component {
       });
     }
 
+    const renderer = new (_marked().default.Renderer)(); // Plain text in the icon markdown should render inline not in a paragraph,
+    // so use a custom renderer for this.
+
+    renderer.paragraph = s => `<div style="display:inline">${s} </div>`;
+
     if (iconMarkdown != null) {
       return React.createElement("div", {
         className: "nuclide-language-status-icon",
         dangerouslySetInnerHTML: {
-          __html: (0, _marked().default)(iconMarkdown)
+          __html: (0, _marked().default)(iconMarkdown, {
+            renderer
+          })
         }
       });
     } // Default to showing the capitalized first letter of the server's name

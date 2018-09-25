@@ -77,6 +77,18 @@ function Immutable() {
   return data;
 }
 
+function _nullthrows() {
+  const data = _interopRequireDefault(require("nullthrows"));
+
+  _nullthrows = function () {
+    return data;
+  };
+
+  return data;
+}
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
 function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) { var desc = Object.defineProperty && Object.getOwnPropertyDescriptor ? Object.getOwnPropertyDescriptor(obj, key) : {}; if (desc.get || desc.set) { Object.defineProperty(newObj, key, desc); } else { newObj[key] = obj[key]; } } } } newObj.default = obj; return newObj; } }
 
 /**
@@ -140,8 +152,8 @@ class RootPanel extends React.Component {
 
     return React.createElement(_DeviceTable().DeviceTable, {
       devices: this.props.devices,
-      device: this.props.device,
-      setDevice: this.props.setDevice
+      setDevice: this.props.setDevice,
+      deviceTasks: this.props.deviceTasks
     });
   }
 
@@ -173,7 +185,11 @@ class RootPanel extends React.Component {
   }
 
   _getInnerPanel() {
-    if (this.props.device != null) {
+    const {
+      device
+    } = this.props;
+
+    if (device != null) {
       return React.createElement("div", {
         className: "block"
       }, React.createElement(_DevicePanel().DevicePanel, {
@@ -181,7 +197,7 @@ class RootPanel extends React.Component {
         appInfoTables: this.props.appInfoTables,
         processes: this.props.processes,
         processTasks: this.props.processTasks,
-        deviceTasks: this.props.deviceTasks,
+        deviceTasks: (0, _nullthrows().default)(this.props.deviceTasks.get(device.identifier)),
         goToRootPanel: this._goToRootPanel,
         toggleProcessPolling: this.props.toggleProcessPolling,
         isDeviceConnected: this.props.isDeviceConnected

@@ -22,6 +22,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  *
  *  strict
  * @format
+ * @emails oncall+nuclide
  */
 describe('nuclide-keystroke-label', () => {
   // adapted from https://github.com/atom/underscore-plus/blob/master/spec/underscore-plus-spec.coffee

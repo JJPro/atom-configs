@@ -91,8 +91,8 @@ function registerDevicePanelProviders(api) {
   return new (_UniversalDisposable().default)(api.registerListProvider({
     getType: () => 'Android',
     observe: host => (0, _nuclideAdb().observeAndroidDevices)(host).map(expected => expected.map(devices => devices.map(d => ({
-      displayName: d.prettyName,
-      name: d.serial
+      identifier: d.serial,
+      displayName: d.displayName
     }))))
   }), api.registerInfoProvider(new (_AndroidDeviceInfoProvider().AndroidDeviceInfoProvider)()), api.registerProcessesProvider(new (_AndroidDeviceProcessesProvider().AndroidDeviceProcessesProvider)()), api.registerProcessTaskProvider(new (_AndroidDeviceStopProcessProvider().AndroidDeviceStopProcessProvider)()), api.registerDeviceTypeComponentProvider(new (_AvdComponentProvider().AvdComponentProvider)()), api.registerDeviceTypeComponentProvider(new (_AdbTunnelingProvider().AdbTunnelingProvider)()));
 }

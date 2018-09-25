@@ -95,6 +95,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  *
  * 
  * @format
+ * @emails oncall+nuclide
  */
 // eslint-disable-line nuclide-internal/prefer-nuclide-uri
 describe.skip('AutocompleteProvider', () => {
@@ -146,7 +147,6 @@ describe.skip('AutocompleteProvider', () => {
     atom.packages.loadPackage(_path.default.join(__dirname, '../../nuclide-autocomplete'));
     await atom.packages.activatePackage('nuclide-autocomplete'); // Insert some text...
 
-    let expectedUndoText;
     editor.setText(startingText);
     editor.setCursorBufferPosition(mainCursorPos);
 
@@ -155,7 +155,7 @@ describe.skip('AutocompleteProvider', () => {
     }
 
     editor.insertText('_');
-    expectedUndoText = editor.getText();
+    const expectedUndoText = editor.getText();
     await (0, _promise().nextTick)();
     atom.commands.dispatch(atom.views.getView(editor), 'autocomplete-plus:activate', {
       activatedManually: false
@@ -318,19 +318,19 @@ describe('updateAutocompleteResultRanges', () => {
     };
   }
 
-  it('updates ranges that match', async () => await withEditor(editor => {
+  it('updates ranges that match', async () => withEditor(editor => {
     expect((0, _AutocompleteProvider().updateAutocompleteResultRanges)(makeRequest([0, 3], editor), makeRequest([0, 5], editor), makeResult([[_atom.Range.fromObject([[0, 0], [0, 3]])]]))).toEqual(makeResult([[_atom.Range.fromObject([[0, 0], [0, 5]])]]));
   }));
-  it("ignores ranges that don't", async () => await withEditor(editor => {
+  it("ignores ranges that don't", async () => withEditor(editor => {
     expect((0, _AutocompleteProvider().updateAutocompleteResultRanges)(makeRequest([0, 3], editor), makeRequest([0, 5], editor), makeResult([[_atom.Range.fromObject([[0, 0], [0, 4]])]]))).toEqual(makeResult([[_atom.Range.fromObject([[0, 0], [0, 4]])]]));
   }));
-  it('can handle some elements without text edits', async () => await withEditor(editor => {
+  it('can handle some elements without text edits', async () => withEditor(editor => {
     expect((0, _AutocompleteProvider().updateAutocompleteResultRanges)(makeRequest([0, 3], editor), makeRequest([0, 5], editor), makeResult([[_atom.Range.fromObject([[0, 0], [0, 3]])], []]))).toEqual(makeResult([[_atom.Range.fromObject([[0, 0], [0, 5]])], []]));
   }));
-  it('can handle elements with multiple text edits', async () => await withEditor(editor => {
+  it('can handle elements with multiple text edits', async () => withEditor(editor => {
     expect((0, _AutocompleteProvider().updateAutocompleteResultRanges)(makeRequest([0, 3], editor), makeRequest([0, 5], editor), makeResult([[_atom.Range.fromObject([[0, 0], [0, 3]]), _atom.Range.fromObject([[0, 0], [0, 4]]), _atom.Range.fromObject([[0, 2], [0, 3]])]]))).toEqual(makeResult([[_atom.Range.fromObject([[0, 0], [0, 5]]), _atom.Range.fromObject([[0, 0], [0, 4]]), _atom.Range.fromObject([[0, 2], [0, 5]])]]));
   }));
-  it('works with interleaved requests when caching is enabled', async () => await withEditor(async editor => {
+  it('works with interleaved requests when caching is enabled', async () => withEditor(async editor => {
     function makeResponsePromise(range) {
       let resolvePromise;
       const promise = new Promise(resolve => {

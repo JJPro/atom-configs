@@ -1,15 +1,5 @@
 "use strict";
 
-function _analytics() {
-  const data = _interopRequireDefault(require("../../../../nuclide-commons/analytics"));
-
-  _analytics = function () {
-    return data;
-  };
-
-  return data;
-}
-
 function _collection() {
   const data = require("../../../../nuclide-commons/collection");
 
@@ -20,20 +10,50 @@ function _collection() {
   return data;
 }
 
-function _nuclideUri() {
-  const data = _interopRequireDefault(require("../../../../nuclide-commons/nuclideUri"));
+function _observable() {
+  const data = require("../../../../nuclide-commons/observable");
 
-  _nuclideUri = function () {
+  _observable = function () {
     return data;
   };
 
   return data;
 }
 
-function _observable() {
-  const data = require("../../../../nuclide-commons/observable");
+function _event() {
+  const data = require("../../../../nuclide-commons/event");
 
-  _observable = function () {
+  _event = function () {
+    return data;
+  };
+
+  return data;
+}
+
+function _analytics() {
+  const data = _interopRequireDefault(require("../../../../nuclide-commons/analytics"));
+
+  _analytics = function () {
+    return data;
+  };
+
+  return data;
+}
+
+function _idbKeyval() {
+  const data = _interopRequireDefault(require("idb-keyval"));
+
+  _idbKeyval = function () {
+    return data;
+  };
+
+  return data;
+}
+
+function _createPackage() {
+  const data = _interopRequireDefault(require("../../../../nuclide-commons-atom/createPackage"));
+
+  _createPackage = function () {
     return data;
   };
 
@@ -60,10 +80,10 @@ function _Model() {
   return data;
 }
 
-function _createPackage() {
-  const data = _interopRequireDefault(require("../../../../nuclide-commons-atom/createPackage"));
+function _nuclideUri() {
+  const data = _interopRequireDefault(require("../../../../nuclide-commons/nuclideUri"));
 
-  _createPackage = function () {
+  _nuclideUri = function () {
     return data;
   };
 
@@ -80,10 +100,20 @@ function _UniversalDisposable() {
   return data;
 }
 
-function _event() {
-  const data = require("../../../../nuclide-commons/event");
+function _gutter() {
+  const data = require("./gutter");
 
-  _event = function () {
+  _gutter = function () {
+    return data;
+  };
+
+  return data;
+}
+
+function _destroyItemWhere() {
+  const data = require("../../../../nuclide-commons-atom/destroyItemWhere");
+
+  _destroyItemWhere = function () {
     return data;
   };
 
@@ -100,60 +130,10 @@ function _DiagnosticsViewModel() {
   return data;
 }
 
-function _StatusBarTile() {
-  const data = _interopRequireDefault(require("./ui/StatusBarTile"));
-
-  _StatusBarTile = function () {
-    return data;
-  };
-
-  return data;
-}
-
-function _gutter() {
-  const data = require("./gutter");
-
-  _gutter = function () {
-    return data;
-  };
-
-  return data;
-}
-
-function _getDiagnosticDatatip() {
-  const data = _interopRequireDefault(require("./getDiagnosticDatatip"));
-
-  _getDiagnosticDatatip = function () {
-    return data;
-  };
-
-  return data;
-}
-
 function _goToLocation() {
   const data = require("../../../../nuclide-commons-atom/go-to-location");
 
   _goToLocation = function () {
-    return data;
-  };
-
-  return data;
-}
-
-function _featureConfig() {
-  const data = _interopRequireDefault(require("../../../../nuclide-commons-atom/feature-config"));
-
-  _featureConfig = function () {
-    return data;
-  };
-
-  return data;
-}
-
-function _destroyItemWhere() {
-  const data = require("../../../../nuclide-commons-atom/destroyItemWhere");
-
-  _destroyItemWhere = function () {
     return data;
   };
 
@@ -171,6 +151,26 @@ function _textEditor() {
 }
 
 var _RxMin = require("rxjs/bundles/Rx.min.js");
+
+function _featureConfig() {
+  const data = _interopRequireDefault(require("../../../../nuclide-commons-atom/feature-config"));
+
+  _featureConfig = function () {
+    return data;
+  };
+
+  return data;
+}
+
+function _getDiagnosticDatatip() {
+  const data = _interopRequireDefault(require("./getDiagnosticDatatip"));
+
+  _getDiagnosticDatatip = function () {
+    return data;
+  };
+
+  return data;
+}
 
 function _showActionsMenu() {
   const data = _interopRequireDefault(require("./showActionsMenu"));
@@ -192,6 +192,18 @@ function _showAtomLinterWarning() {
   return data;
 }
 
+function _StatusBarTile() {
+  const data = _interopRequireDefault(require("./ui/StatusBarTile"));
+
+  _StatusBarTile = function () {
+    return data;
+  };
+
+  return data;
+}
+
+var _reactDom = _interopRequireDefault(require("react-dom"));
+
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 /**
@@ -207,16 +219,27 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  */
 const MAX_OPEN_ALL_FILES = 20;
 const SHOW_TRACES_SETTING = 'atom-ide-diagnostics-ui.showDiagnosticTraces';
+const NUX_ASYNC_STORAGE_KEY = 'nuclide_diagnostics_nux_shown';
 
 class Activation {
   constructor(state) {
     var _ref;
 
-    this._subscriptions = new (_UniversalDisposable().default)(this.registerOpenerAndCommand(), this._registerActionsMenu(), (0, _showAtomLinterWarning().default)());
+    this._gatekeeperServices = new _RxMin.BehaviorSubject();
+
+    this._dismissNux = () => {
+      this._model.setState({
+        showNuxContent: false
+      });
+    };
+
     this._model = new (_Model().default)({
+      showNuxContent: false,
       filterByActiveTextEditor: ((_ref = state) != null ? _ref.filterByActiveTextEditor : _ref) === true,
-      diagnosticUpdater: null
+      diagnosticUpdater: null,
+      openedMessageIds: new Set()
     });
+    this._subscriptions = new (_UniversalDisposable().default)(this.registerOpenerAndCommand(), this._registerActionsMenu(), this._observeDiagnosticsAndOfferTable(), (0, _showAtomLinterWarning().default)());
     this._fileDiagnostics = new WeakMap();
   }
 
@@ -250,7 +273,7 @@ class Activation {
   consumeDiagnosticUpdates(diagnosticUpdater) {
     this._getStatusBarTile().consumeDiagnosticUpdates(diagnosticUpdater);
 
-    this._subscriptions.add(gutterConsumeDiagnosticUpdates(diagnosticUpdater)); // Currently, the DiagnosticsView is designed to work with only one DiagnosticUpdater.
+    this._subscriptions.add(this._gutterConsumeDiagnosticUpdates(diagnosticUpdater)); // Currently, the DiagnosticsView is designed to work with only one DiagnosticUpdater.
 
 
     if (this._model.state.diagnosticUpdater != null) {
@@ -264,6 +287,8 @@ class Activation {
     const atomCommandsDisposable = addAtomCommands(diagnosticUpdater);
 
     this._subscriptions.add(atomCommandsDisposable);
+
+    this._subscriptions.add(this._observeDiagnosticsAndCleanUpOpenedMessageIds());
 
     this._subscriptions.add( // Track diagnostics for all active editors.
     atom.workspace.observeTextEditors(editor => {
@@ -294,6 +319,16 @@ class Activation {
     });
   }
 
+  consumeGatekeeperService(service) {
+    this._gatekeeperServices.next(service);
+
+    return new (_UniversalDisposable().default)(() => {
+      if (this._gatekeeperServices.getValue() === service) {
+        this._gatekeeperServices.next(null);
+      }
+    });
+  }
+
   consumeStatusBar(statusBar) {
     this._getStatusBarTile().consumeStatusBar(statusBar);
   }
@@ -321,22 +356,95 @@ class Activation {
     };
   }
 
+  _observeDiagnosticsAndCleanUpOpenedMessageIds() {
+    const packageStates = this._model.toObservable();
+
+    const updaters = packageStates.map(state => state.diagnosticUpdater).distinctUntilChanged();
+    const diagnosticMessageIdsStream = updaters.switchMap(updater => updater == null ? _RxMin.Observable.of([]) : (0, _event().observableFromSubscribeFunction)(updater.observeMessages)).map(diagnostics => {
+      const messageIds = diagnostics.map(message => message.id).filter(Boolean);
+      return new Set(messageIds);
+    }).let((0, _observable().diffSets)());
+    return new (_UniversalDisposable().default)(diagnosticMessageIdsStream.subscribe(({
+      _,
+      removed
+    }) => {
+      const newOpenedMessageIds = new Set(this._model.state.openedMessageIds);
+      removed.forEach(msgId => {
+        newOpenedMessageIds.delete(msgId);
+      });
+
+      this._model.setState({
+        openedMessageIds: newOpenedMessageIds
+      });
+    }));
+  }
+
+  _observeDiagnosticsAndOfferTable() {
+    return new (_UniversalDisposable().default)(this._gatekeeperServices.switchMap(gatekeeperService => {
+      if (gatekeeperService == null) {
+        return _RxMin.Observable.of(null);
+      }
+
+      return gatekeeperService.passesGK('nuclide_diagnostics_nux');
+    }).filter(Boolean).take(1) // Don't show it to the user if they've seen it before
+    .switchMap(() => _idbKeyval().default.get(NUX_ASYNC_STORAGE_KEY)).filter(seen => !seen).switchMap(() => // Only display once there are errors originating from multiple files
+    this._getGlobalViewStates().debounceTime(500).map(state => state.diagnostics).filter(diags => {
+      // make sure there are diagnostics from at least two different uris
+      // and that those diagnostics are errors
+      const firstErrorDiagIndex = diags.findIndex(diag => diag.type === 'Error');
+
+      if (firstErrorDiagIndex === -1) {
+        return false;
+      }
+
+      const firstUri = diags[firstErrorDiagIndex].filePath;
+
+      for (let i = firstErrorDiagIndex + 1; i < diags.length; i++) {
+        if (diags[i].type === 'Error' && diags[i].filePath !== firstUri) {
+          return true;
+        }
+      }
+
+      return false;
+    }).take(1)).subscribe(async () => {
+      // capture the current focus since opening diagnostics will change it
+      const previouslyFocusedElement = document.activeElement;
+
+      this._model.setState({
+        showNuxContent: true
+      }); // we need to await this as we must wait for the panel to activate to
+      // change the focus back
+
+
+      await (0, _goToLocation().goToLocation)(_DiagnosticsViewModel().WORKSPACE_VIEW_URI);
+
+      _idbKeyval().default.set(NUX_ASYNC_STORAGE_KEY, true);
+
+      _analytics().default.track('diagnostics-table-nux-shown'); // and then restore the focus if it existed before
+
+
+      if (previouslyFocusedElement != null) {
+        previouslyFocusedElement.focus();
+      }
+    }));
+  }
+
   _createDiagnosticsViewModel() {
     return new (_DiagnosticsViewModel().DiagnosticsViewModel)(this._getGlobalViewStates());
   }
+
   /**
    * An observable of the state that's shared between all panel copies. State that's unique to a
    * single copy of the diagnostics panel is managed in DiagnosticsViewModel. Generally, users will
    * only have one copy of the diagnostics panel so this is mostly a theoretical distinction,
    * however, each copy should have its own sorting, filtering, etc.
    */
-
-
   _getGlobalViewStates() {
     if (this._globalViewStates == null) {
       const packageStates = this._model.toObservable();
 
       const updaters = packageStates.map(state => state.diagnosticUpdater).distinctUntilChanged();
+      const showNuxContentStream = packageStates.map(state => state.showNuxContent);
       const diagnosticsStream = updaters.switchMap(updater => updater == null ? _RxMin.Observable.of([]) : (0, _event().observableFromSubscribeFunction)(updater.observeMessages)).map(diagnostics => diagnostics.filter(d => d.type !== 'Hint')).let((0, _observable().fastDebounce)(100)).startWith([]);
 
       const showTracesStream = _featureConfig().default.observeAsStream(SHOW_TRACES_SETTING);
@@ -360,8 +468,8 @@ class Activation {
 
       const supportedMessageKindsStream = updaters.switchMap(updater => updater == null ? _RxMin.Observable.of(new Set(['lint'])) : (0, _event().observableFromSubscribeFunction)(updater.observeSupportedMessageKinds.bind(updater))).distinctUntilChanged(_collection().areSetsEqual);
       const uiConfigStream = updaters.switchMap(updater => updater == null ? _RxMin.Observable.of([]) : (0, _event().observableFromSubscribeFunction)(updater.observeUiConfig.bind(updater)));
-      this._globalViewStates = _RxMin.Observable.combineLatest(diagnosticsStream, filterByActiveTextEditorStream, pathToActiveTextEditorStream, showTracesStream, showDirectoryColumnStream, autoVisibilityStream, supportedMessageKindsStream, uiConfigStream, // $FlowFixMe
-      (diagnostics, filterByActiveTextEditor, pathToActiveTextEditor, showTraces, showDirectoryColumn, autoVisibility, supportedMessageKinds, uiConfig) => ({
+      this._globalViewStates = _RxMin.Observable.combineLatest(diagnosticsStream, filterByActiveTextEditorStream, pathToActiveTextEditorStream, showTracesStream, showDirectoryColumnStream, autoVisibilityStream, supportedMessageKindsStream, showNuxContentStream, uiConfigStream, // $FlowFixMe
+      (diagnostics, filterByActiveTextEditor, pathToActiveTextEditor, showTraces, showDirectoryColumn, autoVisibility, supportedMessageKinds, showNuxContent, uiConfig) => ({
         diagnostics,
         filterByActiveTextEditor,
         pathToActiveTextEditor,
@@ -370,7 +478,9 @@ class Activation {
         autoVisibility,
         onShowTracesChange: setShowTraces,
         onFilterByActiveTextEditorChange: setFilterByActiveTextEditor,
+        onDismissNux: this._dismissNux,
         supportedMessageKinds,
+        showNuxContent,
         uiConfig
       }));
     }
@@ -432,24 +542,46 @@ class Activation {
     return messagesForFile.filter(message => message.range != null && message.range.containsPoint(position));
   }
 
-}
+  _gutterConsumeDiagnosticUpdates(diagnosticUpdater) {
+    const subscriptions = new (_UniversalDisposable().default)();
 
-function gutterConsumeDiagnosticUpdates(diagnosticUpdater) {
-  const subscriptions = new (_UniversalDisposable().default)();
-  subscriptions.add(atom.workspace.observeTextEditors(editor => {
-    const subscription = getEditorDiagnosticUpdates(editor, diagnosticUpdater).finally(() => {
-      subscriptions.remove(subscription);
-    }).subscribe(update => {
-      // Although the subscription should be cleaned up on editor destroy,
-      // the very act of destroying the editor can trigger diagnostic updates.
-      // Thus this callback can still be triggered after the editor is destroyed.
-      if (!editor.isDestroyed()) {
-        (0, _gutter().applyUpdateToEditor)(editor, update, diagnosticUpdater);
-      }
-    });
-    subscriptions.add(subscription);
-  }));
-  return subscriptions;
+    const updateOpenedMessageIds = this._model.toObservable().map(state => state.openedMessageIds).distinctUntilChanged();
+
+    this._subscriptions.add(updateOpenedMessageIds.subscribe());
+
+    const setOpenedMessageIds = openedMessageIds => {
+      this._model.setState({
+        openedMessageIds
+      });
+    };
+
+    subscriptions.add(atom.workspace.observeTextEditors(editor => {
+      // blockDecorationContainer is unique per editor and will get cleaned up
+      // when editor destroys and diagnostics package deactivates
+      const blockDecorationContainer = document.createElement('div');
+      editor.onDidDestroy(() => {
+        _reactDom.default.unmountComponentAtNode(blockDecorationContainer);
+      });
+      subscriptions.add(() => {
+        _reactDom.default.unmountComponentAtNode(blockDecorationContainer);
+      });
+
+      const subscription = _RxMin.Observable.combineLatest(updateOpenedMessageIds, getEditorDiagnosticUpdates(editor, diagnosticUpdater)).finally(() => {
+        subscriptions.remove(subscription);
+      }).subscribe(([openedMessageIds, update]) => {
+        // Although the subscription should be cleaned up on editor destroy,
+        // the very act of destroying the editor can trigger diagnostic updates.
+        // Thus this callback can still be triggered after the editor is destroyed.
+        if (!editor.isDestroyed()) {
+          (0, _gutter().applyUpdateToEditor)(editor, update, diagnosticUpdater, blockDecorationContainer, openedMessageIds, setOpenedMessageIds);
+        }
+      });
+
+      subscriptions.add(subscription);
+    }));
+    return subscriptions;
+  }
+
 }
 
 function addAtomCommands(diagnosticUpdater) {

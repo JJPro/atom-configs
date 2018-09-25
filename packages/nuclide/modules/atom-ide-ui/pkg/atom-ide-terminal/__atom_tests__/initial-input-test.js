@@ -20,6 +20,7 @@ function _terminalView() {
  *
  *  strict-local
  * @format
+ * @emails oncall+nuclide
  */
 describe('initial input sanitizer', () => {
   it('accepts inputs with valid characters', () => {

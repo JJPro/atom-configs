@@ -43,6 +43,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  *
  * 
  * @format
+ * @emails oncall+nuclide
  */
 const {
   _getOmniSearchProviderSpec
@@ -194,21 +195,19 @@ describe('SearchResultManager', () => {
       }));
     });
     it('ignores trailing whitespace in querystring.', async () => {
-      await (async () => {
-        quickOpenProviderRegistry.addProvider(ExactStringMatchProvider);
-        await providersChanged;
-        await Promise.all(['   yolo', 'yolo   ', '   yolo   \n '].map(async query => {
-          expect((await querySingleProvider(searchResultManager, query, 'ExactStringMatchProvider'))).toEqual(constructSingleProviderResult(ExactStringMatchProvider, {
-            results: [{
-              resultType: 'FILE',
-              path: query.trim(),
-              sourceProvider: 'ExactStringMatchProvider'
-            }],
-            loading: false,
-            error: null
-          }));
+      quickOpenProviderRegistry.addProvider(ExactStringMatchProvider);
+      await providersChanged;
+      await Promise.all(['   yolo', 'yolo   ', '   yolo   \n '].map(async query => {
+        expect((await querySingleProvider(searchResultManager, query, 'ExactStringMatchProvider'))).toEqual(constructSingleProviderResult(ExactStringMatchProvider, {
+          results: [{
+            resultType: 'FILE',
+            path: query.trim(),
+            sourceProvider: 'ExactStringMatchProvider'
+          }],
+          loading: false,
+          error: null
         }));
-      })();
+      }));
     });
   });
   describe.skip('OmniSearch provider sorting', () => {
@@ -275,32 +274,26 @@ describe('SearchResultManager', () => {
       quickOpenProviderRegistry.addProvider(FirstProvider);
       quickOpenProviderRegistry.addProvider(ThirdProvider);
       quickOpenProviderRegistry.addProvider(SecondProvider);
-      await (async () => {
-        await providersChanged;
-        expect((await queryOmniSearchProvider(quickOpenProviderRegistry, searchResultManager, ''))).toEqual(allResults);
-      })();
+      await providersChanged;
+      expect((await queryOmniSearchProvider(quickOpenProviderRegistry, searchResultManager, ''))).toEqual(allResults);
     });
     it('returns results sorted by priority (3, 2, 1)', async () => {
       quickOpenProviderRegistry.addProvider(ThirdProvider);
       quickOpenProviderRegistry.addProvider(SecondProvider);
       quickOpenProviderRegistry.addProvider(FirstProvider);
-      await (async () => {
-        await providersChanged;
-        expect((await queryOmniSearchProvider(quickOpenProviderRegistry, searchResultManager, ''))).toEqual(allResults);
-      })();
+      await providersChanged;
+      expect((await queryOmniSearchProvider(quickOpenProviderRegistry, searchResultManager, ''))).toEqual(allResults);
     });
   });
   describe('directory sorting', () => {
     beforeEach(async () => {
-      await (async () => {
-        // Something adds paths automatically. I've seen both the `fixtures` directory and the
-        // `spec` directory. Remove them here so they don't pollute the tests below.
-        atom.project.getPaths().forEach(path => atom.project.removePath(path));
-        atom.project.addPath(PROJECT_ROOT1);
-        atom.project.addPath(PROJECT_ROOT2);
-        atom.project.addPath(PROJECT_ROOT3);
-        await providersChanged;
-      })();
+      // Something adds paths automatically. I've seen both the `fixtures` directory and the
+      // `spec` directory. Remove them here so they don't pollute the tests below.
+      atom.project.getPaths().forEach(path => atom.project.removePath(path));
+      atom.project.addPath(PROJECT_ROOT1);
+      atom.project.addPath(PROJECT_ROOT2);
+      atom.project.addPath(PROJECT_ROOT3);
+      await providersChanged;
     });
     describe('with no current working root', () => {
       it('should return the same order as Atom', () => {

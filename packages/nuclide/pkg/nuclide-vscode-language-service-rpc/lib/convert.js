@@ -418,7 +418,11 @@ function lspCompletionItem_atomCompletion(item, supportsResolve) {
     // Resolving a completion item in the LSP requires passing in the original
     // completion item, and since completion items are sent over the wire we
     // already know they're serializable to JSON.
-    extraData: supportsResolve ? JSON.stringify(item) : undefined
+    extraData: supportsResolve ? JSON.stringify(item) : undefined,
+    // LSP and Nuclide extension: string used to filter a set of completion items
+    filterText: item.filterText,
+    // LSP and Nuclide extension: string used to compare a completion item to another
+    sortText: item.sortText
   };
 }
 
@@ -663,20 +667,21 @@ function atomTrace_lspRelatedLocation(trace) {
 
 function lspDiagnostic_atomDiagnostic(diagnostic, filePath, // has already been converted for us
 defaultSource) {
-  let providerName = diagnostic.source != null ? diagnostic.source : defaultSource;
-
-  if (diagnostic.code != null) {
-    providerName = providerName + ': ' + String(diagnostic.code);
-  }
-
-  return {
-    providerName,
+  const atomDiagnostic = {
+    providerName: diagnostic.source != null ? diagnostic.source : defaultSource,
     type: lspSeverity_atomDiagnosticMessageType(diagnostic.severity),
     filePath,
     text: diagnostic.message,
     range: lspRange_atomRange(diagnostic.range),
     trace: (diagnostic.relatedLocations || []).map(lspRelatedLocation_atomTrace)
   };
+
+  if (diagnostic.code != null) {
+    atomDiagnostic.providerName += ': ' + String(diagnostic.code);
+    atomDiagnostic.code = parseInt(String(diagnostic.code), 10);
+  }
+
+  return atomDiagnostic;
 }
 
 function lspCommand_atomCodeAction(command, applyFunc) {
@@ -697,13 +702,19 @@ function lspCommand_atomCodeAction(command, applyFunc) {
 
 function atomDiagnostic_lspDiagnostic(diagnostic) {
   if (diagnostic.range != null) {
-    return {
+    const lspDiagnostic = {
       range: atomRange_lspRange(diagnostic.range),
       severity: atomDiagnosticMessageType_lspSeverity(diagnostic.type),
       source: diagnostic.providerName,
       message: diagnostic.text || '',
       relatedLocations: (0, _collection().arrayCompact)((diagnostic.trace || []).map(atomTrace_lspRelatedLocation))
     };
+
+    if (diagnostic.code != null) {
+      lspDiagnostic.code = diagnostic.code;
+    }
+
+    return lspDiagnostic;
   }
 
   return null;

@@ -1,7 +1,5 @@
 "use strict";
 
-var _fs = _interopRequireDefault(require("fs"));
-
 function _nuclideUri() {
   const data = _interopRequireDefault(require("../../../../modules/nuclide-commons/nuclideUri"));
 
@@ -33,6 +31,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  *
  *  strict-local
  * @format
+ * @emails oncall+nuclide
  */
 jest.setTimeout(15000);
 describe('GrepSearch', () => {

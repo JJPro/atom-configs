@@ -19,6 +19,7 @@ function _ImportFormatter() {
  *
  *  strict-local
  * @format
+ * @emails oncall+nuclide
  */
 describe('ImportFormatter', () => {
   it('Should properly format filenames', () => {

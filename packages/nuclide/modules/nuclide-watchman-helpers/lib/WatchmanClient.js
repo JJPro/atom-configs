@@ -3,7 +3,7 @@
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-exports.default = void 0;
+exports.default = exports.DEFAULT_WATCHMAN_RECONNECT_DELAY_MS = void 0;
 
 function _nuclideUri() {
   const data = _interopRequireDefault(require("../../nuclide-commons/nuclideUri"));
@@ -90,14 +90,28 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  */
 const logger = (0, _log4js().getLogger)('nuclide-watchman-helpers');
 const WATCHMAN_SETTLE_TIME_MS = 2500;
+const DEFAULT_WATCHMAN_RECONNECT_DELAY_MS = 100;
+exports.DEFAULT_WATCHMAN_RECONNECT_DELAY_MS = DEFAULT_WATCHMAN_RECONNECT_DELAY_MS;
+const MAXIMUM_WATCHMAN_RECONNECT_DELAY_MS = 30 * 1000;
 
 class WatchmanClient {
   constructor() {
+    this._reconnectDelayMs = DEFAULT_WATCHMAN_RECONNECT_DELAY_MS;
+
     this._initWatchmanClient();
 
-    this._serializedReconnect = (0, _promise().serializeAsyncCall)(() => {
-      logger.info('Calling _reconnectClient from _serializedReconnect.');
-      return this._reconnectClient().catch(error => logger.error('_reconnectClient failed', error));
+    this._serializedReconnect = (0, _promise().serializeAsyncCall)(async () => {
+      logger.info('Calling _reconnectClient from _serializedReconnect in %dms', this._reconnectDelayMs);
+      await (0, _promise().sleep)(this._reconnectDelayMs);
+      this._reconnectDelayMs *= 2; // exponential backoff
+
+      if (this._reconnectDelayMs > MAXIMUM_WATCHMAN_RECONNECT_DELAY_MS) {
+        this._reconnectDelayMs = MAXIMUM_WATCHMAN_RECONNECT_DELAY_MS;
+      }
+
+      return this._reconnectClient().catch(error => {
+        logger.error('_reconnectClient failed', error);
+      });
     });
     this._subscriptions = new Map();
   }
@@ -172,6 +186,7 @@ class WatchmanClient {
       await this._subscribe(root, name, options);
       ++numRestored;
       logger.info(`Subscribed to ${name}: (${numRestored}/${numSubscriptions}) complete.`);
+      this._reconnectDelayMs = DEFAULT_WATCHMAN_RECONNECT_DELAY_MS;
     }));
   }
 

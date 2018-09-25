@@ -19,6 +19,7 @@ function _LocalStorageJsonTable() {
  *
  *  strict-local
  * @format
+ * @emails oncall+nuclide
  */
 
 /* global localStorage */

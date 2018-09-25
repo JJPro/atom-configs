@@ -95,16 +95,24 @@ class BigDigServer {
    * Note: This BigDigServer is responsible for closing httpServer and wss.
    */
   constructor(httpsServer, webSocketServer) {
-    this._logger = (0, _log4js().getLogger)();
+    this._logger = (0, _log4js().getLogger)('BigDigServer');
     this._tagToSubscriber = new Map();
     this._httpsServer = httpsServer;
 
     this._httpsServer.on('request', this._onHttpsRequest.bind(this));
 
+    this._httpsServer.on('error', err => {
+      this._logger.error('Received error from httpsServer', err);
+    });
+
     this._clientIdToTransport = new Map();
     this._webSocketServer = webSocketServer;
 
     this._webSocketServer.on('connection', this._onWebSocketConnection.bind(this));
+
+    this._webSocketServer.on('error', err => {
+      this._logger.error('Received error from webSocketServer', err);
+    });
   }
 
   static async createServer(options) {
@@ -117,16 +125,18 @@ class BigDigServer {
     const webSocketServer = new (_ws().default.Server)({
       server: webServer,
       perMessageDeflate: true
-    }); // Let unhandled WS server errors go through to the global exception handler.
-    // $FlowIgnore
+    }); // $FlowIgnore
 
     const launcher = require(options.absolutePathToServerMain);
 
     const tunnelLauncher = require("../services/tunnel/launcher");
 
+    const thriftLauncher = require("../services/thrift/launcher");
+
     const bigDigServer = new BigDigServer(webServer, webSocketServer);
     await launcher(bigDigServer);
     await tunnelLauncher(bigDigServer);
+    await thriftLauncher(bigDigServer);
     return bigDigServer;
   }
 
@@ -153,6 +163,12 @@ class BigDigServer {
   }
 
   _onHttpsRequest(request, response) {
+    // catch request's error that might be caused after request ends OK
+    // see: https://github.com/nodejs/node/issues/14102
+    request.on('error', error => {
+      this._logger.error('Received error from https request', error);
+    });
+
     const {
       pathname
     } = _url.default.parse(request.url);
@@ -167,6 +183,10 @@ class BigDigServer {
   }
 
   _onWebSocketConnection(ws, req) {
+    ws.on('error', err => {
+      this._logger.error('Received error from socket', err);
+    });
+
     const {
       pathname
     } = _url.default.parse(req.url);

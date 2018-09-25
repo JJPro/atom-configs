@@ -63,10 +63,10 @@ function getTasks(buckRoot, ruleType, device, debuggerAvailable) {
 
     if (!_nuclideUri().default.isRemote(buckRoot)) {
       tasks.add('test');
+    }
 
-      if (debuggerAvailable) {
-        tasks.add('debug');
-      }
+    if (debuggerAvailable) {
+      tasks.add('debug');
     }
   }
 

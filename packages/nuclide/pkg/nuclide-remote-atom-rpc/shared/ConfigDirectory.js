@@ -173,8 +173,7 @@ async function getServer() {
 
 async function getServerInfos(configDirectory) {
   const entries = await _fsPromise().default.readdir(configDirectory);
-  return (0, _collection().arrayCompact)(( // $FlowFixMe
-  await Promise.all(entries.map(async entry => {
+  return (0, _collection().arrayCompact)((await Promise.all(entries.map(async entry => {
     const subdir = _nuclideUri().default.join(configDirectory, entry);
 
     const info = JSON.parse((await _fsPromise().default.readFile(_nuclideUri().default.join(subdir, SERVER_INFO_FILE), 'utf8')));

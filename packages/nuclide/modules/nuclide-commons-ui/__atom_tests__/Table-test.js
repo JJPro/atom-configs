@@ -20,6 +20,7 @@ function _Table() {
  *
  *  strict-local
  * @format
+ * @emails oncall+nuclide
  */
 describe('Table', () => {
   it('correctly distributes widths according to percentage, regardless of min width', () => {

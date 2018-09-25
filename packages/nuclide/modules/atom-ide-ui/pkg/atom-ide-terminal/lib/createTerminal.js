@@ -89,7 +89,8 @@ const assertTerminalOptionsInFeatureConfig = (0, _decoders().guard)((0, _decoder
   lineHeight: _decoders().number,
   macOptionIsMeta: _decoders().boolean,
   allowTransparency: _decoders().boolean,
-  experimentalCharAtlas: (0, _decoders().either3)((0, _decoders().constant)('none'), (0, _decoders().constant)('static'), (0, _decoders().constant)('dynamic'))
+  experimentalCharAtlas: (0, _decoders().either3)((0, _decoders().constant)('none'), (0, _decoders().constant)('static'), (0, _decoders().constant)('dynamic')),
+  rendererType: (0, _decoders().either)((0, _decoders().constant)('canvas'), (0, _decoders().constant)('dom'))
 }));
 
 function createTerminal(options = {}) {
@@ -105,7 +106,9 @@ function createTerminal(options = {}) {
   if (_xterm().Terminal.webLinksInit == null) {
     // The 'webLinks' add-on linkifies http URL strings.
     _xterm().Terminal.applyAddon(WebLinks());
-  } // $FlowIgnore We know that TerminalClass is XTerminal + addons
+  }
+
+  const rendererType = _featureConfig().default.get(_config().RENDERER_TYPE_CONFIG); // $FlowIgnore We know that TerminalClass is XTerminal + addons
 
 
   const terminal = new (_xterm().Terminal)( // $FlowIssue: xterms type needs to be updated to include experimentalCharAtlas
@@ -118,18 +121,8 @@ function createTerminal(options = {}) {
     lineHeight: _featureConfig().default.get(_config().LINE_HEIGHT_CONFIG),
     macOptionIsMeta: _featureConfig().default.get(_config().OPTION_IS_META_CONFIG),
     allowTransparency: _featureConfig().default.get(_config().TRANSPARENCY_CONFIG),
-    experimentalCharAtlas: _featureConfig().default.get(_config().CHAR_ATLAS_CONFIG)
-  }, options))); // Patch into xterm Linkifier to catch errors on isWrapped property.
-  // Track issue at https://github.com/xtermjs/xterm.js/issues/1509
-
-  const linkifyRow = terminal.linkifier._linkifyRow;
-
-  terminal.linkifier._linkifyRow = row => {
-    try {
-      linkifyRow.call(terminal.linkifier, row);
-    } catch (e) {// swallow errors to avoid red box because the linkifier runs on a timer.
-    }
-  };
-
+    experimentalCharAtlas: _featureConfig().default.get(_config().CHAR_ATLAS_CONFIG),
+    rendererType: rendererType === 'auto' ? 'canvas' : rendererType
+  }, options)));
   return terminal;
 }

@@ -31,6 +31,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  *
  *  strict-local
  * @format
+ * @emails oncall+nuclide
  */
 describe('llbuildYamlPath', () => {
   const chdir = '/path/to/chdir';
@@ -86,10 +87,8 @@ describe('readCompileCommands', () => {
       path = _nuclideUri().default.join(__dirname, '../fixtures/nonexistent.yaml');
     });
     it('returns an empty mapping', async () => {
-      await (async () => {
-        const commands = await (0, _LlbuildYamlParser().readCompileCommands)(path);
-        expect(commands.size).toBe(0);
-      })();
+      const commands = await (0, _LlbuildYamlParser().readCompileCommands)(path);
+      expect(commands.size).toBe(0);
     });
   });
   describe('when the YAML in the file cannot be parsed', () => {

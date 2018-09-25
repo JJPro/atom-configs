@@ -257,8 +257,11 @@ function getMatchRanges(haystack, needle) {
 }
 
 function escapeMarkdown(markdown) {
-  // _ * # () [] need to be slash escaped.
-  const slashEscaped = markdown.replace(/[_*#/()[\]]/g, '\\$&'); // And HTML tags need to be &lt; &gt; escaped.
+  // Which characters can be backslash-escaped?
+  // markdown:   ! #    ()*+ -.        [\] _`{ }   https://daringfireball.net/projects/markdown/syntax#backslash
+  // commonMark: !"#$%&'()*+,-./:;<=>?@[\]^_`{|}~  https://spec.commonmark.org/0.28/#backslash-escapes
+  // We'll only backslash-escape the lowest common denominator.
+  const slashEscaped = markdown.replace(/[#!()*+\-.[\\\]_`{}]/g, '\\$&'); // And HTML tags need to be &lt; &gt; escaped.
 
   return slashEscaped.replace(/</g, '&lt;').replace(/>/g, '&gt;');
 } // Originally copied from:

@@ -19,6 +19,7 @@ function _Complete() {
  *
  *  strict
  * @format
+ * @emails oncall+nuclide
  */
 describe('sourceKittenSourcetextToAtomSnippet', () => {
   let sourcetext;

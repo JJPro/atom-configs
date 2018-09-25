@@ -19,6 +19,7 @@ function _AutoImportsManager() {
  *
  *  strict-local
  * @format
+ * @emails oncall+nuclide
  */
 describe('AutoImportsManager', () => {
   it('Can provide a basic missing value import', () => {

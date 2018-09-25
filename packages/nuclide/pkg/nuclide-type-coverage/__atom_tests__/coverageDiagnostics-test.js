@@ -23,6 +23,7 @@ function _coverageDiagnostics() {
  *
  * 
  * @format
+ * @emails oncall+nuclide
  */
 describe('diagnosticProviderForResultStream', () => {
   let inputResults = null;

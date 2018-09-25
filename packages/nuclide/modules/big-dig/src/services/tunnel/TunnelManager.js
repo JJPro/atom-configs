@@ -45,6 +45,8 @@ function _Encoder() {
   return data;
 }
 
+var _events = _interopRequireDefault(require("events"));
+
 function _log4js() {
   const data = require("log4js");
 
@@ -85,11 +87,12 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  * When the client closes tunnel, it sends a message to the server to close
  * the associated component that is running on the server.
  */
-class TunnelManager {
+class TunnelManager extends _events.default {
   // on the client (where tunnels are created), we always map to a Tunnel.
   // on the server, we map to either a SocketManager or a Proxy, depending
   // on whether we are a reverse tunnel or not
   constructor(transport) {
+    super();
     this._transport = transport;
     this._idToTunnel = new Map();
     this._logger = (0, _log4js().getLogger)('tunnel-manager');
@@ -116,7 +119,17 @@ class TunnelManager {
 
     this._logger.info(`creating reverse tunnel ${localPort}<-${remotePort}`);
 
-    return this._createTunnel(localPort, remotePort, useIPv4 != null ? useIPv4 : false, true);
+    return new Promise(async (resolve, reject) => {
+      const tunnel = await this._createTunnel(localPort, remotePort, useIPv4 != null ? useIPv4 : false, true); // now wait until we get the 'proxyCreated' or 'proxyError' message
+
+      this.once(`proxyMessage:${tunnel.getId()}`, msg => {
+        if (msg.event === 'proxyCreated') {
+          resolve(tunnel);
+        } else {
+          reject(JSON.parse(msg.error));
+        }
+      });
+    });
   }
 
   async _createTunnel(localPort, remotePort, useIPv4, isReverse) {
@@ -194,6 +207,12 @@ class TunnelManager {
 
         this._idToTunnel.set(msg.tunnelId, socketManager);
       }
+
+      this.emit(`proxyMessage:${msg.tunnelId}`, msg);
+    } else if (msg.event === 'proxyError') {
+      this._logger.error('error creating proxy: ', msg);
+
+      this.emit(`proxyMessage:${msg.tunnelId}`, msg);
     } else if (msg.event === 'proxyClosed') {
       // in the case of a reverse tunnel, we get the proxyClosed event
       // after we actually close the tunnel, so we ignore it.

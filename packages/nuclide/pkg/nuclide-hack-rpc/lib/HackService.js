@@ -197,7 +197,7 @@ async function initializeLsp(command, args, projectFileNames, fileExtensions, lo
     return null;
   }
 
-  return (0, _nuclideVscodeLanguageServiceRpc().createMultiLspLanguageService)('hack', [cmd], args, {
+  return (0, _nuclideVscodeLanguageServiceRpc().createMultiLspLanguageService)('hack', cmd, args, {
     logCategory: _hackConfig().HACK_LOGGER_CATEGORY,
     logLevel,
     fileNotifier,

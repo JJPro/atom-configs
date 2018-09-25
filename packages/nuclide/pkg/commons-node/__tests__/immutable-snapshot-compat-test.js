@@ -20,16 +20,6 @@ function _immutable() {
   return data;
 }
 
-function _performanceNow() {
-  const data = _interopRequireDefault(require("../../../modules/nuclide-commons/performanceNow"));
-
-  _performanceNow = function () {
-    return data;
-  };
-
-  return data;
-}
-
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 /**
@@ -41,6 +31,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  *
  * 
  * @format
+ * @emails oncall+nuclide
  */
 
 /* eslint-disable no-console */
@@ -49,18 +40,13 @@ describe('Benchmark', () => {
   it('checks List performance', () => {
     const LIST_SIZE = 1000; // console.log(`Benchmark: List.push * ${LIST_SIZE} * ${ITER}`);
 
-    let startTime = (0, _performanceNow().default)();
-
     for (let i = 0; i < ITER; i++) {
       let list = _immutable().default.List();
 
       for (let j = 0; j < LIST_SIZE; j++) {
         list = list.push(j);
       }
-    } // console.log('Immutable.List:', performanceNow() - startTime);
-
-
-    startTime = (0, _performanceNow().default)();
+    }
 
     for (let i = 0; i < ITER; i++) {
       let list = (0, _immutableSnapshot().List)();
@@ -68,14 +54,12 @@ describe('Benchmark', () => {
       for (let j = 0; j < LIST_SIZE; j++) {
         list = list.push(j);
       }
-    } // console.log('ImmutableSnapshot.List:', performanceNow() - startTime);
-    // Snapshot testList so mutations start becoming tracked.
+    } // Snapshot testList so mutations start becoming tracked.
 
 
     const testList = (0, _immutableSnapshot().List)([0]);
     const snapshotter = new (_immutableSnapshot().ImmutableSnapshotter)();
     snapshotter.createDeltaSnapshot(testList);
-    startTime = (0, _performanceNow().default)();
 
     for (let i = 0; i < ITER; i++) {
       let list = testList;
@@ -83,11 +67,7 @@ describe('Benchmark', () => {
       for (let j = 0; j < LIST_SIZE; j++) {
         list = list.push(j);
       }
-    } // console.log(
-    //   'ImmutableSnapshot.List (with deltas):',
-    //   performanceNow() - startTime,
-    // );
-
+    }
   });
 }); // The tests below are adapted from:
 // https://github.com/facebook/immutable-js/blob/master/__tests__/List.ts

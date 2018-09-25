@@ -49,7 +49,7 @@ class NullLanguageService {
   }
 
   rename(fileVersion, position, newName) {
-    return Promise.resolve(null);
+    return _RxMin.Observable.of(null).publish();
   }
 
   getCoverage(filePath) {
@@ -133,6 +133,14 @@ class NullLanguageService {
   async clickStatus(fileVersion, id, button) {}
 
   onWillSave(fileVersion) {
+    return _RxMin.Observable.empty().publish();
+  }
+
+  async sendLspRequest(filePath, method, params) {}
+
+  async sendLspNotification(filePath, method, params) {}
+
+  observeLspNotifications(notificationMethod) {
     return _RxMin.Observable.empty().publish();
   }
 

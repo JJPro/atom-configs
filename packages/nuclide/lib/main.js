@@ -183,6 +183,26 @@ function _dompurify() {
   return data;
 }
 
+function _patchAtomTextEditor() {
+  const data = _interopRequireDefault(require("./patchAtomTextEditor"));
+
+  _patchAtomTextEditor = function () {
+    return data;
+  };
+
+  return data;
+}
+
+function _menuUtils() {
+  const data = require("../modules/nuclide-commons/menuUtils");
+
+  _menuUtils = function () {
+    return data;
+  };
+
+  return data;
+}
+
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 /**
@@ -283,13 +303,13 @@ _fs.default.readdirSync(FEATURES_DIR).forEach(item => {
   } // Optimization: Avoid JSON parsing if it can't reasonably be an Atom package
 
 
-  if (src.indexOf('"Atom"') === -1) {
+  if (src.indexOf('"AtomPackage"') === -1) {
     return;
   }
 
   const pkg = JSON.parse(src);
 
-  if (pkg.nuclide && pkg.nuclide.packageType === 'Atom') {
+  if (pkg.nuclide && pkg.nuclide.packageType === 'AtomPackage') {
     if (!pkg.name) {
       throw new Error("Invariant violation: \"pkg.name\"");
     }
@@ -361,8 +381,11 @@ function _activate() {
 
   if (atom.inDevMode() && process.env.SANDCASTLE == null) {
     (0, _installDevTools().default)();
-  } // Add the "Nuclide" menu, if it's not there already.
+  } // TODO(T31782876): Remove once fixed upstream in Atom
+  // https://github.com/atom/atom/pull/17702
 
+
+  (0, _patchAtomTextEditor().default)(); // Add the "Nuclide" menu, if it's not there already.
 
   disposables = new (_UniversalDisposable().default)(atom.menu.add([{
     // On Windows, menu labels have an & before a letter to indicate which
@@ -429,14 +452,14 @@ function _activate() {
 
   const menusToSort = ['Nuclide', 'View'];
   disposables.add(atom.packages.onDidActivateInitialPackages(() => {
-    sortMenuGroups(menusToSort);
+    (0, _menuUtils().sortMenuGroups)(menusToSort);
 
     if (!(disposables != null)) {
       throw new Error("Invariant violation: \"disposables != null\"");
     }
 
     disposables.add(atom.packages.onDidActivatePackage(() => {
-      sortMenuGroups(menusToSort);
+      (0, _menuUtils().sortMenuGroups)(menusToSort);
     }));
   }));
   patchNotificationManager();
@@ -456,27 +479,6 @@ function patchNotificationManager() {
   };
 }
 
-function sortLabelValue(label) {
-  // Ignore the Windows accelerator key hint when sorting, the & doesn't
-  // actually appear in the UX so it shouldn't affect the sort.
-  return String(label).replace('&', '');
-}
-
-function sortSubmenuGroup(menuItems, startIndex, itemCount) {
-  // Sort a subset of the items in the menu of length itemCount beginning
-  // at startIndex.
-  const itemsToSort = menuItems.splice(startIndex, itemCount);
-  itemsToSort.sort((a, b) => {
-    // Always put the "Version" label up top.
-    if (sortLabelValue(a.label).startsWith('Version')) {
-      return -1;
-    } else {
-      return sortLabelValue(a.label).localeCompare(sortLabelValue(b.label));
-    }
-  });
-  menuItems.splice(startIndex, 0, ...itemsToSort);
-}
-
 function mergeFeatureGroups(firstGroup, secondGroup) {
   const mergedObject = {};
 
@@ -489,37 +491,6 @@ function mergeFeatureGroups(firstGroup, secondGroup) {
   }
 
   return mergedObject;
-}
-
-function sortMenuGroups(menuNames) {
-  for (const menuName of menuNames) {
-    // Sorts the items in a menu alphabetically. If the menu contains one or more
-    // separators, then the items within each separator subgroup will be sorted
-    // with respect to each other, but items will remain in the same groups, and
-    // the separators will not be moved.
-    const menu = atom.menu.template.find(m => sortLabelValue(m.label) === menuName);
-
-    if (menu == null) {
-      continue;
-    } // Sort each group of items (separated by a separator) individually.
-
-
-    let sortStart = 0;
-
-    for (let i = 0; i < menu.submenu.length; i++) {
-      if (menu.submenu[i].type === 'separator') {
-        sortSubmenuGroup(menu.submenu, sortStart, i - sortStart);
-        sortStart = i + 1;
-      }
-    } // Sort any remaining items after the last separator.
-
-
-    if (sortStart < menu.submenu.length) {
-      sortSubmenuGroup(menu.submenu, sortStart, menu.submenu.length - sortStart);
-    }
-  }
-
-  atom.menu.update();
 }
 
 function _deactivate() {

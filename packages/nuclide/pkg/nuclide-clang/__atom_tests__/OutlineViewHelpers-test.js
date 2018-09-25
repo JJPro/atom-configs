@@ -41,6 +41,7 @@ function _OutlineViewHelpers() {
  *
  *  strict-local
  * @format
+ * @emails oncall+nuclide
  */
 describe('outlineFromClangOutline', () => {
   it('works for a function', () => {

@@ -15,9 +15,10 @@ exports.createEmptyAppState = createEmptyAppState;
  * 
  * @format
  */
-function createEmptyAppState(serializedState, overriddenDefaults = {}) {
-  const hiddenTopics = serializedState == null ? new Set() : new Set(serializedState.hiddenTopics);
+function createEmptyAppState(hiddenTopics, overriddenDefaults = {}) {
   return {
+    topic: '',
+    shouldHide: true,
     welcomePages: new Map(),
     hiddenTopics,
     isWelcomePageVisible: false

@@ -85,7 +85,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 // $FlowFB
 async function connectToService(connection) {
   const [fileNotifier, host] = await Promise.all([(0, _nuclideOpenFiles().getNotifierByConnection)(connection), (0, _nuclideLanguageService().getHostServices)()]);
-  const lspService = await (0, _nuclideRemoteConnection().getVSCodeLanguageServiceByConnection)(connection).createMultiLspLanguageService('css', ['vscode-css-languageserver-bin/cssServerMain'], ['--stdio'], {
+  const lspService = await (0, _nuclideRemoteConnection().getVSCodeLanguageServiceByConnection)(connection).createMultiLspLanguageService('css', 'vscode-css-languageserver-bin/cssServerMain', ['--stdio'], {
     fileNotifier,
     host,
     projectFileNames: ['.arcconfig', '.flowconfig', '.hg', '.git'],

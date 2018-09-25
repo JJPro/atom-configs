@@ -56,6 +56,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  *
  * 
  * @format
+ * @emails oncall+nuclide
  */
 const sleep = n => new Promise(r => setTimeout(r, n));
 
@@ -84,19 +85,17 @@ describe('CodeFormatManager', () => {
     await (0, _waits_for().default)(() => textEditor.getText() === 'def');
   });
   it('format an editor using formatEntireFile', async () => {
-    await (async () => {
-      const manager = new (_CodeFormatManager().default)();
-      manager.addFileProvider({
-        grammarScopes: ['text.plain.null-grammar'],
-        priority: 1,
-        formatEntireFile: () => Promise.resolve({
-          formatted: 'ghi'
-        })
-      });
-      textEditor.setText('abc');
-      atom.commands.dispatch(atom.views.getView(textEditor), 'code-format:format-code');
-      await (0, _waits_for().default)(() => textEditor.getText() === 'ghi');
-    })();
+    const manager = new (_CodeFormatManager().default)();
+    manager.addFileProvider({
+      grammarScopes: ['text.plain.null-grammar'],
+      priority: 1,
+      formatEntireFile: () => Promise.resolve({
+        formatted: 'ghi'
+      })
+    });
+    textEditor.setText('abc');
+    atom.commands.dispatch(atom.views.getView(textEditor), 'code-format:format-code');
+    await (0, _waits_for().default)(() => textEditor.getText() === 'ghi');
   });
   it('formats an editor on type', async () => {
     jest.spyOn(config(), 'getFormatOnType').mockReturnValue(true);
@@ -122,22 +121,20 @@ describe('CodeFormatManager', () => {
     expect(spy.mock.calls.length).toBe(1);
   });
   it('formats an editor on save', async () => {
-    await (async () => {
-      jest.spyOn(config(), 'getFormatOnSave').mockReturnValue(true);
-      const manager = new (_CodeFormatManager().default)();
-      manager.addOnSaveProvider({
-        grammarScopes: ['text.plain.null-grammar'],
-        priority: 1,
-        formatOnSave: () => Promise.resolve([{
-          oldRange: new _atom.Range([0, 0], [0, 3]),
-          oldText: 'abc',
-          newText: 'def'
-        }])
-      });
-      textEditor.setText('abc');
-      await textEditor.save();
-      expect(textEditor.getText()).toBe('def');
-    })();
+    jest.spyOn(config(), 'getFormatOnSave').mockReturnValue(true);
+    const manager = new (_CodeFormatManager().default)();
+    manager.addOnSaveProvider({
+      grammarScopes: ['text.plain.null-grammar'],
+      priority: 1,
+      formatOnSave: () => Promise.resolve([{
+        oldRange: new _atom.Range([0, 0], [0, 3]),
+        oldText: 'abc',
+        newText: 'def'
+      }])
+    });
+    textEditor.setText('abc');
+    await textEditor.save();
+    expect(textEditor.getText()).toBe('def');
   });
   it('should still save on timeout', async () => {
     jest.spyOn(config(), 'getFormatOnSave').mockReturnValue(true);

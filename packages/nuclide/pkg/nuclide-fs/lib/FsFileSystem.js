@@ -187,7 +187,6 @@ class FsFileSystem {
         }
       }
     })); // TODO: Return entries directly and change client to handle error.
-    // $FlowFixMe
 
     return (0, _collection().arrayCompact)(entries).map(entry => {
       return [entry.file, entry.stats.isFile(), entry.isSymbolicLink];

@@ -76,12 +76,12 @@ class DeviceAndPackage extends React.Component {
 
     this._handleDeviceChange = device => {
       const state = {
-        selectedDevice: device,
+        selectedDeviceSerial: device === null || device === void 0 ? void 0 : device.serial,
         packages: device == null ? _expected().Expect.value([]) : _expected().Expect.pending()
       };
       const value = this.props.deserialize();
 
-      if (device != null && (this.state.selectedDevice == null || device.serial !== this.state.selectedDevice.serial) && value != null) {
+      if (device != null && (this.state.selectedDeviceSerial == null || device.serial !== this.state.selectedDeviceSerial) && value != null) {
         state.launchPackage = value;
       }
 
@@ -91,7 +91,7 @@ class DeviceAndPackage extends React.Component {
     };
 
     this.state = {
-      selectedDevice: null,
+      selectedDeviceSerial: null,
       launchPackage: '',
       packages: _expected().Expect.value([])
     };
@@ -114,7 +114,7 @@ class DeviceAndPackage extends React.Component {
   setState(partialState, callback) {
     const fullState = Object.assign({}, this.state, partialState);
     super.setState(fullState, () => {
-      this.props.onSelect(fullState.selectedDevice, fullState.launchPackage);
+      this.props.onSelect(fullState.selectedDeviceSerial, fullState.launchPackage);
       callback && callback();
     });
   }
@@ -128,7 +128,7 @@ class DeviceAndPackage extends React.Component {
     }), React.createElement("label", null, "Package: "), this.state.packages.isPending ? React.createElement(_LoadingSpinner().LoadingSpinner, {
       size: "EXTRA_SMALL"
     }) : React.createElement(_Dropdown().Dropdown, {
-      disabled: this.state.selectedDevice == null,
+      disabled: this.state.selectedDeviceSerial == null,
       options: this.state.packages.getOrDefault([]).map(packageName => {
         return {
           value: packageName,

@@ -47,25 +47,22 @@ class FrameTreeNode extends React.Component {
     super(props);
 
     this.handleSelect = () => {
-      this.props.service.focusStackFrame(this.props.frame, null, null, true);
+      this.props.service.viewModel.setFocusedStackFrame(this.props.frame, true);
     };
-
-    this.handleSelect = this.handleSelect.bind(this);
   }
 
   render() {
     const {
       frame,
-      service,
-      text
+      service
     } = this.props;
     const activeFrame = service.viewModel.focusedStackFrame;
     const className = (activeFrame == null ? false : frame === activeFrame) ? (0, _classnames().default)('debugger-tree-frame-selected', 'debugger-tree-frame') : 'debugger-tree-frame';
     const treeItem = React.createElement(_Tree().TreeItem, {
       className: className,
       onSelect: this.handleSelect,
-      title: `Frame ID: ${frame.frameId}, Name: ${frame.name}` + (frame.thread.stopped && frame.thread.getCallStack()[0] === frame && frame.source != null && frame.source.name != null ? `, Stopped at: ${frame.source.name}: ${frame.range.end.row}` : '')
-    }, text);
+      title: `Frame ID: ${frame.frameId}, Name: ${frame.name}` + (frame.thread.stopped && frame.thread.getCallStackTopFrame() === frame && frame.source != null && frame.source.name != null ? `, Stopped at: ${frame.source.name}: ${frame.range.end.row}` : '')
+    }, frame.name);
     return treeItem;
   }
 

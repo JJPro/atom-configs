@@ -70,7 +70,7 @@ module.exports = _client => {
         location: {
           type: "source",
           fileName: "rpc-types.js",
-          line: 66
+          line: 71
         },
         name: "Progress"
       }), "setTitle", "void", _client.marshalArguments(Array.from(arguments), [{
@@ -314,6 +314,46 @@ module.exports = _client => {
       });
     }
 
+    dispatchCommand(arg0, arg1) {
+      return _client.callRemoteMethod(_client.marshal(this, {
+        kind: "named",
+        location: {
+          type: "source",
+          fileName: "rpc-types.js",
+          line: 20
+        },
+        name: "HostServices"
+      }), "dispatchCommand", "promise", _client.marshalArguments(Array.from(arguments), [{
+        name: "command",
+        type: {
+          kind: "string"
+        }
+      }, {
+        name: "params",
+        type: {
+          kind: "object",
+          fields: [{
+            name: "args",
+            type: {
+              kind: "any"
+            },
+            optional: false
+          }, {
+            name: "projectRoot",
+            type: {
+              kind: "named",
+              name: "NuclideUri"
+            },
+            optional: false
+          }]
+        }
+      }])).then(value => {
+        return _client.unmarshal(value, {
+          kind: "boolean"
+        });
+      });
+    }
+
     dispose() {
       return _client.disposeRemoteObject(this);
     }
@@ -372,7 +412,7 @@ module.exports = _client => {
         location: {
           type: "source",
           fileName: "LanguageService.js",
-          line: 151
+          line: 155
         },
         name: "LanguageService"
       }), "getDiagnostics", "promise", _client.marshalArguments(Array.from(arguments), [{
@@ -398,7 +438,7 @@ module.exports = _client => {
         location: {
           type: "source",
           fileName: "LanguageService.js",
-          line: 151
+          line: 155
         },
         name: "LanguageService"
       }), "observeDiagnostics", "observable", _client.marshalArguments(Array.from(arguments), [])).map(value => {
@@ -415,7 +455,7 @@ module.exports = _client => {
         location: {
           type: "source",
           fileName: "LanguageService.js",
-          line: 151
+          line: 155
         },
         name: "LanguageService"
       }), "observeStatus", "observable", _client.marshalArguments(Array.from(arguments), [{
@@ -438,7 +478,7 @@ module.exports = _client => {
         location: {
           type: "source",
           fileName: "LanguageService.js",
-          line: 151
+          line: 155
         },
         name: "LanguageService"
       }), "clickStatus", "promise", _client.marshalArguments(Array.from(arguments), [{
@@ -470,7 +510,7 @@ module.exports = _client => {
         location: {
           type: "source",
           fileName: "LanguageService.js",
-          line: 151
+          line: 155
         },
         name: "LanguageService"
       }), "getAutocompleteSuggestions", "promise", _client.marshalArguments(Array.from(arguments), [{
@@ -508,7 +548,7 @@ module.exports = _client => {
         location: {
           type: "source",
           fileName: "LanguageService.js",
-          line: 151
+          line: 155
         },
         name: "LanguageService"
       }), "resolveAutocompleteSuggestion", "promise", _client.marshalArguments(Array.from(arguments), [{
@@ -534,7 +574,7 @@ module.exports = _client => {
         location: {
           type: "source",
           fileName: "LanguageService.js",
-          line: 151
+          line: 155
         },
         name: "LanguageService"
       }), "getDefinition", "promise", _client.marshalArguments(Array.from(arguments), [{
@@ -566,7 +606,7 @@ module.exports = _client => {
         location: {
           type: "source",
           fileName: "LanguageService.js",
-          line: 151
+          line: 155
         },
         name: "LanguageService"
       }), "findReferences", "observable", _client.marshalArguments(Array.from(arguments), [{
@@ -598,10 +638,10 @@ module.exports = _client => {
         location: {
           type: "source",
           fileName: "LanguageService.js",
-          line: 151
+          line: 155
         },
         name: "LanguageService"
-      }), "rename", "promise", _client.marshalArguments(Array.from(arguments), [{
+      }), "rename", "observable", _client.marshalArguments(Array.from(arguments), [{
         name: "fileVersion",
         type: {
           kind: "named",
@@ -618,25 +658,15 @@ module.exports = _client => {
         type: {
           kind: "string"
         }
-      }])).then(value => {
+      }])).map(value => {
         return _client.unmarshal(value, {
           kind: "nullable",
           type: {
-            kind: "map",
-            keyType: {
-              kind: "named",
-              name: "NuclideUri"
-            },
-            valueType: {
-              kind: "array",
-              type: {
-                kind: "named",
-                name: "TextEdit"
-              }
-            }
+            kind: "named",
+            name: "RenameReturn"
           }
         });
-      });
+      }).publish();
     }
 
     getCoverage(arg0) {
@@ -645,7 +675,7 @@ module.exports = _client => {
         location: {
           type: "source",
           fileName: "LanguageService.js",
-          line: 151
+          line: 155
         },
         name: "LanguageService"
       }), "getCoverage", "promise", _client.marshalArguments(Array.from(arguments), [{
@@ -671,7 +701,7 @@ module.exports = _client => {
         location: {
           type: "source",
           fileName: "LanguageService.js",
-          line: 151
+          line: 155
         },
         name: "LanguageService"
       }), "getOutline", "promise", _client.marshalArguments(Array.from(arguments), [{
@@ -697,7 +727,7 @@ module.exports = _client => {
         location: {
           type: "source",
           fileName: "LanguageService.js",
-          line: 151
+          line: 155
         },
         name: "LanguageService"
       }), "getCodeLens", "promise", _client.marshalArguments(Array.from(arguments), [{
@@ -726,7 +756,7 @@ module.exports = _client => {
         location: {
           type: "source",
           fileName: "LanguageService.js",
-          line: 151
+          line: 155
         },
         name: "LanguageService"
       }), "resolveCodeLens", "promise", _client.marshalArguments(Array.from(arguments), [{
@@ -758,7 +788,7 @@ module.exports = _client => {
         location: {
           type: "source",
           fileName: "LanguageService.js",
-          line: 151
+          line: 155
         },
         name: "LanguageService"
       }), "getCodeActions", "promise", _client.marshalArguments(Array.from(arguments), [{
@@ -799,7 +829,7 @@ module.exports = _client => {
         location: {
           type: "source",
           fileName: "LanguageService.js",
-          line: 151
+          line: 155
         },
         name: "LanguageService"
       }), "typeHint", "promise", _client.marshalArguments(Array.from(arguments), [{
@@ -831,7 +861,7 @@ module.exports = _client => {
         location: {
           type: "source",
           fileName: "LanguageService.js",
-          line: 151
+          line: 155
         },
         name: "LanguageService"
       }), "highlight", "promise", _client.marshalArguments(Array.from(arguments), [{
@@ -866,7 +896,7 @@ module.exports = _client => {
         location: {
           type: "source",
           fileName: "LanguageService.js",
-          line: 151
+          line: 155
         },
         name: "LanguageService"
       }), "formatSource", "promise", _client.marshalArguments(Array.from(arguments), [{
@@ -907,7 +937,7 @@ module.exports = _client => {
         location: {
           type: "source",
           fileName: "LanguageService.js",
-          line: 151
+          line: 155
         },
         name: "LanguageService"
       }), "formatEntireFile", "promise", _client.marshalArguments(Array.from(arguments), [{
@@ -957,7 +987,7 @@ module.exports = _client => {
         location: {
           type: "source",
           fileName: "LanguageService.js",
-          line: 151
+          line: 155
         },
         name: "LanguageService"
       }), "formatAtPosition", "promise", _client.marshalArguments(Array.from(arguments), [{
@@ -1003,7 +1033,7 @@ module.exports = _client => {
         location: {
           type: "source",
           fileName: "LanguageService.js",
-          line: 151
+          line: 155
         },
         name: "LanguageService"
       }), "signatureHelp", "promise", _client.marshalArguments(Array.from(arguments), [{
@@ -1035,7 +1065,7 @@ module.exports = _client => {
         location: {
           type: "source",
           fileName: "LanguageService.js",
-          line: 151
+          line: 155
         },
         name: "LanguageService"
       }), "onToggleCoverage", "promise", _client.marshalArguments(Array.from(arguments), [{
@@ -1056,7 +1086,7 @@ module.exports = _client => {
         location: {
           type: "source",
           fileName: "LanguageService.js",
-          line: 151
+          line: 155
         },
         name: "LanguageService"
       }), "getAdditionalLogFiles", "promise", _client.marshalArguments(Array.from(arguments), [{
@@ -1082,7 +1112,7 @@ module.exports = _client => {
         location: {
           type: "source",
           fileName: "LanguageService.js",
-          line: 151
+          line: 155
         },
         name: "LanguageService"
       }), "supportsSymbolSearch", "promise", _client.marshalArguments(Array.from(arguments), [{
@@ -1107,7 +1137,7 @@ module.exports = _client => {
         location: {
           type: "source",
           fileName: "LanguageService.js",
-          line: 151
+          line: 155
         },
         name: "LanguageService"
       }), "symbolSearch", "promise", _client.marshalArguments(Array.from(arguments), [{
@@ -1144,7 +1174,7 @@ module.exports = _client => {
         location: {
           type: "source",
           fileName: "LanguageService.js",
-          line: 151
+          line: 155
         },
         name: "LanguageService"
       }), "getProjectRoot", "promise", _client.marshalArguments(Array.from(arguments), [{
@@ -1170,7 +1200,7 @@ module.exports = _client => {
         location: {
           type: "source",
           fileName: "LanguageService.js",
-          line: 151
+          line: 155
         },
         name: "LanguageService"
       }), "isFileInProject", "promise", _client.marshalArguments(Array.from(arguments), [{
@@ -1192,7 +1222,7 @@ module.exports = _client => {
         location: {
           type: "source",
           fileName: "LanguageService.js",
-          line: 151
+          line: 155
         },
         name: "LanguageService"
       }), "getExpandedSelectionRange", "promise", _client.marshalArguments(Array.from(arguments), [{
@@ -1224,7 +1254,7 @@ module.exports = _client => {
         location: {
           type: "source",
           fileName: "LanguageService.js",
-          line: 151
+          line: 155
         },
         name: "LanguageService"
       }), "getCollapsedSelectionRange", "promise", _client.marshalArguments(Array.from(arguments), [{
@@ -1262,7 +1292,7 @@ module.exports = _client => {
         location: {
           type: "source",
           fileName: "LanguageService.js",
-          line: 151
+          line: 155
         },
         name: "LanguageService"
       }), "onWillSave", "observable", _client.marshalArguments(Array.from(arguments), [{
@@ -1275,6 +1305,91 @@ module.exports = _client => {
         return _client.unmarshal(value, {
           kind: "named",
           name: "TextEdit"
+        });
+      }).publish();
+    }
+
+    sendLspRequest(arg0, arg1, arg2) {
+      return _client.callRemoteMethod(_client.marshal(this, {
+        kind: "named",
+        location: {
+          type: "source",
+          fileName: "LanguageService.js",
+          line: 155
+        },
+        name: "LanguageService"
+      }), "sendLspRequest", "promise", _client.marshalArguments(Array.from(arguments), [{
+        name: "filePath",
+        type: {
+          kind: "named",
+          name: "NuclideUri"
+        }
+      }, {
+        name: "method",
+        type: {
+          kind: "string"
+        }
+      }, {
+        name: "params",
+        type: {
+          kind: "mixed"
+        }
+      }])).then(value => {
+        return _client.unmarshal(value, {
+          kind: "mixed"
+        });
+      });
+    }
+
+    sendLspNotification(arg0, arg1, arg2) {
+      return _client.callRemoteMethod(_client.marshal(this, {
+        kind: "named",
+        location: {
+          type: "source",
+          fileName: "LanguageService.js",
+          line: 155
+        },
+        name: "LanguageService"
+      }), "sendLspNotification", "promise", _client.marshalArguments(Array.from(arguments), [{
+        name: "filePath",
+        type: {
+          kind: "named",
+          name: "NuclideUri"
+        }
+      }, {
+        name: "method",
+        type: {
+          kind: "string"
+        }
+      }, {
+        name: "params",
+        type: {
+          kind: "mixed"
+        }
+      }])).then(value => {
+        return _client.unmarshal(value, {
+          kind: "void"
+        });
+      });
+    }
+
+    observeLspNotifications(arg0) {
+      return _client.callRemoteMethod(_client.marshal(this, {
+        kind: "named",
+        location: {
+          type: "source",
+          fileName: "LanguageService.js",
+          line: 155
+        },
+        name: "LanguageService"
+      }), "observeLspNotifications", "observable", _client.marshalArguments(Array.from(arguments), [{
+        name: "notificationMethod",
+        type: {
+          kind: "string"
+        }
+      }])).map(value => {
+        return _client.unmarshal(value, {
+          kind: "mixed"
         });
       }).publish();
     }
@@ -1294,10 +1409,7 @@ module.exports = _client => {
     }, {
       name: "command_",
       type: {
-        kind: "array",
-        type: {
-          kind: "string"
-        }
+        kind: "string"
       }
     }, {
       name: "args",
@@ -1320,14 +1432,6 @@ module.exports = _client => {
           kind: "named",
           name: "LanguageService"
         }
-      });
-    });
-  };
-
-  remoteModule.processPlatform = function () {
-    return _client.callRemoteFunction("VSCodeLanguageService/processPlatform", "promise", _client.marshalArguments(Array.from(arguments), [])).then(value => {
-      return _client.unmarshal(value, {
-        kind: "string"
       });
     });
   };
@@ -1860,7 +1964,7 @@ Object.defineProperty(module.exports, "defs", {
       location: {
         type: "source",
         fileName: "rpc-types.js",
-        line: 66
+        line: 71
       },
       staticMethods: {},
       instanceMethods: {
@@ -1868,7 +1972,7 @@ Object.defineProperty(module.exports, "defs", {
           location: {
             type: "source",
             fileName: "rpc-types.js",
-            line: 67
+            line: 72
           },
           kind: "function",
           argumentTypes: [{
@@ -1885,7 +1989,7 @@ Object.defineProperty(module.exports, "defs", {
           location: {
             type: "source",
             fileName: "rpc-types.js",
-            line: 68
+            line: 73
           },
           kind: "function",
           argumentTypes: [],
@@ -2165,6 +2269,45 @@ Object.defineProperty(module.exports, "defs", {
               kind: "boolean"
             }
           }
+        },
+        dispatchCommand: {
+          location: {
+            type: "source",
+            fileName: "rpc-types.js",
+            line: 65
+          },
+          kind: "function",
+          argumentTypes: [{
+            name: "command",
+            type: {
+              kind: "string"
+            }
+          }, {
+            name: "params",
+            type: {
+              kind: "object",
+              fields: [{
+                name: "args",
+                type: {
+                  kind: "any"
+                },
+                optional: false
+              }, {
+                name: "projectRoot",
+                type: {
+                  kind: "named",
+                  name: "NuclideUri"
+                },
+                optional: false
+              }]
+            }
+          }],
+          returnType: {
+            kind: "promise",
+            type: {
+              kind: "boolean"
+            }
+          }
         }
       }
     },
@@ -2220,13 +2363,16 @@ Object.defineProperty(module.exports, "defs", {
           value: "nearest"
         }, {
           kind: "string-literal",
-          value: "furthest"
+          value: "aurora"
         }, {
           kind: "string-literal",
-          value: "priority"
+          value: "eclipse"
         }, {
           kind: "string-literal",
-          value: "pathMatch"
+          value: "ocaml"
+        }, {
+          kind: "string-literal",
+          value: "thrift"
         }]
       }
     },
@@ -2235,7 +2381,7 @@ Object.defineProperty(module.exports, "defs", {
       location: {
         type: "source",
         fileName: "LspLanguageService.js",
-        line: 131
+        line: 136
       },
       name: "LspPreferences",
       definition: {
@@ -2279,7 +2425,7 @@ Object.defineProperty(module.exports, "defs", {
       location: {
         type: "source",
         fileName: "main.js",
-        line: 33
+        line: 32
       },
       name: "LspLanguageServiceParams",
       definition: {
@@ -2395,7 +2541,7 @@ Object.defineProperty(module.exports, "defs", {
       location: {
         type: "source",
         fileName: "types.js",
-        line: 66
+        line: 67
       },
       name: "DiagnosticMessageKind",
       definition: {
@@ -2417,7 +2563,7 @@ Object.defineProperty(module.exports, "defs", {
       location: {
         type: "source",
         fileName: "types.js",
-        line: 67
+        line: 68
       },
       name: "DiagnosticMessageType",
       definition: {
@@ -2442,7 +2588,7 @@ Object.defineProperty(module.exports, "defs", {
       location: {
         type: "source",
         fileName: "types.js",
-        line: 69
+        line: 70
       },
       name: "DiagnosticTrace",
       definition: {
@@ -2488,7 +2634,7 @@ Object.defineProperty(module.exports, "defs", {
       location: {
         type: "source",
         fileName: "types.js",
-        line: 78
+        line: 79
       },
       name: "DiagnosticFix",
       definition: {
@@ -2554,12 +2700,21 @@ Object.defineProperty(module.exports, "defs", {
       location: {
         type: "source",
         fileName: "LanguageService.js",
-        line: 100
+        line: 101
       },
       name: "FileDiagnosticMessage",
       definition: {
         kind: "object",
         fields: [{
+          name: "id",
+          type: {
+            kind: "nullable",
+            type: {
+              kind: "string"
+            }
+          },
+          optional: true
+        }, {
           name: "kind",
           type: {
             kind: "named",
@@ -2634,6 +2789,18 @@ Object.defineProperty(module.exports, "defs", {
             kind: "boolean"
           },
           optional: true
+        }, {
+          name: "code",
+          type: {
+            kind: "number"
+          },
+          optional: true
+        }, {
+          name: "getBlockComponent",
+          type: {
+            kind: "any"
+          },
+          optional: true
         }]
       }
     },
@@ -2642,7 +2809,7 @@ Object.defineProperty(module.exports, "defs", {
       location: {
         type: "source",
         fileName: "LanguageService.js",
-        line: 123
+        line: 127
       },
       name: "FileDiagnosticMap",
       definition: {
@@ -2665,7 +2832,7 @@ Object.defineProperty(module.exports, "defs", {
       location: {
         type: "source",
         fileName: "LanguageService.js",
-        line: 135
+        line: 139
       },
       name: "StatusData",
       definition: {
@@ -2777,7 +2944,7 @@ Object.defineProperty(module.exports, "defs", {
       location: {
         type: "source",
         fileName: "LanguageService.js",
-        line: 37
+        line: 38
       },
       name: "Completion",
       definition: {
@@ -2939,7 +3106,7 @@ Object.defineProperty(module.exports, "defs", {
       location: {
         type: "source",
         fileName: "LanguageService.js",
-        line: 73
+        line: 74
       },
       name: "AutocompleteResult",
       definition: {
@@ -2968,7 +3135,7 @@ Object.defineProperty(module.exports, "defs", {
       location: {
         type: "source",
         fileName: "LanguageService.js",
-        line: 85
+        line: 86
       },
       name: "AutocompleteRequest",
       definition: {
@@ -3245,6 +3412,126 @@ Object.defineProperty(module.exports, "defs", {
               kind: "string"
             },
             optional: true
+          }]
+        }, {
+          kind: "object",
+          fields: [{
+            name: "type",
+            type: {
+              kind: "string-literal",
+              value: "error"
+            },
+            optional: false
+          }, {
+            name: "message",
+            type: {
+              kind: "string"
+            },
+            optional: false
+          }]
+        }],
+        discriminantField: "type"
+      }
+    },
+    RenameData: {
+      kind: "alias",
+      location: {
+        type: "source",
+        fileName: "types.js",
+        line: 359
+      },
+      name: "RenameData",
+      definition: {
+        kind: "object",
+        fields: [{
+          name: "type",
+          type: {
+            kind: "string-literal",
+            value: "data"
+          },
+          optional: false
+        }, {
+          name: "data",
+          type: {
+            kind: "map",
+            keyType: {
+              kind: "named",
+              name: "NuclideUri"
+            },
+            valueType: {
+              kind: "array",
+              type: {
+                kind: "named",
+                name: "TextEdit"
+              }
+            }
+          },
+          optional: false
+        }]
+      }
+    },
+    RenameError: {
+      kind: "alias",
+      location: {
+        type: "source",
+        fileName: "types.js",
+        line: 364
+      },
+      name: "RenameError",
+      definition: {
+        kind: "object",
+        fields: [{
+          name: "type",
+          type: {
+            kind: "string-literal",
+            value: "error"
+          },
+          optional: false
+        }, {
+          name: "message",
+          type: {
+            kind: "string"
+          },
+          optional: false
+        }]
+      }
+    },
+    RenameReturn: {
+      kind: "alias",
+      location: {
+        type: "source",
+        fileName: "types.js",
+        line: 369
+      },
+      name: "RenameReturn",
+      definition: {
+        kind: "union",
+        types: [{
+          kind: "object",
+          fields: [{
+            name: "type",
+            type: {
+              kind: "string-literal",
+              value: "data"
+            },
+            optional: false
+          }, {
+            name: "data",
+            type: {
+              kind: "map",
+              keyType: {
+                kind: "named",
+                name: "NuclideUri"
+              },
+              valueType: {
+                kind: "array",
+                type: {
+                  kind: "named",
+                  name: "TextEdit"
+                }
+              }
+            },
+            optional: false
           }]
         }, {
           kind: "object",
@@ -3574,7 +3861,7 @@ Object.defineProperty(module.exports, "defs", {
       location: {
         type: "source",
         fileName: "LanguageService.js",
-        line: 124
+        line: 128
       },
       name: "CodeLensData",
       definition: {
@@ -3731,7 +4018,7 @@ Object.defineProperty(module.exports, "defs", {
       location: {
         type: "source",
         fileName: "LanguageService.js",
-        line: 78
+        line: 79
       },
       name: "FormatOptions",
       definition: {
@@ -3976,7 +4263,7 @@ Object.defineProperty(module.exports, "defs", {
       location: {
         type: "source",
         fileName: "LanguageService.js",
-        line: 151
+        line: 155
       },
       staticMethods: {},
       instanceMethods: {
@@ -3984,7 +4271,7 @@ Object.defineProperty(module.exports, "defs", {
           location: {
             type: "source",
             fileName: "LanguageService.js",
-            line: 152
+            line: 156
           },
           kind: "function",
           argumentTypes: [{
@@ -4009,7 +4296,7 @@ Object.defineProperty(module.exports, "defs", {
           location: {
             type: "source",
             fileName: "LanguageService.js",
-            line: 154
+            line: 158
           },
           kind: "function",
           argumentTypes: [],
@@ -4025,7 +4312,7 @@ Object.defineProperty(module.exports, "defs", {
           location: {
             type: "source",
             fileName: "LanguageService.js",
-            line: 156
+            line: 160
           },
           kind: "function",
           argumentTypes: [{
@@ -4047,7 +4334,7 @@ Object.defineProperty(module.exports, "defs", {
           location: {
             type: "source",
             fileName: "LanguageService.js",
-            line: 158
+            line: 162
           },
           kind: "function",
           argumentTypes: [{
@@ -4078,7 +4365,7 @@ Object.defineProperty(module.exports, "defs", {
           location: {
             type: "source",
             fileName: "LanguageService.js",
-            line: 164
+            line: 168
           },
           kind: "function",
           argumentTypes: [{
@@ -4115,7 +4402,7 @@ Object.defineProperty(module.exports, "defs", {
           location: {
             type: "source",
             fileName: "LanguageService.js",
-            line: 170
+            line: 174
           },
           kind: "function",
           argumentTypes: [{
@@ -4140,7 +4427,7 @@ Object.defineProperty(module.exports, "defs", {
           location: {
             type: "source",
             fileName: "LanguageService.js",
-            line: 172
+            line: 176
           },
           kind: "function",
           argumentTypes: [{
@@ -4171,7 +4458,7 @@ Object.defineProperty(module.exports, "defs", {
           location: {
             type: "source",
             fileName: "LanguageService.js",
-            line: 177
+            line: 184
           },
           kind: "function",
           argumentTypes: [{
@@ -4202,7 +4489,7 @@ Object.defineProperty(module.exports, "defs", {
           location: {
             type: "source",
             fileName: "LanguageService.js",
-            line: 182
+            line: 189
           },
           kind: "function",
           argumentTypes: [{
@@ -4224,22 +4511,12 @@ Object.defineProperty(module.exports, "defs", {
             }
           }],
           returnType: {
-            kind: "promise",
+            kind: "observable",
             type: {
               kind: "nullable",
               type: {
-                kind: "map",
-                keyType: {
-                  kind: "named",
-                  name: "NuclideUri"
-                },
-                valueType: {
-                  kind: "array",
-                  type: {
-                    kind: "named",
-                    name: "TextEdit"
-                  }
-                }
+                kind: "named",
+                name: "RenameReturn"
               }
             }
           }
@@ -4248,7 +4525,7 @@ Object.defineProperty(module.exports, "defs", {
           location: {
             type: "source",
             fileName: "LanguageService.js",
-            line: 188
+            line: 195
           },
           kind: "function",
           argumentTypes: [{
@@ -4273,7 +4550,7 @@ Object.defineProperty(module.exports, "defs", {
           location: {
             type: "source",
             fileName: "LanguageService.js",
-            line: 190
+            line: 197
           },
           kind: "function",
           argumentTypes: [{
@@ -4298,7 +4575,7 @@ Object.defineProperty(module.exports, "defs", {
           location: {
             type: "source",
             fileName: "LanguageService.js",
-            line: 192
+            line: 199
           },
           kind: "function",
           argumentTypes: [{
@@ -4326,7 +4603,7 @@ Object.defineProperty(module.exports, "defs", {
           location: {
             type: "source",
             fileName: "LanguageService.js",
-            line: 194
+            line: 201
           },
           kind: "function",
           argumentTypes: [{
@@ -4357,7 +4634,7 @@ Object.defineProperty(module.exports, "defs", {
           location: {
             type: "source",
             fileName: "LanguageService.js",
-            line: 207
+            line: 214
           },
           kind: "function",
           argumentTypes: [{
@@ -4397,7 +4674,7 @@ Object.defineProperty(module.exports, "defs", {
           location: {
             type: "source",
             fileName: "LanguageService.js",
-            line: 213
+            line: 220
           },
           kind: "function",
           argumentTypes: [{
@@ -4428,7 +4705,7 @@ Object.defineProperty(module.exports, "defs", {
           location: {
             type: "source",
             fileName: "LanguageService.js",
-            line: 215
+            line: 222
           },
           kind: "function",
           argumentTypes: [{
@@ -4462,7 +4739,7 @@ Object.defineProperty(module.exports, "defs", {
           location: {
             type: "source",
             fileName: "LanguageService.js",
-            line: 220
+            line: 227
           },
           kind: "function",
           argumentTypes: [{
@@ -4502,7 +4779,7 @@ Object.defineProperty(module.exports, "defs", {
           location: {
             type: "source",
             fileName: "LanguageService.js",
-            line: 226
+            line: 233
           },
           kind: "function",
           argumentTypes: [{
@@ -4551,7 +4828,7 @@ Object.defineProperty(module.exports, "defs", {
           location: {
             type: "source",
             fileName: "LanguageService.js",
-            line: 235
+            line: 242
           },
           kind: "function",
           argumentTypes: [{
@@ -4596,7 +4873,7 @@ Object.defineProperty(module.exports, "defs", {
           location: {
             type: "source",
             fileName: "LanguageService.js",
-            line: 242
+            line: 249
           },
           kind: "function",
           argumentTypes: [{
@@ -4627,7 +4904,7 @@ Object.defineProperty(module.exports, "defs", {
           location: {
             type: "source",
             fileName: "LanguageService.js",
-            line: 247
+            line: 254
           },
           kind: "function",
           argumentTypes: [{
@@ -4647,7 +4924,7 @@ Object.defineProperty(module.exports, "defs", {
           location: {
             type: "source",
             fileName: "LanguageService.js",
-            line: 249
+            line: 256
           },
           kind: "function",
           argumentTypes: [{
@@ -4672,7 +4949,7 @@ Object.defineProperty(module.exports, "defs", {
           location: {
             type: "source",
             fileName: "LanguageService.js",
-            line: 253
+            line: 260
           },
           kind: "function",
           argumentTypes: [{
@@ -4696,7 +4973,7 @@ Object.defineProperty(module.exports, "defs", {
           location: {
             type: "source",
             fileName: "LanguageService.js",
-            line: 255
+            line: 262
           },
           kind: "function",
           argumentTypes: [{
@@ -4732,7 +5009,7 @@ Object.defineProperty(module.exports, "defs", {
           location: {
             type: "source",
             fileName: "LanguageService.js",
-            line: 260
+            line: 267
           },
           kind: "function",
           argumentTypes: [{
@@ -4757,7 +5034,7 @@ Object.defineProperty(module.exports, "defs", {
           location: {
             type: "source",
             fileName: "LanguageService.js",
-            line: 262
+            line: 269
           },
           kind: "function",
           argumentTypes: [{
@@ -4778,7 +5055,7 @@ Object.defineProperty(module.exports, "defs", {
           location: {
             type: "source",
             fileName: "LanguageService.js",
-            line: 264
+            line: 271
           },
           kind: "function",
           argumentTypes: [{
@@ -4809,7 +5086,7 @@ Object.defineProperty(module.exports, "defs", {
           location: {
             type: "source",
             fileName: "LanguageService.js",
-            line: 269
+            line: 276
           },
           kind: "function",
           argumentTypes: [{
@@ -4846,7 +5123,7 @@ Object.defineProperty(module.exports, "defs", {
           location: {
             type: "source",
             fileName: "LanguageService.js",
-            line: 275
+            line: 282
           },
           kind: "function",
           argumentTypes: [{
@@ -4864,11 +5141,93 @@ Object.defineProperty(module.exports, "defs", {
             }
           }
         },
+        sendLspRequest: {
+          location: {
+            type: "source",
+            fileName: "LanguageService.js",
+            line: 284
+          },
+          kind: "function",
+          argumentTypes: [{
+            name: "filePath",
+            type: {
+              kind: "named",
+              name: "NuclideUri"
+            }
+          }, {
+            name: "method",
+            type: {
+              kind: "string"
+            }
+          }, {
+            name: "params",
+            type: {
+              kind: "mixed"
+            }
+          }],
+          returnType: {
+            kind: "promise",
+            type: {
+              kind: "mixed"
+            }
+          }
+        },
+        sendLspNotification: {
+          location: {
+            type: "source",
+            fileName: "LanguageService.js",
+            line: 290
+          },
+          kind: "function",
+          argumentTypes: [{
+            name: "filePath",
+            type: {
+              kind: "named",
+              name: "NuclideUri"
+            }
+          }, {
+            name: "method",
+            type: {
+              kind: "string"
+            }
+          }, {
+            name: "params",
+            type: {
+              kind: "mixed"
+            }
+          }],
+          returnType: {
+            kind: "promise",
+            type: {
+              kind: "void"
+            }
+          }
+        },
+        observeLspNotifications: {
+          location: {
+            type: "source",
+            fileName: "LanguageService.js",
+            line: 296
+          },
+          kind: "function",
+          argumentTypes: [{
+            name: "notificationMethod",
+            type: {
+              kind: "string"
+            }
+          }],
+          returnType: {
+            kind: "observable",
+            type: {
+              kind: "mixed"
+            }
+          }
+        },
         dispose: {
           location: {
             type: "source",
             fileName: "LanguageService.js",
-            line: 277
+            line: 300
           },
           kind: "function",
           argumentTypes: [],
@@ -4884,13 +5243,13 @@ Object.defineProperty(module.exports, "defs", {
       location: {
         type: "source",
         fileName: "main.js",
-        line: 138
+        line: 109
       },
       type: {
         location: {
           type: "source",
           fileName: "main.js",
-          line: 138
+          line: 109
         },
         kind: "function",
         argumentTypes: [{
@@ -4901,10 +5260,7 @@ Object.defineProperty(module.exports, "defs", {
         }, {
           name: "command_",
           type: {
-            kind: "array",
-            type: {
-              kind: "string"
-            }
+            kind: "string"
           }
         }, {
           name: "args",
@@ -4929,30 +5285,6 @@ Object.defineProperty(module.exports, "defs", {
               kind: "named",
               name: "LanguageService"
             }
-          }
-        }
-      }
-    },
-    processPlatform: {
-      kind: "function",
-      name: "processPlatform",
-      location: {
-        type: "source",
-        fileName: "main.js",
-        line: 237
-      },
-      type: {
-        location: {
-          type: "source",
-          fileName: "main.js",
-          line: 237
-        },
-        kind: "function",
-        argumentTypes: [],
-        returnType: {
-          kind: "promise",
-          type: {
-            kind: "string"
           }
         }
       }

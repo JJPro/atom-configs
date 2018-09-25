@@ -9,6 +9,7 @@
  *
  * 
  * @format
+ * @emails oncall+nuclide
  */
 describe('main', () => {
   // TODO: Loading packages is rightfully slow; it `require`s a lot of files. Possible to inject

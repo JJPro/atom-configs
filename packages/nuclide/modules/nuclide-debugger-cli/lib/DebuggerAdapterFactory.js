@@ -75,16 +75,6 @@ function _NodeDebugAdapter() {
   return data;
 }
 
-function _OCamlDebugAdapter() {
-  const data = _interopRequireDefault(require("./adapters/OCamlDebugAdapter"));
-
-  _OCamlDebugAdapter = function () {
-    return data;
-  };
-
-  return data;
-}
-
 function _PythonDebugAdapter() {
   const data = _interopRequireDefault(require("./adapters/PythonDebugAdapter"));
 
@@ -110,7 +100,11 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  */
 class DebuggerAdapterFactory {
   constructor() {
-    this._debugAdapters = [new (_HHVMDebugAdapter().default)(), new (_NativeGdbDebugAdapter().default)(), new (_NodeDebugAdapter().default)(), new (_OCamlDebugAdapter().default)(), new (_PythonDebugAdapter().default)()];
+    this._debugAdapters = [new (_HHVMDebugAdapter().default)(), new (_NativeGdbDebugAdapter().default)(), new (_NodeDebugAdapter().default)(), new (_PythonDebugAdapter().default)()];
+  }
+
+  allAdapterKeys() {
+    return this._debugAdapters.map(adapt => adapt.key);
   }
 
   adapterFromArguments(args) {

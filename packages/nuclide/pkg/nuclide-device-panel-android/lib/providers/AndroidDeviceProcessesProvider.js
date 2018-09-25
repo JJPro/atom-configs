@@ -34,7 +34,7 @@ class AndroidDeviceProcessesProvider {
 
   observe(host, device) {
     const intervalTime = 3000;
-    return _RxMin.Observable.interval(intervalTime).startWith(0).switchMap(() => (0, _utils().getAdbServiceByNuclideUri)(host).getProcesses(device.name, intervalTime).refCount().catch(() => _RxMin.Observable.of([])));
+    return _RxMin.Observable.interval(intervalTime).startWith(0).switchMap(() => (0, _utils().getAdbServiceByNuclideUri)(host).getProcesses(device.identifier, intervalTime).refCount().catch(() => _RxMin.Observable.of([])));
   }
 
 }

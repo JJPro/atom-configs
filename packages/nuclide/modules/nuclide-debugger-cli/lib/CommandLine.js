@@ -5,12 +5,30 @@ Object.defineProperty(exports, "__esModule", {
 });
 exports.default = void 0;
 
-var _readline = _interopRequireDefault(require("readline"));
+function _LineEditor() {
+  const data = _interopRequireDefault(require("./console/LineEditor"));
+
+  _LineEditor = function () {
+    return data;
+  };
+
+  return data;
+}
 
 function _CommandDispatcher() {
   const data = _interopRequireDefault(require("./CommandDispatcher"));
 
   _CommandDispatcher = function () {
+    return data;
+  };
+
+  return data;
+}
+
+function _More() {
+  const data = _interopRequireDefault(require("./More"));
+
+  _More = function () {
     return data;
   };
 
@@ -29,23 +47,31 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  * LICENSE file in the root directory of this source tree. An additional grant
  * of patent rights can be found in the PATENTS file in the same directory.
  *
- *  strict
+ *  strict-local
  * @format
  */
-const PROMPT = 'fbdbg> ';
+const PROMPT = '\x1b[32;1mfbdbg>\x1b[0m ';
 
 class CommandLine {
-  constructor(dispatcher) {
+  constructor(dispatcher, plain) {
     this._inputStopped = false;
     this._shouldPrompt = false;
     this._lastLine = '';
     this._overridePrompt = null;
     this._subscriptions = [];
     this._dispatcher = dispatcher;
-    this._cli = _readline.default.createInterface({
+    let lineEditorArgs = {
       input: process.stdin,
       output: process.stdout
-    });
+    };
+
+    if (plain) {
+      lineEditorArgs = Object.assign({}, lineEditorArgs, {
+        tty: false
+      });
+    }
+
+    this._cli = new (_LineEditor().default)(lineEditorArgs);
     this.setPrompt();
     this._interrupts = new _RxMin.Subject();
 
@@ -57,7 +83,12 @@ class CommandLine {
 
     this._subscriptions.push(this._lines.filter(_ => !this._inputStopped).switchMap(_ => {
       this._lastLine = _.trim() === '' ? this._lastLine : _.trim();
-      return this._dispatcher.execute(this._lastLine);
+
+      try {
+        return this._dispatcher.execute(this._lastLine);
+      } catch (err) {
+        return err;
+      }
     }).subscribe(_ => {
       if (_ != null) {
         this.outputLine(_.message);
@@ -69,6 +100,10 @@ class CommandLine {
         this._shouldPrompt = true;
       }
     }));
+
+    this._keys = new _RxMin.Subject();
+
+    this._subscriptions.push(_RxMin.Observable.fromEvent(this._cli, 'key').takeUntil(_RxMin.Observable.fromEvent(this._cli, 'close')).subscribe(this._keys));
 
     this._shouldPrompt = true;
   }
@@ -85,6 +120,14 @@ class CommandLine {
     return this._lines;
   }
 
+  observeKeys() {
+    return this._keys;
+  }
+
+  isTTY() {
+    return this._cli.isTTY();
+  }
+
   setPrompt(prompt) {
     this._overridePrompt = prompt;
 
@@ -97,27 +140,44 @@ class CommandLine {
     } else {
       this._cli.setPrompt(this._overridePrompt != null ? this._overridePrompt : PROMPT);
     }
-  } // $TODO handle paging long output (more) if termcap allows us to know the screen height
-
+  }
 
   output(text) {
-    if (!this._inputStopped) {
-      if (!text.startsWith('\n')) {
-        process.stdout.write('\n');
-      }
-
-      process.stdout.write(text);
-
-      this._cli.prompt(true);
-
-      return;
+    if (this._more == null) {
+      this._cli.write(text);
     }
-
-    process.stdout.write(text);
   }
 
   outputLine(line = '') {
-    process.stdout.write(`${line}\n`);
+    if (this._more == null) {
+      this._cli.write(`${line}\n`);
+    }
+  }
+
+  write(data) {
+    this._cli.write(data);
+  }
+
+  more(text) {
+    if (!(this._more == null)) {
+      throw new Error("Invariant violation: \"this._more == null\"");
+    }
+
+    const cursorControl = this._cli.borrowTTY();
+
+    if (cursorControl == null) {
+      this.output(text);
+      return;
+    }
+
+    const more = new (_More().default)(text, this, cursorControl, () => {
+      this._cli.returnTTY();
+
+      this._more = null;
+    });
+    this._more = more;
+
+    this._more.display();
   }
 
   prompt() {
@@ -126,6 +186,7 @@ class CommandLine {
 
   stopInput() {
     this._inputStopped = true;
+    this._shouldPrompt = true;
 
     this._updatePrompt();
   }

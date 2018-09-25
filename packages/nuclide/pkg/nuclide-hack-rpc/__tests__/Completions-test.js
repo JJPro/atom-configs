@@ -19,6 +19,7 @@ function _Completions() {
  *
  *  strict-local
  * @format
+ * @emails oncall+nuclide
  */
 const filePath = '/tmp/project/file.hh';
 const contents2 = `<?hh // strict

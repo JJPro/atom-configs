@@ -65,6 +65,9 @@ class HHVMDebugAdapter {
     this.excludedOptions = new Set(['targetUri', 'scriptArgs', 'noDebug', 'launchScriptPath', 'startupDocumentPath']);
     this.extensions = new Set(['.php']);
     this.customArguments = new Map();
+    this.muteOutputCategories = new Set();
+    this.asyncStopThread = 0;
+    this.supportsCodeBlocks = true;
     this._includedOptions = new Set();
   }
 
