@@ -72,6 +72,7 @@ async function debugSymSizeByBinary(binary) {
   const SIZE_COLUMN = 5;
   return new Promise((resolve, reject) => {
     try {
+      // eslint-disable-next-line nuclide-internal/unused-subscription
       (0, _process().runCommand)('readelf', ['-WS', binary]).catch(_ => _RxMin.Observable.of('')).map(stdout => stdout.split(/\n/) // filter out just the section lines on [##]
       .filter(line => /\[\s*\d+\]/.test(line)) // Remove spaces from the single-digit section indices, so we can
       // safely split on spaces (i.e. '[ 1]' becomes '[1]')

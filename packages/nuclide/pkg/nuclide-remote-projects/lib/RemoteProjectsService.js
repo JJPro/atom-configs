@@ -27,10 +27,10 @@ function _nuclideRemoteConnection() {
   return data;
 }
 
-function _openConnection() {
-  const data = require("./open-connection");
+function _startConnectFlow() {
+  const data = _interopRequireDefault(require("./startConnectFlow"));
 
-  _openConnection = function () {
+  _startConnectFlow = function () {
     return data;
   };
 
@@ -41,6 +41,16 @@ function _SimpleConnect() {
   const data = require("./SimpleConnect");
 
   _SimpleConnect = function () {
+    return data;
+  };
+
+  return data;
+}
+
+function _log4js() {
+  const data = require("log4js");
+
+  _log4js = function () {
     return data;
   };
 
@@ -61,6 +71,10 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  */
 class RemoteProjectsService {
   constructor() {
+    this.createRemoteConnection = config => {
+      return this._connect(config, false);
+    };
+
     this._subject = new _RxMin.ReplaySubject(1);
   }
 
@@ -78,7 +92,20 @@ class RemoteProjectsService {
     return new (_UniversalDisposable().default)(this._subject.subscribe(callback));
   }
 
-  async createRemoteConnection(remoteProjectConfig) {
+  /**
+   * This function intentially returns `void` and handles errors because it's intended to
+   * encapsulate the entire workflow.
+   */
+  connect(config) {
+    this._connect(config, true).catch(err => {
+      atom.notifications.addError('There was an error connecting to the remote project.', {
+        detail: err.message
+      });
+      (0, _log4js().getLogger)('nuclide-remote-projects').error(err);
+    });
+  }
+
+  async _connect(remoteProjectConfig, attemptImmediateConnection) {
     const {
       host,
       path,
@@ -96,9 +123,10 @@ class RemoteProjectsService {
     } // If connection fails using saved config, open connect dialog.
 
 
-    return (0, _openConnection().openConnectionDialog)({
+    return (0, _startConnectFlow().default)({
       initialServer: host,
-      initialCwd: path
+      initialCwd: path,
+      attemptImmediateConnection
     });
   }
 
@@ -107,7 +135,7 @@ class RemoteProjectsService {
   }
 
   openConnectionDialog(options) {
-    return (0, _openConnection().openConnectionDialog)(options);
+    return (0, _startConnectFlow().default)(options);
   }
 
   async findOrCreate(config) {

@@ -7,6 +7,16 @@ exports.getGeneratedFileType = getGeneratedFileType;
 exports.invalidateFileTypeCache = invalidateFileTypeCache;
 exports.getGeneratedFileTypes = getGeneratedFileTypes;
 
+function _log4js() {
+  const data = require("log4js");
+
+  _log4js = function () {
+    return data;
+  };
+
+  return data;
+}
+
 function _nuclideUri() {
   const data = _interopRequireDefault(require("../../../modules/nuclide-commons/nuclideUri"));
 
@@ -170,9 +180,17 @@ function getTagPattern(forWindows) {
 
   const separator = forWindows ? ' ' : '\\|';
   return _config().config.generatedTag + separator + _config().config.partialGeneratedTag;
-}
+} // If calling grep/findstr fails because they aren't available, we don't want to waste time trying
+// again, so we use this variable to keep track.
 
-function findTaggedFiles(dirPath, filenames) {
+
+let trySpawningToFindTaggedFiles = true;
+
+async function findTaggedFiles(dirPath, filenames) {
+  if (!trySpawningToFindTaggedFiles) {
+    return new Map();
+  }
+
   let command;
   let baseArgs;
   let pattern;
@@ -190,7 +208,7 @@ function findTaggedFiles(dirPath, filenames) {
   }
 
   if (pattern == null) {
-    return Promise.resolve(new Map());
+    return new Map();
   }
 
   const filesToGrep = filenames.length === 0 ? ['*'] : filenames;
@@ -204,26 +222,38 @@ function findTaggedFiles(dirPath, filenames) {
       return signal != null && (exitCode == null || exitCode > 1);
     }
   };
-  return (0, _process().runCommand)(command, args, options).map(stdout => {
-    const fileTags = new Map();
+  let stdout;
 
-    for (const line of stdout.split('\n')) {
-      const match = line.match(GREP_PARSE_PATTERN);
-
-      if (match != null && match.length === 3) {
-        const filename = match[1];
-        const matchedLine = match[2].trim();
-
-        if (matchedLine.includes(_config().config.generatedTag)) {
-          fileTags.set(filename, 'generated');
-        } else if (matchedLine.includes(_config().config.partialGeneratedTag) && fileTags.get(filename) !== 'generated') {
-          fileTags.set(filename, 'partial');
-        }
-      }
+  try {
+    stdout = await (0, _process().runCommand)(command, args, options).toPromise();
+  } catch (err) {
+    if (err.code === 'ENOENT') {
+      (0, _log4js().getLogger)('nuclide-generated-files-rpc').error(err);
+      trySpawningToFindTaggedFiles = false;
+      return new Map();
     }
 
-    return fileTags;
-  }).toPromise();
+    throw err;
+  }
+
+  const fileTags = new Map();
+
+  for (const line of stdout.split('\n')) {
+    const match = line.match(GREP_PARSE_PATTERN);
+
+    if (match != null && match.length === 3) {
+      const filename = match[1];
+      const matchedLine = match[2].trim();
+
+      if (matchedLine.includes(_config().config.generatedTag)) {
+        fileTags.set(filename, 'generated');
+      } else if (matchedLine.includes(_config().config.partialGeneratedTag) && fileTags.get(filename) !== 'generated') {
+        fileTags.set(filename, 'partial');
+      }
+    }
+  }
+
+  return fileTags;
 }
 
 function matchesGeneratedPaths(filePath) {

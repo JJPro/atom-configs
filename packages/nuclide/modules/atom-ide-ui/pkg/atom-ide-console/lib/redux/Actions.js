@@ -8,11 +8,9 @@ exports.recordReceived = recordReceived;
 exports.recordUpdated = recordUpdated;
 exports.registerExecutor = registerExecutor;
 exports.execute = execute;
-exports.registerOutputProvider = registerOutputProvider;
 exports.registerRecordProvider = registerRecordProvider;
 exports.registerSource = registerSource;
 exports.unregisterRecordProvider = unregisterRecordProvider;
-exports.unregisterOutputProvider = unregisterOutputProvider;
 exports.selectExecutor = selectExecutor;
 exports.setMaxMessageCount = setMaxMessageCount;
 exports.removeSource = removeSource;
@@ -108,29 +106,6 @@ function execute(code) {
   };
 }
 
-function registerOutputProvider(outputProvider) {
-  // Transform the messages into actions and merge them into the action stream.
-  // TODO: Add enabling/disabling of registered source and only subscribe when enabled. That
-  //       way, we won't trigger cold observer side-effects when we don't need the results.
-  return registerRecordProvider(Object.assign({}, outputProvider, {
-    records: outputProvider.messages.map(message => ({
-      // We duplicate the properties here instead of using spread because Flow (currently) has some
-      // issues with spread.
-      text: message.text,
-      level: message.level,
-      data: message.data,
-      tags: message.tags,
-      repeatCount: 1,
-      incomplete: false,
-      kind: 'message',
-      sourceId: outputProvider.id,
-      scopeName: null,
-      // Eventually, we'll want to allow providers to specify custom timestamps for records.
-      timestamp: new Date()
-    }))
-  }));
-}
-
 function registerRecordProvider(recordProvider) {
   return {
     type: REGISTER_RECORD_PROVIDER,
@@ -151,10 +126,6 @@ function registerSource(source) {
 
 function unregisterRecordProvider(recordProvider) {
   return removeSource(recordProvider.id);
-}
-
-function unregisterOutputProvider(outputProvider) {
-  return removeSource(outputProvider.id);
 }
 
 function selectExecutor(executorId) {

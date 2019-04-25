@@ -93,7 +93,7 @@ function _util() {
 }
 
 function _nuclideAnalytics() {
-  const data = require("../../nuclide-analytics");
+  const data = require("../../../modules/nuclide-analytics");
 
   _nuclideAnalytics = function () {
     return data;

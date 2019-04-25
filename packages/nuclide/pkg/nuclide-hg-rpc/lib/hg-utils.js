@@ -177,7 +177,9 @@ function logAndThrowHgError(args, options, err) {
 }
 
 async function getHgExecParams(args_, options_) {
-  let args = [...args_, '--noninteractive'];
+  let args = [...args_, '--noninteractive', // Prevent user-specified merge tools from attempting to
+  // open interactive editors.
+  '--config', 'ui.merge=:merge'];
   let sshCommand; // expandHomeDir is not supported on windows
 
   if (process.platform !== 'win32') {
@@ -197,9 +199,7 @@ async function getHgExecParams(args_, options_) {
     '--config', 'extensions.progressfile=', // have the progressfile extension write to 'progress' in the repo's .hg directory
     '--config', `progress.statefile=${options_.cwd}/.hg/progress`, // Without assuming hg is being run in a tty, the progress extension won't get used
     '--config', 'progress.assume-tty=1', // Never show progress bar in stdout since we use the progressfile
-    '--config', 'progress.renderer=none', // Prevent user-specified merge tools from attempting to
-    // open interactive editors.
-    '--config', 'ui.merge=:merge', // Prevent scary error message on amend in the middle of a stack
+    '--config', 'progress.renderer=none', // Prevent scary error message on amend in the middle of a stack
     '--config', 'fbamend.education=');
   }
 

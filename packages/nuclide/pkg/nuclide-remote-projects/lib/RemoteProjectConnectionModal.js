@@ -100,15 +100,20 @@ class RemoteProjectConnectionModal extends React.Component {
     switch (this.props.screen) {
       case 'connect':
         return React.createElement(_ConnectionDialog().default, {
+          error: this.props.connectionError,
+          dirty: this.props.connectionFormDirty,
+          setDirty: this.props.setConnectionFormDirty,
+          confirmConnectionPrompt: this.props.confirmConnectionPrompt,
+          connectionPromptInstructions: this.props.connectionPromptInstructions,
+          mode: this.props.connectionDialogMode,
+          setMode: this.props.setConnectionDialogMode,
+          connect: this.props.connect,
+          cancelConnection: this.props.cancelConnection,
           selectedProfileIndex: this.props.selectedProfileIndex,
           connectionProfiles: this.props.connectionProfiles,
           onAddProfileClicked: () => {
             this.props.onScreenChange('create-connection');
           },
-          onCancel: this.props.onCancel,
-          onClosed: this.props.onClosed,
-          onConnect: this.props.onConnect,
-          onError: this.props.onError,
           onDeleteProfileClicked: this.props.onDeleteProfileClicked,
           onSaveProfile: this.props.onSaveProfile,
           onProfileSelected: this.props.onProfileSelected

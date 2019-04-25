@@ -5,16 +5,6 @@ Object.defineProperty(exports, "__esModule", {
 });
 exports.default = void 0;
 
-function _promise() {
-  const data = require("../../../modules/nuclide-commons/promise");
-
-  _promise = function () {
-    return data;
-  };
-
-  return data;
-}
-
 function _fsPromise() {
   const data = _interopRequireDefault(require("../../../modules/nuclide-commons/fsPromise"));
 
@@ -77,6 +67,16 @@ function _nuclideFilewatcherRpc() {
   return data;
 }
 
+function _findClangServerArgs() {
+  const data = require("./find-clang-server-args");
+
+  _findClangServerArgs = function () {
+    return data;
+  };
+
+  return data;
+}
+
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 /**
@@ -116,10 +116,13 @@ async function getLibClangOverrideFromFlags(flagsData) {
 
     if (libClangPath != null && (await _fsPromise().default.exists(libClangPath))) {
       const realLibClangPath = await _fsPromise().default.realpath(libClangPath);
-      return (0, _promise().asyncObjFilter)({
+
+      const derivedPythonPath = _nuclideUri().default.join(realLibClangPath, '../../../../src/llvm/tools/clang/bindings/python');
+
+      return {
         libClangLibraryFile: realLibClangPath,
-        pythonPathEnv: _nuclideUri().default.join(realLibClangPath, '../../../../src/llvm/tools/clang/bindings/python')
-      }, _fsPromise().default.exists);
+        pythonPathEnv: (await _fsPromise().default.exists(derivedPythonPath)) ? derivedPythonPath : _findClangServerArgs().VENDOR_PYTHONPATH
+      };
     }
   }
 

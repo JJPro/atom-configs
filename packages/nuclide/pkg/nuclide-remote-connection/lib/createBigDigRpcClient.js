@@ -15,10 +15,10 @@ function _client() {
   return data;
 }
 
-function _nuclideMarshalersAtom() {
-  const data = require("../../nuclide-marshalers-atom");
+function _nuclideMarshalersClient() {
+  const data = require("../../nuclide-marshalers-client");
 
-  _nuclideMarshalersAtom = function () {
+  _nuclideMarshalersClient = function () {
     return data;
   };
 
@@ -112,7 +112,7 @@ var createBigDigRpcClient = async function createBigDigRpcClient(config) {
   };
   return {
     bigDigClient,
-    rpcConnection: _nuclideRpc().RpcConnection.createRemote(bigDigTransport, (0, _nuclideMarshalersAtom().getAtomSideMarshalers)(config.host), _servicesConfig().default, {
+    rpcConnection: _nuclideRpc().RpcConnection.createRemote(bigDigTransport, (0, _nuclideMarshalersClient().getClientSideMarshalers)(config.host), _servicesConfig().default, {
       trackSampleRate: 10
     }, _config().SERVICE_FRAMEWORK3_PROTOCOL, null, _utils().protocolLogger)
   };

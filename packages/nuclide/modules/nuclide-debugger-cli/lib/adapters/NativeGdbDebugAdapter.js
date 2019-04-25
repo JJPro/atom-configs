@@ -15,6 +15,16 @@ function _debuggerRegistry() {
   return data;
 }
 
+function _process() {
+  const data = require("../../../nuclide-commons/process");
+
+  _process = function () {
+    return data;
+  };
+
+  return data;
+}
+
 function _nuclideUri() {
   const data = _interopRequireDefault(require("../../../nuclide-commons/nuclideUri"));
 
@@ -34,6 +44,8 @@ function _constants() {
 
   return data;
 }
+
+var _RxMin = require("rxjs/bundles/Rx.min.js");
 
 function _VSPOptionsParser() {
   const data = _interopRequireDefault(require("../VSPOptionsParser"));
@@ -63,7 +75,7 @@ class NativeGdbDebugAdapter {
     this.key = _constants().VsAdapterTypes.NATIVE_GDB;
     this.type = 'mi';
     this.excludedOptions = new Set(['arguments', 'debuggerRoot', 'diagnosticLogging', 'stopOnAttach', 'program']);
-    this.extensions = new Set();
+    this.extensions = new Set('.exe');
     this.customArguments = new Map();
     this.muteOutputCategories = new Set('log');
     this.asyncStopThread = null;
@@ -95,6 +107,23 @@ class NativeGdbDebugAdapter {
 
   transformAttachArguments(args) {
     return args || {};
+  }
+
+  transformExpression(exp, isCodeBlock) {
+    return exp;
+  }
+
+  async canDebugFile(file) {
+    return new Promise((resolve, reject) => {
+      try {
+        // eslint-disable-next-line nuclide-internal/unused-subscription
+        (0, _process().runCommand)('file', ['-b', '--mime-type', file], {
+          dontLogInNuclide: true
+        }).catch(_ => _RxMin.Observable.of('')).map(stdout => stdout.split(/\n/).filter(line => line.startsWith('application/')).length > 0).subscribe(value => resolve(value));
+      } catch (ex) {
+        reject(ex);
+      }
+    });
   }
 
 }

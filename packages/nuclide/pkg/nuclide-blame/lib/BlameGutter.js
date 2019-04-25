@@ -26,7 +26,7 @@ function _hideAllTooltips() {
 }
 
 function _nuclideAnalytics() {
-  const data = require("../../nuclide-analytics");
+  const data = require("../../../modules/nuclide-analytics");
 
   _nuclideAnalytics = function () {
     return data;
@@ -110,7 +110,7 @@ let getEmployeeIdentifierFromAuthorString;
 
 try {
   // $FlowFB
-  getEmployeeIdentifierFromAuthorString = require("../../commons-node/fb-vcs-utils").getEmployeeIdentifierFromAuthorString;
+  getEmployeeIdentifierFromAuthorString = require('fb-vcs-common').getEmployeeIdentifierFromAuthorString;
 } catch (err) {
   getEmployeeIdentifierFromAuthorString = _nuclideVcsLog().shortNameForAuthor;
 }

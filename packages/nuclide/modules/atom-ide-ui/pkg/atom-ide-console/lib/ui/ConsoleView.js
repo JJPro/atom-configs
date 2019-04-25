@@ -29,10 +29,10 @@ var React = _interopRequireWildcard(require("react"));
 
 var _RxMin = require("rxjs/bundles/Rx.min.js");
 
-function _FilteredMessagesReminder() {
-  const data = _interopRequireDefault(require("./FilteredMessagesReminder"));
+function _FilterReminder() {
+  const data = _interopRequireDefault(require("../../../../../nuclide-commons-ui/FilterReminder"));
 
-  _FilteredMessagesReminder = function () {
+  _FilterReminder = function () {
     return data;
   };
 
@@ -258,7 +258,7 @@ class ConsoleView extends React.Component {
   componentDidUpdate(prevProps) {
     // If records are added while we're scrolled to the bottom (or very very close, at least),
     // automatically scroll.
-    if (this._isScrolledNearBottom && (0, _recordsChanged().default)(prevProps.displayableRecords, this.props.displayableRecords)) {
+    if (this._isScrolledNearBottom && (0, _recordsChanged().default)(prevProps.records, this.props.records)) {
       this._startScrollToBottom();
     }
   }
@@ -295,14 +295,14 @@ class ConsoleView extends React.Component {
 
   UNSAFE_componentWillReceiveProps(nextProps) {
     // If the messages were cleared, hide the notification.
-    if (nextProps.displayableRecords.length === 0) {
+    if (nextProps.records.length === 0) {
       this._isScrolledNearBottom = true;
       this.setState({
         unseenMessages: false
       });
     } else if ( // If we receive new messages after we've scrolled away from the bottom, show the "new
     // messages" notification.
-    !this._isScrolledNearBottom && (0, _recordsChanged().default)(this.props.displayableRecords, nextProps.displayableRecords)) {
+    !this._isScrolledNearBottom && (0, _recordsChanged().default)(this.props.records, nextProps.records)) {
       this.setState({
         unseenMessages: true
       });
@@ -358,13 +358,15 @@ class ConsoleView extends React.Component {
     }, React.createElement("div", {
       className: "console-scroll-pane-wrapper atom-ide-filterable",
       ref: el => this._consoleScrollPaneEl = el
-    }, React.createElement(_FilteredMessagesReminder().default, {
+    }, React.createElement(_FilterReminder().default, {
+      noun: "message",
+      nounPlural: "messages",
       filteredRecordCount: this.props.filteredRecordCount,
       onReset: this.props.resetAllFilters
     }), React.createElement(_OutputTable().default // $FlowFixMe(>=0.53.0) Flow suppress
     , {
       ref: this._handleOutputTable,
-      displayableRecords: this.props.displayableRecords,
+      records: this.props.records,
       showSourceLabels: this.props.selectedSourceIds.length > 1,
       fontSize: this.props.fontSize,
       getExecutor: this._getExecutor,
@@ -407,6 +409,7 @@ class ConsoleView extends React.Component {
     }, this._renderPromptButton(), React.createElement(_InputArea().default, {
       ref: component => this._inputArea = component,
       scopeName: this.state.scopeName,
+      fontSize: this.props.fontSize,
       onSubmit: this._executePrompt,
       history: this.props.history,
       watchEditor: this.props.watchEditor,

@@ -410,8 +410,15 @@ async function writeFileAtomic(path, data, options) {
     // those two operations where the destination file might have the wrong permissions.
 
 
-    await copyFilePermissions(realPath, tempFilePath); // TODO: put renames into a queue so we don't write older save over new save.
+    await copyFilePermissions(realPath, tempFilePath); // Ensure file has new permissions updated.
+
+    const mode = typeof options !== 'string' ? options === null || options === void 0 ? void 0 : options.mode : null;
+
+    if (mode != null) {
+      await chmod(tempFilePath, mode);
+    } // TODO: put renames into a queue so we don't write older save over new save.
     // Use mv as fs.rename doesn't work across partitions.
+
 
     await mv(tempFilePath, realPath, {
       mkdirp: true
@@ -455,6 +462,42 @@ function close(fd) {
     _fs.default.close(fd, err => {
       if (err == null) {
         resolve();
+      } else {
+        reject(err);
+      }
+    });
+  });
+}
+
+function fstat(fd) {
+  return new Promise((resolve, reject) => {
+    _fs.default.fstat(fd, (err, result) => {
+      if (err == null) {
+        resolve(result);
+      } else {
+        reject(err);
+      }
+    });
+  });
+}
+
+async function fsync(fd) {
+  return new Promise((resolve, reject) => {
+    _fs.default.fsync(fd, (err, result) => {
+      if (err == null) {
+        resolve(result);
+      } else {
+        reject(err);
+      }
+    });
+  });
+}
+
+function ftruncate(fd, len) {
+  return new Promise((resolve, reject) => {
+    _fs.default.ftruncate(fd, len, (err, result) => {
+      if (err == null) {
+        resolve(result);
       } else {
         reject(err);
       }
@@ -759,6 +802,9 @@ var _default = {
   chmod,
   chown,
   close,
+  fstat,
+  fsync,
+  ftruncate,
   lstat,
   mkdir,
   mv,

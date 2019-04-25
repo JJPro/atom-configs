@@ -61,11 +61,10 @@ class ConfigFile {
         const contents = _fs.default.readFileSync(fname, 'utf8');
 
         const presets = JSON.parse(contents);
-        const combined = {
-          presets: {}
+        return {
+          aliases: Object.assign({}, agg.aliases, presets.aliases),
+          presets: Object.assign({}, agg.presets, presets.presets)
         };
-        Object.assign(combined, agg, presets);
-        return combined;
       } catch (_) {
         throw new Error(`Invalid JSON in config file ${fname}.`);
       }

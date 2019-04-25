@@ -95,6 +95,16 @@ function _UniversalDisposable() {
   return data;
 }
 
+function _observableFromReduxStore() {
+  const data = _interopRequireDefault(require("../../../../../nuclide-commons/observableFromReduxStore"));
+
+  _observableFromReduxStore = function () {
+    return data;
+  };
+
+  return data;
+}
+
 function _RegExpFilter() {
   const data = require("../../../../../nuclide-commons-ui/RegExpFilter");
 
@@ -105,20 +115,20 @@ function _RegExpFilter() {
   return data;
 }
 
-function _getCurrentExecutorId() {
-  const data = _interopRequireDefault(require("../getCurrentExecutorId"));
+function Actions() {
+  const data = _interopRequireWildcard(require("../redux/Actions"));
 
-  _getCurrentExecutorId = function () {
+  Actions = function () {
     return data;
   };
 
   return data;
 }
 
-function Actions() {
-  const data = _interopRequireWildcard(require("../redux/Actions"));
+function Selectors() {
+  const data = _interopRequireWildcard(require("../redux/Selectors"));
 
-  Actions = function () {
+  Selectors = function () {
     return data;
   };
 
@@ -171,7 +181,6 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 const WORKSPACE_VIEW_URI = 'atom://nuclide/console';
 exports.WORKSPACE_VIEW_URI = WORKSPACE_VIEW_URI;
 const ERROR_TRANSCRIBING_MESSAGE = "// Nuclide couldn't find the right text to display";
-const INITIAL_RECORD_HEIGHT = 21;
 const ALL_SEVERITIES = new Set(['error', 'warning', 'info']);
 /**
  * An Atom "view model" for the console. This object is responsible for creating a stateful view
@@ -180,7 +189,6 @@ const ALL_SEVERITIES = new Set(['error', 'warning', 'info']);
  */
 
 class Console {
-  // Associates Records with their display state (height, expansionStateId).
   constructor(options) {
     this._getSourcesMemoized = (0, _memoizeUntilChanged().default)(getSources, opts => opts, (a, b) => (0, _shallowequal().default)(a, b));
 
@@ -193,7 +201,7 @@ class Console {
     };
 
     this._createPaste = async () => {
-      const displayableRecords = this._getDisplayableRecords();
+      const displayableRecords = Selectors().getAllRecords(this._store.getState()).toArray();
 
       const createPasteImpl = this._store.getState().createPasteFunction;
 
@@ -243,35 +251,6 @@ class Console {
       });
     };
 
-    this._handleDisplayableRecordHeightChange = (recordId, newHeight, callback) => {
-      const {
-        records,
-        incompleteRecords
-      } = this._store.getState();
-
-      const nextDisplayableRecords = Array(records.size + incompleteRecords.size);
-      records.concat(incompleteRecords).forEach((record, i) => {
-        let displayableRecord = this._toDisplayableRecord(record);
-
-        if (displayableRecord.id === recordId) {
-          // Update the record with the new height.
-          displayableRecord = Object.assign({}, displayableRecord, {
-            height: newHeight
-          });
-
-          this._displayableRecords.set(record, displayableRecord);
-        }
-
-        nextDisplayableRecords[i] = displayableRecord;
-      });
-
-      this._model.setState({
-        displayableRecords: nextDisplayableRecords
-      });
-
-      requestAnimationFrame(callback);
-    };
-
     const {
       store,
       initialFilterText,
@@ -287,11 +266,8 @@ class Console {
       selectedSeverities: initialUnselectedSeverities == null ? ALL_SEVERITIES : (0, _collection().setDifference)(ALL_SEVERITIES, initialUnselectedSeverities)
     });
     this._store = store;
-    this._nextRecordId = 0;
-    this._displayableRecords = new WeakMap();
     this._destroyed = new _RxMin.ReplaySubject(1);
-    this._titleChanges = _RxMin.Observable.combineLatest(this._model.toObservable(), // $FlowIssue: Flow doesn't know about Symbol.observable
-    _RxMin.Observable.from(store)).takeUntil(this._destroyed).map(() => this.getTitle()).distinctUntilChanged().share();
+    this._titleChanges = _RxMin.Observable.combineLatest(this._model.toObservable(), (0, _observableFromReduxStore().default)(store)).takeUntil(this._destroyed).map(() => this.getTitle()).distinctUntilChanged().share();
   }
 
   getIconName() {
@@ -404,7 +380,7 @@ class Console {
     const {
       selectedSeverities
     } = this._model.state;
-    const filteredRecords = filterRecords(this._getDisplayableRecords(), selectedSourceIds, selectedSeverities, pattern, sources.length !== selectedSourceIds.length);
+    const filteredRecords = filterRecords(Selectors().getAllRecords(this._store.getState()).toArray(), selectedSourceIds, selectedSeverities, pattern, sources.length !== selectedSourceIds.length);
     return {
       invalid,
       selectedSourceIds,
@@ -420,8 +396,9 @@ class Console {
 
     const actionCreators = this._getBoundActionCreators();
 
-    const props = _RxMin.Observable.combineLatest(this._model.toObservable(), // $FlowIssue: Flow doesn't know about Symbol.observable
-    _RxMin.Observable.from(this._store)) // Don't re-render when the console isn't visible.
+    const globalStates = (0, _observableFromReduxStore().default)(this._store);
+
+    const props = _RxMin.Observable.combineLatest(this._model.toObservable(), globalStates) // Don't re-render when the console isn't visible.
     .let((0, _observable().toggle)((0, _observePaneItemVisibility().default)(this))).audit(() => _observable().nextAnimationFrame).map(([localState, globalState]) => {
       const {
         invalid,
@@ -430,7 +407,7 @@ class Console {
         filteredRecords
       } = this._getFilterInfo();
 
-      const currentExecutorId = (0, _getCurrentExecutorId().default)(globalState);
+      const currentExecutorId = Selectors().getCurrentExecutorId(globalState);
       const currentExecutor = currentExecutorId != null ? globalState.executors.get(currentExecutorId) : null;
       return {
         invalidFilterInput: invalid,
@@ -443,8 +420,8 @@ class Console {
         unselectedSourceIds: localState.unselectedSourceIds,
         filterText: localState.filterText,
         enableRegExpFilter: localState.enableRegExpFilter,
-        displayableRecords: filteredRecords,
-        filteredRecordCount: globalState.records.size - filteredRecords.length,
+        records: filteredRecords,
+        filteredRecordCount: Selectors().getAllRecords(globalState).size - filteredRecords.length,
         history: globalState.history,
         sources: this._getSources(),
         selectedSourceIds,
@@ -452,7 +429,6 @@ class Console {
         executors: globalState.executors,
         getProvider: id => globalState.providers.get(id),
         updateFilter: this._updateFilter,
-        onDisplayableRecordHeightChange: this._handleDisplayableRecordHeightChange,
         resetAllFilters: this._resetAllFilters,
         fontSize: globalState.fontSize,
         selectedSeverities,
@@ -487,44 +463,6 @@ class Console {
     this._model.setState({
       unselectedSourceIds: this._model.state.unselectedSourceIds.concat(newIds)
     });
-  }
-
-  _getDisplayableRecords() {
-    const {
-      records,
-      incompleteRecords
-    } = this._store.getState();
-
-    const displayableRecords = Array(records.size + incompleteRecords.size);
-    records.concat(incompleteRecords).forEach((record, i) => {
-      displayableRecords[i] = this._toDisplayableRecord(record);
-    });
-    return displayableRecords;
-  }
-  /**
-   * Transforms the Records from the store into DisplayableRecords. This caches the result
-   * per-Console instance because the same record can have different heights in different
-   * containers.
-   */
-
-
-  _toDisplayableRecord(record) {
-    const displayableRecord = this._displayableRecords.get(record);
-
-    if (displayableRecord != null) {
-      return displayableRecord;
-    }
-
-    const newDisplayableRecord = {
-      id: this._nextRecordId++,
-      record,
-      height: INITIAL_RECORD_HEIGHT,
-      expansionStateId: {}
-    };
-
-    this._displayableRecords.set(record, newDisplayableRecord);
-
-    return newDisplayableRecord;
   }
 
 }
@@ -564,14 +502,12 @@ function getSources(options) {
   return Array.from(mapOfSources.values());
 }
 
-function filterRecords(displayableRecords, selectedSourceIds, selectedSeverities, filterPattern, filterSources) {
+function filterRecords(records, selectedSourceIds, selectedSeverities, filterPattern, filterSources) {
   if (!filterSources && filterPattern == null && (0, _collection().areSetsEqual)(ALL_SEVERITIES, selectedSeverities)) {
-    return displayableRecords;
+    return records;
   }
 
-  return displayableRecords.filter(({
-    record
-  }) => {
+  return records.filter(record => {
     // Only filter regular messages
     if (record.kind !== 'message') {
       return true;
@@ -623,8 +559,7 @@ async function serializeRecordObject(executor, visited, data, text, level) {
 }
 
 async function createPaste(createPasteImpl, records) {
-  const linePromises = records.filter(displayable => displayable.record.kind === 'message' || displayable.record.kind === 'request' || displayable.record.kind === 'response').map(async displayable => {
-    const record = displayable.record;
+  const linePromises = records.filter(record => record.kind === 'message' || record.kind === 'request' || record.kind === 'response').map(async record => {
     const level = record.level != null ? record.level.toString().toUpperCase() : 'LOG';
     const timestamp = record.timestamp.toLocaleString();
     let text = record.text || record.data && record.data.value || ERROR_TRANSCRIBING_MESSAGE;

@@ -114,8 +114,24 @@ function observeAndroidDevices(host) {
       }
 
       return _RxMin.Observable.fromPromise(service.getDeviceList()).map(devices => _expected().Expect.value(devices)).catch(error => {
-        const message = error.code !== 'ENOENT' ? error.message : "'adb' not found in $PATH.";
-        return _RxMin.Observable.of(_expected().Expect.error(new Error("Can't fetch Android devices. " + message)));
+        let message;
+
+        if (error.code === 'ENOENT') {
+          message = "'adb' not found in $PATH.";
+        } else if ( // RPC call timed out
+        error.name === 'RpcTimeoutError' || // RPC call succeeded, but the adb call itself timed out
+        error.message === 'Timeout has occurred') {
+          message = 'Request timed out, retrying...';
+        } else if (error.message === ' Connection Closed') {
+          return _RxMin.Observable.of(_expected().Expect.pending());
+        } else {
+          message = error.message;
+        }
+
+        const newError = new Error("Can't fetch Android devices. " + message); // $FlowIgnore
+
+        newError.originalError = error;
+        return _RxMin.Observable.of(_expected().Expect.error(newError));
       });
     }).distinctUntilChanged((a, b) => (0, _expected().expectedEqual)(a, b, (v1, v2) => (0, _collection().arrayEqual)(v1, v2, _shallowequal().default), (e1, e2) => e1.message === e2.message)).do(value => {
       if (value.isError) {

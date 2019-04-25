@@ -16,6 +16,7 @@ exports.resolveConfiguration = resolveConfiguration;
 exports.setSourcePathsService = setSourcePathsService;
 exports.setRpcService = setRpcService;
 exports.getJavaDebuggerHelpersServiceByNuclideUri = getJavaDebuggerHelpersServiceByNuclideUri;
+exports.createJavaAttachConfig = createJavaAttachConfig;
 exports.NUCLIDE_DEBUGGER_DEV_GK = void 0;
 
 var _assert = _interopRequireDefault(require("assert"));
@@ -150,6 +151,15 @@ function getJavaConfig() {
     required: true,
     visible: true
   };
+  const consoleEnum = {
+    name: 'console',
+    type: 'enum',
+    enums: ['internalConsole', 'integratedTerminal'],
+    description: 'Integrated Terminal means that it will run in a terminal that can interact with standard input and output.',
+    defaultValue: 'internalConsole',
+    required: true,
+    visible: true
+  };
   const javaJdwpPort = {
     name: 'javaJdwpPort',
     type: 'number',
@@ -161,8 +171,7 @@ function getJavaConfig() {
     launch: {
       launch: true,
       vsAdapterType: _constants().VsAdapterTypes.JAVA,
-      threads: true,
-      properties: [entryPointClass, classPath],
+      properties: [entryPointClass, classPath, consoleEnum],
       cwdPropertyName: 'cwd',
       header: null,
 
@@ -174,7 +183,6 @@ function getJavaConfig() {
     attach: {
       launch: false,
       vsAdapterType: _constants().VsAdapterTypes.JAVA,
-      threads: true,
       properties: [javaJdwpPort],
       header: null,
 
@@ -197,8 +205,8 @@ function getCustomControlButtonsForJavaSourcePaths(clickEvents) {
 function getDefaultSourceSearchPaths(targetUri) {
   const searchPaths = [];
 
-  const remote = _nuclideUri().default.isRemote(targetUri); // Add all the project root paths as potential source locations the Java debugger server should
-  // check for resolving source.
+  const remote = _nuclideUri().default.isRemote(targetUri); // Add all the project root paths as potential source locations the Java
+  // debugger server should check for resolving source.
   // NOTE: the Java debug server will just ignore any directory path that doesn't exist.
 
 
@@ -316,4 +324,19 @@ function getJavaDebuggerHelpersServiceByNuclideUri(uri) {
   }
 
   return (0, _nullthrows().default)(_rpcService).getServiceByNuclideUri('JavaDebuggerHelpersService', uri);
+}
+
+function createJavaAttachConfig(targetUri, attachPort, processName) {
+  const debuggerConfig = {
+    javaJdwpPort: attachPort
+  };
+  const processConfig = {
+    targetUri,
+    debugMode: 'attach',
+    adapterType: _constants().VsAdapterTypes.JAVA,
+    config: debuggerConfig,
+    processName: processName != null ? processName : 'JDWP: ' + attachPort + ' (Java)',
+    isRestartable: false
+  };
+  return processConfig;
 }

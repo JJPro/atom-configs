@@ -6,7 +6,7 @@ Object.defineProperty(exports, "__esModule", {
 exports.ConnectionHealthNotifier = void 0;
 
 function _nuclideAnalytics() {
-  const data = require("../../nuclide-analytics");
+  const data = require("../../../modules/nuclide-analytics");
 
   _nuclideAnalytics = function () {
     return data;
@@ -205,6 +205,14 @@ class ConnectionHealthNotifier {
           addHeartbeatNotification(HEARTBEAT_NOTIFICATION_ERROR, code, '**Certificate Expired**<br/>' + // The expiration date should be synced with
           // nuclide-server/scripts/nuclide_server_manager.py.
           'The Nuclide server certificate has most likely expired.<br>' + 'For your security, certificates automatically expire after 14 days.<br>' + 'Please reload Atom to restore your remote project connection.',
+          /* dismissable */
+          true,
+          /* askToReload */
+          true);
+          break;
+
+        case 'CERT_SIGNATURE_FAILURE':
+          addHeartbeatNotification(HEARTBEAT_NOTIFICATION_ERROR, code, '**Certificate No Longer Valid**<br/>' + 'The Nuclide server cert is no longer valid for this client.<br>' + 'This can happen  when you connect to the server with another ' + 'client, which is not currently supported.<br>' + 'Please reload Atom to restore your remote project connection.',
           /* dismissable */
           true,
           /* askToReload */

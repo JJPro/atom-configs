@@ -49,6 +49,8 @@ var React = _interopRequireWildcard(require("react"));
 
 var _reactDom = _interopRequireDefault(require("react-dom"));
 
+var _RxMin = require("rxjs/bundles/Rx.min.js");
+
 function _UniversalDisposable() {
   const data = _interopRequireDefault(require("../../../../../nuclide-commons/UniversalDisposable"));
 
@@ -89,6 +91,16 @@ function _featureConfig() {
   return data;
 }
 
+function _utils() {
+  const data = require("../utils");
+
+  _utils = function () {
+    return data;
+  };
+
+  return data;
+}
+
 function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) { var desc = Object.defineProperty && Object.getOwnPropertyDescriptor ? Object.getOwnPropertyDescriptor(obj, key) : {}; if (desc.get || desc.set) { Object.defineProperty(newObj, key, desc); } else { newObj[key] = obj[key]; } } } } newObj.default = obj; return newObj; } }
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
@@ -113,24 +125,42 @@ class StatusBarTile {
     this._diagnosticUpdaters = new Map();
     this._totalDiagnosticCount = {
       errorCount: 0,
-      warningCount: 0
+      warningCount: 0,
+      staleErrorCount: 0,
+      staleWarningCount: 0
     };
     this._subscriptions = new (_UniversalDisposable().default)();
   }
 
-  consumeDiagnosticUpdates(diagnosticUpdater) {
+  consumeDiagnosticUpdates(diagnosticUpdater, isStaleMessageEnabledStream) {
     if (this._diagnosticUpdaters.has(diagnosticUpdater)) {
       return;
     }
 
     const diagnosticCount = {
       errorCount: 0,
-      warningCount: 0
+      warningCount: 0,
+      staleErrorCount: 0,
+      staleWarningCount: 0
     };
 
     this._diagnosticUpdaters.set(diagnosticUpdater, diagnosticCount);
 
-    this._subscriptions.add((0, _event().observableFromSubscribeFunction)(diagnosticUpdater.observeMessages).let((0, _observable().fastDebounce)(RENDER_DEBOUNCE_TIME)).subscribe(this._onAllMessagesDidUpdate.bind(this, diagnosticUpdater), null, this._onAllMessagesDidUpdate.bind(this, diagnosticUpdater, [])));
+    this._subscriptions.add((0, _event().observableFromSubscribeFunction)(diagnosticUpdater.observeMessages).let((0, _observable().fastDebounce)(RENDER_DEBOUNCE_TIME)).combineLatest(isStaleMessageEnabledStream) // $FlowFixMe
+    .throttle(([_, isStaleMessageEnabled]) => _RxMin.Observable.interval(isStaleMessageEnabled ? _utils().STALE_MESSAGE_UPDATE_THROTTLE_TIME : 0), {
+      leading: true,
+      trailing: true
+    }).map(([diagnostics, isStaleMessageEnabled]) => diagnostics.map(diagnostic => {
+      if (!isStaleMessageEnabled) {
+        // Note: reason of doing this is currently Flow is sending message
+        // marked as stale sometimes(on user type or immediately on save).
+        // Until we turn on the gk, we don't want user to see the Stale
+        // style/behavior just yet. so here we mark them as not stale.
+        diagnostic.stale = false;
+      }
+
+      return diagnostic;
+    })).subscribe(this._onAllMessagesDidUpdate.bind(this, diagnosticUpdater), null, this._onAllMessagesDidUpdate.bind(this, diagnosticUpdater, [])));
   }
 
   consumeStatusBar(statusBar) {
@@ -160,33 +190,51 @@ class StatusBarTile {
     // Update the DiagnosticCount for the updater.
     let errorCount = 0;
     let warningCount = 0;
+    let staleErrorCount = 0;
+    let staleWarningCount = 0;
 
     for (const message of messages) {
       if (message.type === 'Error') {
         ++errorCount;
+
+        if (message.stale) {
+          ++staleErrorCount;
+        }
       } else if (message.type === 'Warning' || message.type === 'Info') {
         // TODO: should "Info" messages have their own category?
         ++warningCount;
+
+        if (message.stale) {
+          ++staleWarningCount;
+        }
       }
     }
 
     this._diagnosticUpdaters.set(diagnosticUpdater, {
       errorCount,
-      warningCount
+      warningCount,
+      staleErrorCount,
+      staleWarningCount
     }); // Recalculate the total diagnostic count.
 
 
     let totalErrorCount = 0;
     let totalWarningCount = 0;
+    let totalStaleErrorCount = 0;
+    let totalStaleWarningCount = 0;
 
     for (const diagnosticCount of this._diagnosticUpdaters.values()) {
       totalErrorCount += diagnosticCount.errorCount;
       totalWarningCount += diagnosticCount.warningCount;
+      totalStaleErrorCount += diagnosticCount.staleErrorCount;
+      totalStaleWarningCount += diagnosticCount.staleWarningCount;
     }
 
     this._totalDiagnosticCount = {
       errorCount: totalErrorCount,
-      warningCount: totalWarningCount
+      warningCount: totalWarningCount,
+      staleErrorCount: totalStaleErrorCount,
+      staleWarningCount: totalStaleWarningCount
     };
 
     this._render();
@@ -225,15 +273,23 @@ class StatusBarTileComponent extends React.Component {
   }
 
   render() {
-    const errorCount = this.props.errorCount;
-    const warningCount = this.props.warningCount;
+    const {
+      errorCount,
+      warningCount,
+      staleErrorCount,
+      staleWarningCount
+    } = this.props;
     const hasErrors = errorCount > 0;
     const hasWarnings = warningCount > 0;
+    const hasStaleErrors = staleErrorCount > 0;
+    const hasStaleWarnings = staleWarningCount > 0;
     const errorClassName = (0, _classnames().default)('diagnostics-status-bar-highlight', {
-      'text-error': hasErrors
+      'text-error': hasErrors,
+      'diagnostics-status-bar-has-stale': hasStaleErrors
     });
     const warningClassName = (0, _classnames().default)('diagnostics-status-bar-highlight', {
-      'text-warning': hasWarnings
+      'text-warning': hasWarnings,
+      'diagnostics-status-bar-has-stale': hasStaleWarnings
     });
     const errorLabel = hasErrors ? errorCount : 'No';
     const errorSuffix = errorCount !== 1 ? 's' : '';

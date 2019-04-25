@@ -21,16 +21,6 @@ function _nuclideUri() {
 
 var _RxMin = require("rxjs/bundles/Rx.min.js");
 
-function _admZip() {
-  const data = _interopRequireDefault(require("adm-zip"));
-
-  _admZip = function () {
-    return data;
-  };
-
-  return data;
-}
-
 function _FileSystem() {
   const data = require("./FileSystem");
 

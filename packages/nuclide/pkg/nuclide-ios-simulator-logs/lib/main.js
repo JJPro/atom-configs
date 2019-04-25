@@ -5,7 +5,7 @@ Object.defineProperty(exports, "__esModule", {
 });
 exports.activate = activate;
 exports.deactivate = deactivate;
-exports.consumeOutputService = consumeOutputService;
+exports.consumeConsole = consumeConsole;
 
 function _Activation() {
   const data = _interopRequireDefault(require("./Activation"));
@@ -48,10 +48,10 @@ function deactivate() {
   activation = null;
 }
 
-function consumeOutputService(api) {
+function consumeConsole(consoleService) {
   if (!activation) {
     throw new Error("Invariant violation: \"activation\"");
   }
 
-  activation.consumeOutputService(api);
+  activation.consumeConsole(consoleService);
 }

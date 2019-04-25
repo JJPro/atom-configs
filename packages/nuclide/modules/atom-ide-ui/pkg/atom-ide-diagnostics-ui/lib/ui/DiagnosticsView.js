@@ -97,6 +97,16 @@ function _ToolbarRight() {
 
 var React = _interopRequireWildcard(require("react"));
 
+function _shallowequal() {
+  const data = _interopRequireDefault(require("shallowequal"));
+
+  _shallowequal = function () {
+    return data;
+  };
+
+  return data;
+}
+
 function _Button() {
   const data = require("../../../../../nuclide-commons-ui/Button");
 
@@ -141,16 +151,6 @@ function _SettingsModal() {
   const data = _interopRequireDefault(require("./SettingsModal"));
 
   _SettingsModal = function () {
-    return data;
-  };
-
-  return data;
-}
-
-function _DiagnosticsTableNux() {
-  const data = _interopRequireDefault(require("./DiagnosticsTableNux"));
-
-  _DiagnosticsTableNux = function () {
     return data;
   };
 
@@ -218,7 +218,7 @@ class DiagnosticsView extends React.Component {
   }
 
   shouldComponentUpdate(nextProps) {
-    return nextProps.isVisible;
+    return nextProps.isVisible && !(0, _shallowequal().default)(this.props, nextProps);
   }
 
   componentDidMount() {
@@ -233,7 +233,6 @@ class DiagnosticsView extends React.Component {
     const {
       diagnostics,
       showDirectoryColumn,
-      showNuxContent,
       showTraces
     } = this.props;
     const groups = ['errors', 'warnings', 'info'];
@@ -292,9 +291,7 @@ class DiagnosticsView extends React.Component {
       icon: "gear",
       size: _Button().ButtonSizes.SMALL,
       onClick: this._showSettings
-    }))), showNuxContent ? React.createElement(_DiagnosticsTableNux().default, {
-      onDismiss: this.props.onDismissNux
-    }) : null, React.createElement("div", {
+    }))), React.createElement("div", {
       className: "atom-ide-filterable",
       ref: el => this._diagnosticsTableWrapperEl = el,
       style: {

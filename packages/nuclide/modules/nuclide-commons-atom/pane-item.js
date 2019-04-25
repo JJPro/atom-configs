@@ -5,6 +5,7 @@ Object.defineProperty(exports, "__esModule", {
 });
 exports.isPending = isPending;
 exports.observePendingStateEnd = observePendingStateEnd;
+exports.isConsoleVisible = isConsoleVisible;
 
 function _event() {
   const data = require("../nuclide-commons/event");
@@ -38,4 +39,15 @@ function observePendingStateEnd(paneItem) {
   }
 
   return (0, _event().observableFromSubscribeFunction)(paneItem.onDidTerminatePendingState.bind(paneItem));
+}
+
+const CONSOLE_VIEW_URI = 'atom://nuclide/console';
+
+function isConsoleVisible() {
+  const consolePane = atom.workspace.paneForURI(CONSOLE_VIEW_URI);
+  const consoleItem = consolePane && consolePane.itemForURI(CONSOLE_VIEW_URI);
+  const paneContainer = atom.workspace.paneContainerForItem(consoleItem); // This visibility check has been taken from
+  // https://github.com/atom/atom/blob/v1.28.2/src/workspace.js#L1084
+
+  return (paneContainer === atom.workspace.getCenter() || paneContainer != null && paneContainer.isVisible()) && consoleItem === consolePane.getActiveItem();
 }

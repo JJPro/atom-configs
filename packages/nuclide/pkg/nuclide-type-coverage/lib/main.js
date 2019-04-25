@@ -96,9 +96,7 @@ class Activation {
     this._toggleEvents = new _RxMin.Subject();
     this._shouldRenderDiagnostics = this._toggleEvents.scan(prev => !prev, false);
     this._disposables = new (_UniversalDisposable().default)();
-    this._activeEditorRegistry = new (_ActiveEditorRegistry().default)(resultFunction, {
-      updateOnEdit: false
-    });
+    this._activeEditorRegistry = new (_ActiveEditorRegistry().default)(resultFunction);
 
     this._disposables.add(atom.commands.add('atom-workspace', 'nuclide-type-coverage:toggle-inline-display', () => this._toggleEvents.next()), this._shouldRenderDiagnostics.subscribe(shouldRender => this._activeEditorRegistry._providerRegistry._providers.forEach(provider => provider.onToggle && provider.onToggle(shouldRender))));
 
@@ -110,7 +108,9 @@ class Activation {
   }
 
   consumeStatusBar(statusBar) {
-    const item = document.createElement('span');
+    const item = document.createElement('div');
+    item.classList.add('inline-block');
+    item.style.height = '100%';
     const statusBarTile = statusBar.addLeftTile({
       item,
       priority: STATUS_BAR_PRIORITY

@@ -71,7 +71,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  */
 class Activation {
   constructor(state) {
-    const message$ = _RxMin.Observable.defer(() => (0, _createMessageStream().default)((0, _createProcessStream().createProcessStream)() // Retry 3 times (unless we get a ENOENT)
+    const messages = _RxMin.Observable.defer(() => (0, _createMessageStream().default)((0, _createProcessStream().createProcessStream)() // Retry 3 times (unless we get a ENOENT)
     .retryWhen(errors => errors.scan((errCount, err) => {
       if (isNoEntError(err) || errCount >= 2) {
         throw err;
@@ -82,7 +82,7 @@ class Activation {
 
     this._logTailer = new (_LogTailer().LogTailer)({
       name: 'adb Logcat',
-      messages: message$,
+      messages,
       trackingEvents: {
         start: 'adb-logcat:start',
         stop: 'adb-logcat:stop',
@@ -116,18 +116,25 @@ class Activation {
     }));
   }
 
-  consumeOutputService(api) {
-    this._disposables.add(api.registerOutputProvider({
+  consumeConsole(consoleService) {
+    let consoleApi = consoleService({
       id: 'adb logcat',
-      messages: this._logTailer.getMessages(),
-      observeStatus: cb => this._logTailer.observeStatus(cb),
-      start: () => {
-        this._logTailer.start();
-      },
-      stop: () => {
-        this._logTailer.stop();
+      name: 'adb logcat',
+      start: () => this._logTailer.start(),
+      stop: () => this._logTailer.stop()
+    });
+    const disposable = new (_UniversalDisposable().default)(() => {
+      consoleApi != null && consoleApi.dispose();
+      consoleApi = null;
+    }, this._logTailer.getMessages().subscribe(message => consoleApi != null && consoleApi.append(message)), this._logTailer.observeStatus(status => {
+      if (consoleApi != null) {
+        consoleApi.setStatus(status);
       }
     }));
+
+    this._disposables.add(disposable);
+
+    return disposable;
   }
 
   dispose() {

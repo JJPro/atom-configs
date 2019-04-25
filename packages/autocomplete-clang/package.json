@@ -1,0 +1,54 @@
+{
+  "_from": "https://www.atom.io/api/packages/autocomplete-clang/versions/0.11.5/tarball",
+  "_id": "autocomplete-clang@0.11.5",
+  "_inBundle": false,
+  "_integrity": "sha512-3XXUl1XR8/1axLWu06cauV+ShZxfDONqAa/C6Uv6TDXPsYJEPzeeypZ7WfTmjpvzrv0zPOlRy1Ayco/Iy/xAVg==",
+  "_location": "/autocomplete-clang",
+  "_phantomChildren": {},
+  "_requested": {
+    "type": "remote",
+    "raw": "https://www.atom.io/api/packages/autocomplete-clang/versions/0.11.5/tarball",
+    "rawSpec": "https://www.atom.io/api/packages/autocomplete-clang/versions/0.11.5/tarball",
+    "saveSpec": "https://www.atom.io/api/packages/autocomplete-clang/versions/0.11.5/tarball",
+    "fetchSpec": "https://www.atom.io/api/packages/autocomplete-clang/versions/0.11.5/tarball"
+  },
+  "_requiredBy": [
+    "#USER",
+    "/"
+  ],
+  "_resolved": "https://www.atom.io/api/packages/autocomplete-clang/versions/0.11.5/tarball",
+  "_shasum": "7021bd3ae3254cb4419bad2d1e6a500ff6d780be",
+  "_spec": "https://www.atom.io/api/packages/autocomplete-clang/versions/0.11.5/tarball",
+  "_where": "/private/var/folders/v6/2396r3r94fq_jdzvfqzs9zx40000gn/T/apm-install-dir-118923-63808-10hqakh.oskh",
+  "activationCommands": [],
+  "bugs": {
+    "url": "https://github.com/yasuyuky/autocomplete-clang/issues"
+  },
+  "bundleDependencies": false,
+  "dependencies": {
+    "atom-space-pen-views": "^2.2.0",
+    "clang-flags": "0.2.2",
+    "tmp": "0.0.33"
+  },
+  "deprecated": false,
+  "description": "autocomplete for C/C++/ObjC using clang",
+  "engines": {
+    "atom": "^1.0.0"
+  },
+  "homepage": "https://github.com/yasuyuky/autocomplete-clang#readme",
+  "license": "MIT",
+  "main": "./lib/autocomplete-clang",
+  "name": "autocomplete-clang",
+  "providedServices": {
+    "autocomplete.provider": {
+      "versions": {
+        "2.0.0": "provide"
+      }
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yasuyuky/autocomplete-clang.git"
+  },
+  "version": "0.11.5"
+}

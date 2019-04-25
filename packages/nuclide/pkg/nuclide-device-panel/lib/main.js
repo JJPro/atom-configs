@@ -10,6 +10,16 @@ function _createPackage() {
   return data;
 }
 
+function _epicHelpers() {
+  const data = require("../../../modules/nuclide-commons/epicHelpers");
+
+  _epicHelpers = function () {
+    return data;
+  };
+
+  return data;
+}
+
 function _UniversalDisposable() {
   const data = _interopRequireDefault(require("../../../modules/nuclide-commons/UniversalDisposable"));
 
@@ -138,8 +148,7 @@ let activation = null;
 
 class Activation {
   constructor(state) {
-    const epics = Object.keys(Epics()).map(k => Epics()[k]).filter(epic => typeof epic === 'function');
-    this._store = (0, _reduxMin().createStore)(Reducers().app, (0, _createEmptyAppState().createEmptyAppState)(), (0, _reduxMin().applyMiddleware)((0, _reduxObservable().createEpicMiddleware)((0, _reduxObservable().combineEpics)(...epics))));
+    this._store = (0, _reduxMin().createStore)(Reducers().app, (0, _createEmptyAppState().createEmptyAppState)(), (0, _reduxMin().applyMiddleware)((0, _reduxObservable().createEpicMiddleware)((0, _epicHelpers().combineEpicsFromImports)(Epics(), 'nuclide-device-panel'))));
     this._disposables = new (_UniversalDisposable().default)(_ServerConnection().ServerConnection.observeRemoteConnections().subscribe(conns => {
       const hosts = conns.map(conn => conn.getUriOfRemotePath('/'));
 

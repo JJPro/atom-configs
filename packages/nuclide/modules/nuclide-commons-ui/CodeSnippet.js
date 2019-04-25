@@ -49,6 +49,10 @@ class CodeSnippet extends React.Component {
     }
 
     if (highlights != null) {
+      if (!(startLine != null)) {
+        throw new Error("Invariant violation: \"startLine != null\"");
+      }
+
       highlights.forEach(range => {
         const marker = editor.markBufferRange([[range.start.row - startLine, range.start.column], [range.end.row - startLine, range.end.column]]);
         editor.decorateMarker(marker, {
@@ -65,20 +69,25 @@ class CodeSnippet extends React.Component {
 
   render() {
     const lineNumbers = [];
+    let lineNumberColumn;
 
-    for (let i = this.props.startLine; i <= this.props.endLine; i++) {
-      lineNumbers.push(React.createElement("div", {
-        key: i,
-        className: "nuclide-ui-code-snippet-line-number",
-        onClick: evt => this.props.onLineClick(evt, i)
-      }, i + 1));
+    if (this.props.startLine != null && this.props.endLine != null) {
+      for (let i = this.props.startLine; i <= this.props.endLine; i++) {
+        lineNumbers.push(React.createElement("div", {
+          key: i,
+          className: "nuclide-ui-code-snippet-line-number",
+          onClick: evt => this.props.onLineClick(evt, i)
+        }, i + 1));
+      }
+
+      lineNumberColumn = React.createElement("div", {
+        className: "nuclide-ui-code-snippet-line-number-column"
+      }, lineNumbers);
     }
 
     return React.createElement("div", {
       className: "nuclide-ui-code-snippet"
-    }, React.createElement("div", {
-      className: "nuclide-ui-code-snippet-line-number-column"
-    }, lineNumbers), React.createElement(_AtomInput().AtomInput, {
+    }, lineNumberColumn, React.createElement(_AtomInput().AtomInput, {
       ref: input => {
         this._editor = input;
       },

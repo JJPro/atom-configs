@@ -93,7 +93,7 @@ function _log4js() {
 }
 
 function _passesGK() {
-  const data = _interopRequireDefault(require("../../commons-node/passesGK"));
+  const data = _interopRequireDefault(require("../../../modules/nuclide-commons/passesGK"));
 
   _passesGK = function () {
     return data;
@@ -232,7 +232,7 @@ class Activation {
     const runArguments = taskSettings.runArguments || [];
     const argString = runArguments.length === 0 ? '' : ` with arguments "${runArguments.join(' ')}"`;
 
-    const debugBuckTarget = _RxMin.Observable.defer(() => this._debugBuckTarget(buckService, buckRoot, targetString, runArguments)).ignoreElements().catch(err => {
+    const debugBuckTarget = _RxMin.Observable.defer(() => this._debugBuckTarget(buckService, buckRoot, targetString, taskSettings.buildArguments || [], runArguments)).ignoreElements().catch(err => {
       (0, _log4js().getLogger)('nuclide-buck').error(`Failed to launch debugger for ${targetString}`, err);
       return _RxMin.Observable.of({
         type: 'message',
@@ -285,8 +285,8 @@ class Activation {
     debuggerService.startVspDebugging(config);
   }
 
-  async _debugBuckTarget(buckService, buckRoot, buildTarget, runArguments) {
-    const output = await buckService.showOutput(buckRoot, buildTarget);
+  async _debugBuckTarget(buckService, buckRoot, buildTarget, buildArguments, runArguments) {
+    const output = await buckService.showOutput(buckRoot, buildTarget, buildArguments);
 
     if (output.length === 0) {
       throw new Error(`Could not find build output path for target ${buildTarget}`);

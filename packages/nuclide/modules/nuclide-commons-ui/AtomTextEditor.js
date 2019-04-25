@@ -39,6 +39,18 @@ function _UniversalDisposable() {
   return data;
 }
 
+var _RxMin = require("rxjs/bundles/Rx.min.js");
+
+function _atomTabIndexForwarder() {
+  const data = _interopRequireDefault(require("./atomTabIndexForwarder"));
+
+  _atomTabIndexForwarder = function () {
+    return data;
+  };
+
+  return data;
+}
+
 function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) { var desc = Object.defineProperty && Object.getOwnPropertyDescriptor ? Object.getOwnPropertyDescriptor(obj, key) : {}; if (desc.get || desc.set) { Object.defineProperty(newObj, key, desc); } else { newObj[key] = obj[key]; } } } } newObj.default = obj; return newObj; } }
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
@@ -134,6 +146,19 @@ class AtomTextEditor extends React.Component {
     } = setup;
     this._editorDisposables = new (_UniversalDisposable().default)(disposables);
     const textEditorElement = this._textEditorElement = document.createElement('atom-text-editor');
+    textEditorElement.classList.add('nuclide-wrapped-editor');
+
+    if (parseInt(this.props.tabIndex, 10) >= 0) {
+      // Make tab move to next element instead of inserting a 'tab' character
+      this._editorDisposables.add( // Make AtomTextEditor properly shift-tabbable
+      (0, _atomTabIndexForwarder().default)(textEditorElement), // Make 'Tab' change focus instead of inserting tab character
+      _RxMin.Observable.fromEvent(textEditorElement, 'keydown').subscribe(event => {
+        if (event.key === 'Tab') {
+          event.stopPropagation();
+        }
+      }));
+    }
+
     textEditorElement.setModel(textEditor);
     textEditorElement.setAttribute('tabindex', this.props.tabIndex); // HACK! This is a workaround for the ViewRegistry where Atom has a default view provider for
     // TextEditor (that we cannot override), which is responsible for creating the view associated
@@ -177,47 +202,47 @@ class AtomTextEditor extends React.Component {
     }
   }
 
-  componentDidUpdate(prevProps) {
-    if (this.props.textBuffer !== prevProps.textBuffer || this.props.readOnly !== prevProps.readOnly) {
+  UNSAFE_componentWillReceiveProps(nextProps) {
+    if (nextProps.textBuffer !== this.props.textBuffer || nextProps.readOnly !== this.props.readOnly) {
       const previousTextContents = this.getTextBuffer().getText();
-      const nextTextContents = this.props.textBuffer == null ? this.props.textBuffer : this.props.textBuffer.getText();
+      const nextTextContents = nextProps.textBuffer == null ? nextProps.textBuffer : nextProps.textBuffer.getText();
 
       if (nextTextContents !== previousTextContents) {
-        const textEditorSetup = setupTextEditor(this.props);
+        const textEditorSetup = setupTextEditor(nextProps);
 
-        if (this.props.syncTextContents) {
+        if (nextProps.syncTextContents) {
           textEditorSetup.textEditor.setText(previousTextContents);
         }
 
         this._updateTextEditor(textEditorSetup);
 
-        this._onDidUpdateTextEditorElement(this.props);
+        this._onDidUpdateTextEditorElement(nextProps);
       }
     }
 
-    if (this.props.path !== prevProps.path) {
+    if (nextProps.path !== this.props.path) {
       // $FlowIgnore
-      this.getTextBuffer().setPath(this.props.path || '');
+      this.getTextBuffer().setPath(nextProps.path || '');
     }
 
-    if (this.props.gutterHidden !== prevProps.gutterHidden) {
-      this.getModel().setLineNumberGutterVisible(this.props.gutterHidden);
+    if (nextProps.gutterHidden !== this.props.gutterHidden) {
+      this.getModel().setLineNumberGutterVisible(nextProps.gutterHidden);
     }
 
-    if (this.props.grammar !== prevProps.grammar) {
-      this.getModel().setGrammar(this.props.grammar);
+    if (nextProps.grammar !== this.props.grammar) {
+      this.getModel().setGrammar(nextProps.grammar);
     }
 
-    if (this.props.softWrapped !== prevProps.softWrapped) {
-      this.getModel().setSoftWrapped(this.props.softWrapped);
+    if (nextProps.softWrapped !== this.props.softWrapped) {
+      this.getModel().setSoftWrapped(nextProps.softWrapped);
     }
 
-    if (this.props.disabled !== prevProps.disabled) {
-      this._updateDisabledState(this.props.disabled);
+    if (nextProps.disabled !== this.props.disabled) {
+      this._updateDisabledState(nextProps.disabled);
     }
 
-    if (this.props.placeholderText !== prevProps.placeholderText) {
-      this.getModel().setPlaceholderText(this.props.placeholderText || '');
+    if (nextProps.placeholderText !== this.props.placeholderText) {
+      this.getModel().setPlaceholderText(nextProps.placeholderText || '');
       this.getModel().scheduleComponentUpdate();
     }
   }

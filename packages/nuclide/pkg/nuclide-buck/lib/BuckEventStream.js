@@ -65,6 +65,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 const PROGRESS_OUTPUT_INTERVAL = 5 * 1000;
 const BUILD_FAILED_MESSAGE = 'BUILD FAILED:';
 const BUILD_OUTPUT_REGEX = /^OK {3}(.*?) (.*?) (.*?)$/;
+const RESET_ANSI = `${String.fromCharCode(63)}7l`;
 
 function convertJavaLevel(level) {
   switch (level) {
@@ -189,13 +190,22 @@ function getEventsFromProcess(processStream) {
             }
           };
         } else {
+          const mdata = message.data;
+          const reset = mdata.includes(RESET_ANSI);
+          const stripped = (0, _stripAnsi().default)(message.data);
+
+          if (message.data.indexOf(BUILD_FAILED_MESSAGE) !== -1) {
+            return {
+              type: 'log',
+              level: 'error',
+              message: stripped
+            };
+          }
+
           return {
-            type: 'log',
-            // Some Buck steps output ansi escape codes regardless of terminal setting.
-            message: (0, _stripAnsi().default)(message.data),
-            // Build failure messages typically do not show up in the web socket.
-            // TODO(hansonw): fix this on the Buck side
-            level: message.data.indexOf(BUILD_FAILED_MESSAGE) === -1 ? 'log' : 'error'
+            type: 'buck-status',
+            message: stripped,
+            reset
           };
         }
 

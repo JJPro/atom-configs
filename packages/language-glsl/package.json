@@ -1,0 +1,48 @@
+{
+  "_from": "https://www.atom.io/api/packages/language-glsl/versions/2.0.4/tarball",
+  "_id": "language-glsl@2.0.4",
+  "_inBundle": false,
+  "_integrity": "sha512-R05+ZVCNrlM11AldB/UMqXhl/wPEVEp/J1VB+jao9y9oiyVuHJ0tL6a0bQRADPWho3JAwtkXy8EAOtylTWeDUw==",
+  "_location": "/language-glsl",
+  "_phantomChildren": {},
+  "_requested": {
+    "type": "remote",
+    "raw": "https://www.atom.io/api/packages/language-glsl/versions/2.0.4/tarball",
+    "rawSpec": "https://www.atom.io/api/packages/language-glsl/versions/2.0.4/tarball",
+    "saveSpec": "https://www.atom.io/api/packages/language-glsl/versions/2.0.4/tarball",
+    "fetchSpec": "https://www.atom.io/api/packages/language-glsl/versions/2.0.4/tarball"
+  },
+  "_requiredBy": [
+    "#USER",
+    "/"
+  ],
+  "_resolved": "https://www.atom.io/api/packages/language-glsl/versions/2.0.4/tarball",
+  "_shasum": "25ff50c6098ba406ce7eb81e110c527e0672c369",
+  "_spec": "https://www.atom.io/api/packages/language-glsl/versions/2.0.4/tarball",
+  "_where": "/private/var/folders/v6/2396r3r94fq_jdzvfqzs9zx40000gn/T/apm-install-dir-118828-23943-5hj9ro.z59jv",
+  "bugs": {
+    "url": "https://github.com/hughsk/language-glsl/issues"
+  },
+  "bundleDependencies": false,
+  "deprecated": false,
+  "description": "Atom language support for GLSL",
+  "engines": {
+    "atom": "*",
+    "node": "*"
+  },
+  "homepage": "https://github.com/hughsk/language-glsl",
+  "keywords": [
+    "language",
+    "glsl",
+    "atom",
+    "editor",
+    "syntax"
+  ],
+  "license": "MIT",
+  "name": "language-glsl",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hughsk/language-glsl.git"
+  },
+  "version": "2.0.4"
+}

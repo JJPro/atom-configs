@@ -183,7 +183,6 @@ class MIDebugSession extends _vscodeDebugadapter().LoggingDebugSession {
 
     super(logfile);
     this._steppingThread = 0;
-    this._silenceSIGINT = false;
     this._hasTarget = false;
     this._configurationDone = false;
     const client = new (_MIProxy().default)();
@@ -223,15 +222,30 @@ class MIDebugSession extends _vscodeDebugadapter().LoggingDebugSession {
     }
   }
 
+  _discardMessage(msg) {
+    // remove hint about fbload since it doesn't directly work from here
+    if (msg.indexOf('fbload') !== -1) {
+      return true;
+    } // remove messages about stopping, because (a) sometimes we stop and
+    // resume silently and the user shouldn't care, and (b) debuggers
+    // print there own stop messages
+    //
+    // Program received signal SIGINT, Interrupt.
+    // 0x00007ffff7ad3550 in __nanosleep_nocancel () from /lib64/libc.so.6
+    // '\nProgram' and ' received signal' come in as two separate events
+
+
+    if (msg === '\nProgram' || msg.startsWith(' received signal') || /^0x[0-9a-f]+ in.*from.*/.test(msg)) {
+      return true;
+    }
+
+    return false;
+  }
+
   _streamRecord(record) {
     // NB we never get target output here, that's handled by the pty. The
     // output here is mainly from raw pass-through gdb commands.
-    if ((record.streamTarget === 'console' || record.streamTarget === 'log') && !this._silenceSIGINT) {
-      // remove hint about fbload since it doesn't directly work from here
-      if (record.text.indexOf('fbload') !== -1) {
-        return;
-      }
-
+    if ((record.streamTarget === 'console' || record.streamTarget === 'log') && !this._discardMessage(record.text)) {
       const event = new (_vscodeDebugadapter().OutputEvent)();
       event.body = {
         category: 'log',
@@ -240,7 +254,7 @@ class MIDebugSession extends _vscodeDebugadapter().LoggingDebugSession {
         },
         output: record.text
       };
-      return this.sendEvent(event);
+      this.sendEvent(event);
     }
   }
 
@@ -811,10 +825,8 @@ class MIDebugSession extends _vscodeDebugadapter().LoggingDebugSession {
       // after the target is changed from stopped to running, it doesn't send another
       // stopped event. This really should be a throttle, not done every time.
       setTimeout(() => {
-        // prevent the norma logging of messages about SIGINT, which are just
+        // prevent the normal logging of messages about SIGINT, which are just
         // confusing since the user won't know why we're stopping
-        this._silenceSIGINT = true;
-
         this._client.pause();
       }, 125);
     }
@@ -856,7 +868,6 @@ class MIDebugSession extends _vscodeDebugadapter().LoggingDebugSession {
   }
 
   async _onAsyncStopped(record) {
-    this._silenceSIGINT = false;
     const stopped = (0, _MITypes().stoppedEventResult)(record);
     await this._processPauseQueue(); // if we're stepping and we get a signal in the stepping thread, then
     // we shouldn't ignore the signal, even if exception breakpoints aren't

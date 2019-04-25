@@ -166,6 +166,11 @@ function runningTask(state = null, action) {
         progress: action.payload.progress
       });
 
+    case Actions().TASK_STATUS:
+      return Object.assign({}, state, {
+        status: action.payload.status
+      });
+
     case Actions().TASK_ERRORED:
       return null;
 

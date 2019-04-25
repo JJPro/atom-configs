@@ -144,11 +144,13 @@ function provideFullImportCompletions(importInformation, importsFormatter, autoI
 
     const importPaths = filterSuggestions(exportsForId, importType).filter(jsExport => jsExport.uri !== nuclideFormattedUri).map(suggestion => importsFormatter.formatImportFile(nuclideFormattedUri, suggestion)).sort(_util().compareForSuggestion);
     return results.concat(importPaths.slice(0, needed).map(importPath => {
+      const textEdit = createLineEdit(lineNum, line, (0, _ImportFormatter().createImportStatement)(id, importPath, importType));
       return {
         label: id,
+        filterText: textEdit.newText,
         kind: _protocol().CompletionItemKind.Module,
         inlineDetail: importsFormatter.stripLeadingDots(importPath),
-        textEdit: createLineEdit(lineNum, line, (0, _ImportFormatter().createImportStatement)(id, importPath, importType))
+        textEdit
       };
     }));
   }, []);
@@ -164,10 +166,12 @@ function provideImportFileCompletions(importInformation, importsFormatter, autoI
 
   const suggestions = findCommonSuggestions(autoImportsManager, ids, importType);
   return filterSuggestions(suggestions, importType).filter(jsExport => jsExport.uri !== nuclideFormattedUri).map(suggestion => importsFormatter.formatImportFile(nuclideFormattedUri, suggestion)).sort(_util().compareForSuggestion).slice(0, MAX_RESULTS).map(importPath => {
+    const textEdit = createLineEdit(lineNum, line, (0, _ImportFormatter().createImportStatement)(ids.join(', '), importPath, importType));
     return {
       label: importType === 'requireImport' || importType === 'requireDestructured' ? `= require('${importPath}');` : `from '${importPath}';`,
       kind: _protocol().CompletionItemKind.Module,
-      textEdit: createLineEdit(lineNum, line, (0, _ImportFormatter().createImportStatement)(ids.join(', '), importPath, importType))
+      filterText: textEdit.newText,
+      textEdit
     };
   });
 } // Find a list of URIs that contain all the given exports,

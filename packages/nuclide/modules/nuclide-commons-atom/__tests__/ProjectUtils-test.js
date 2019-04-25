@@ -26,7 +26,7 @@ function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj;
  */
 describe('getLabelFromPath', () => {
   it('extracts a pretty label', () => {
-    const pathsToExpectedLabels = new Map([['nuclide://x.com/abc/def/my_project.project.toml', 'My Project'], ['nuclide://x.com/abc/def/my_project', 'My Project'], ['nuclide://x.com/abc/def/My_iOS_Project.project.toml', 'My iOS Project']]);
+    const pathsToExpectedLabels = new Map([['nuclide://x.com/abc/def/my_project.project.toml', 'My Project'], ['nuclide://x.com/abc/def/my_project', 'My Project'], ['nuclide://x.com/abc/def/my_project.json', 'My Project'], ['nuclide://x.com/abc/def/My_iOS_Project.project.toml', 'My iOS Project'], ['./abc/def/my_project.project.toml', 'My Project'], ['./abc/def/my_project', 'My Project'], ['./abc/def/My_iOS_Project.project.toml', 'My iOS Project'], ['./abc/def/.my_project.project.toml', 'My Project'], ['./abc/def/.www.project.toml', 'www'], ['./abc/def/.hello', '.hello']]);
     pathsToExpectedLabels.forEach((label, path) => {
       expect(ProjectUtils().getLabelFromPath(path)).toBe(label);
     });

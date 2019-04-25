@@ -6,7 +6,7 @@ Object.defineProperty(exports, "__esModule", {
 exports.default = void 0;
 
 function _systemInfo() {
-  const data = require("./system-info");
+  const data = require("../../modules/nuclide-commons/system-info");
 
   _systemInfo = function () {
     return data;

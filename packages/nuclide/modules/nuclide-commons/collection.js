@@ -11,6 +11,7 @@ exports.arrayFlatten = arrayFlatten;
 exports.arrayUnique = arrayUnique;
 exports.arrayFindLastIndex = arrayFindLastIndex;
 exports.findSubArrayIndex = findSubArrayIndex;
+exports.arrayPartition = arrayPartition;
 exports.mapUnion = mapUnion;
 exports.mapCompact = mapCompact;
 exports.mapFilter = mapFilter;
@@ -47,7 +48,8 @@ exports.insideOut = insideOut;
 exports.mapFromObject = mapFromObject;
 exports.lastFromArray = lastFromArray;
 exports.distinct = distinct;
-exports.DefaultMap = exports.MultiMap = void 0;
+exports.findTopRanked = findTopRanked;
+exports.DefaultWeakMap = exports.DefaultMap = exports.MultiMap = void 0;
 
 /**
  * Copyright (c) 2017-present, Facebook, Inc.
@@ -151,6 +153,18 @@ function findSubArrayIndex(array, subarr) {
   return array.findIndex((_, offset) => arrayEqual(array.slice(offset, offset + subarr.length), subarr));
 }
 /**
+ * Separates an array into two subarrays -- the first contains all elements that
+ * match the predicate and the latter contains all the rest that fail.
+ */
+
+
+function arrayPartition(array, predicate) {
+  const pass = [];
+  const fail = [];
+  array.forEach(elem => predicate(elem) ? pass.push(elem) : fail.push(elem));
+  return [pass, fail];
+}
+/**
  * Merges a given arguments of maps into one Map, with the latest maps
  * overriding the values of the prior maps.
  */
@@ -209,8 +223,8 @@ function mapEqual(map1, map2, equalComparator) {
 
   const equalFunction = equalComparator || ((a, b) => a === b);
 
-  for (const [key1, value1] of map1) {
-    if (!map2.has(key1) || !equalFunction(value1, map2.get(key1))) {
+  for (const [key, value1] of map1) {
+    if (!map2.has(key) || !equalFunction(value1, map2.get(key))) {
       return false;
     }
   }
@@ -681,3 +695,51 @@ class DefaultMap extends Map {
 }
 
 exports.DefaultMap = DefaultMap;
+
+class DefaultWeakMap extends WeakMap {
+  constructor(factory, iterable) {
+    super(iterable);
+    this._factory = factory;
+  }
+
+  get(key) {
+    if (!this.has(key)) {
+      const value = this._factory();
+
+      this.set(key, value);
+      return value;
+    } // If the key is present we must have a value of type V.
+
+
+    return super.get(key);
+  }
+
+}
+/**
+ * Return the highest ranked item in a list, according to the provided ranking function. A max rank
+ * may optionally be provided so the whole list doesn't have to be iterated. Items with ranks of
+ * zero or less are never returned.
+ */
+
+
+exports.DefaultWeakMap = DefaultWeakMap;
+
+function findTopRanked(items, ranker, maxRank) {
+  let maxSeenRank = 0;
+  let maxRankedItem;
+
+  for (const item of items) {
+    const rank = ranker(item);
+
+    if (rank === maxRank) {
+      return item;
+    }
+
+    if (rank > 0 && rank > maxSeenRank) {
+      maxSeenRank = rank;
+      maxRankedItem = item;
+    }
+  }
+
+  return maxRankedItem;
+}

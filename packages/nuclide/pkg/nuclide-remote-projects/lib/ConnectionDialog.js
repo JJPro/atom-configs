@@ -3,9 +3,7 @@
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-exports.default = void 0;
-
-var _RxMin = require("rxjs/bundles/Rx.min.js");
+exports.default = exports.ConnectionDialogModes = void 0;
 
 function _AuthenticationPrompt() {
   const data = _interopRequireDefault(require("./AuthenticationPrompt"));
@@ -37,16 +35,6 @@ function _ButtonGroup() {
   return data;
 }
 
-function _connectBigDigSshHandshake() {
-  const data = _interopRequireDefault(require("./connectBigDigSshHandshake"));
-
-  _connectBigDigSshHandshake = function () {
-    return data;
-  };
-
-  return data;
-}
-
 function _ConnectionDetailsPrompt() {
   const data = _interopRequireDefault(require("./ConnectionDetailsPrompt"));
 
@@ -67,44 +55,14 @@ function _IndeterminateProgressBar() {
   return data;
 }
 
-function _notification() {
-  const data = require("./notification");
-
-  _notification = function () {
-    return data;
-  };
-
-  return data;
-}
-
 var React = _interopRequireWildcard(require("react"));
 
 var _electron = _interopRequireDefault(require("electron"));
-
-function _nuclideRemoteConnection() {
-  const data = require("../../nuclide-remote-connection");
-
-  _nuclideRemoteConnection = function () {
-    return data;
-  };
-
-  return data;
-}
 
 function _formValidationUtils() {
   const data = require("./form-validation-utils");
 
   _formValidationUtils = function () {
-    return data;
-  };
-
-  return data;
-}
-
-function _log4js() {
-  const data = require("log4js");
-
-  _log4js = function () {
     return data;
   };
 
@@ -125,7 +83,6 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  *  strict-local
  * @format
  */
-const logger = (0, _log4js().getLogger)('nuclide-remote-projects');
 const {
   remote
 } = _electron.default;
@@ -134,25 +91,25 @@ if (!(remote != null)) {
   throw new Error("Invariant violation: \"remote != null\"");
 }
 
-const REQUEST_CONNECTION_DETAILS = 1;
-const WAITING_FOR_CONNECTION = 2;
-const REQUEST_AUTHENTICATION_DETAILS = 3;
-const WAITING_FOR_AUTHENTICATION = 4;
+const ConnectionDialogModes = {
+  REQUEST_CONNECTION_DETAILS: 1,
+  WAITING_FOR_CONNECTION: 2,
+  REQUEST_AUTHENTICATION_DETAILS: 3,
+  WAITING_FOR_AUTHENTICATION: 4
+};
 /**
  * Component that manages the state transitions as the user connects to a server.
  */
 
+exports.ConnectionDialogModes = ConnectionDialogModes;
+
 class ConnectionDialog extends React.Component {
-  constructor(props) {
-    super(props);
+  constructor(...args) {
+    var _temp;
 
-    this._handleDidChange = () => {
-      this.setState({
-        isDirty: true
-      });
-    };
-
-    this._handleClickSave = () => {
+    return _temp = super(...args), this._handleDidChange = () => {
+      this.props.setDirty(true);
+    }, this._handleClickSave = () => {
       if (!(this.props.connectionProfiles != null)) {
         throw new Error("Invariant violation: \"this.props.connectionProfiles != null\"");
       }
@@ -184,38 +141,15 @@ class ConnectionDialog extends React.Component {
       }
 
       this.props.onSaveProfile(this.props.selectedProfileIndex, newProfile);
-      this.setState({
-        isDirty: false
-      });
-    };
-
-    this.cancel = () => {
-      const mode = this.state.mode;
-
-      if (this._pendingHandshake != null) {
-        this._pendingHandshake.unsubscribe();
-
-        this._pendingHandshake = null;
-      }
-
-      if (mode === WAITING_FOR_CONNECTION) {
-        this.setState({
-          isDirty: false,
-          mode: REQUEST_CONNECTION_DETAILS
-        });
-      } else {
-        this.props.onCancel();
-        this.close();
-      }
-    };
-
-    this.ok = () => {
+      this.props.setDirty(false);
+    }, this._cancel = () => {
+      this.props.cancelConnection();
+    }, this.ok = () => {
       const {
-        mode,
-        isDirty
-      } = this.state;
+        mode
+      } = this.props;
 
-      if (mode === REQUEST_CONNECTION_DETAILS) {
+      if (mode === ConnectionDialogModes.REQUEST_CONNECTION_DETAILS) {
         // User is trying to submit connection details.
         const connectionDetailsForm = this._content;
 
@@ -241,11 +175,7 @@ class ConnectionDialog extends React.Component {
         }
 
         if (username && server && cwd && remoteServerCommand) {
-          this.setState({
-            isDirty: false,
-            mode: WAITING_FOR_CONNECTION
-          });
-          this._pendingHandshake = this._connect({
+          this.props.connect({
             host: server,
             sshPort: parseInt(sshPort, 10),
             username,
@@ -255,12 +185,12 @@ class ConnectionDialog extends React.Component {
             remoteServerCommand,
             password,
             // Modified profiles probably don't match the display title.
-            displayTitle: isDirty ? '' : displayTitle
+            displayTitle: this.props.dirty ? '' : displayTitle
           });
         } else {
           remote.dialog.showErrorBox('Missing information', "Please make sure you've filled out all the form fields.");
         }
-      } else if (mode === REQUEST_AUTHENTICATION_DETAILS) {
+      } else if (mode === ConnectionDialogModes.REQUEST_AUTHENTICATION_DETAILS) {
         const authenticationPrompt = this._content;
 
         if (!(authenticationPrompt instanceof _AuthenticationPrompt().default)) {
@@ -268,56 +198,24 @@ class ConnectionDialog extends React.Component {
         }
 
         const password = authenticationPrompt.getPassword();
-        this.state.finish([password]);
-        this.setState({
-          isDirty: false,
-          mode: WAITING_FOR_AUTHENTICATION
-        });
+        this.props.confirmConnectionPrompt([password]);
+        this.props.setDirty(false);
+        this.props.setMode(ConnectionDialogModes.WAITING_FOR_AUTHENTICATION);
       }
-    };
-
-    this.onProfileClicked = selectedProfileIndex => {
-      this.setState({
-        isDirty: false
-      });
+    }, this.onProfileClicked = selectedProfileIndex => {
+      this.props.setDirty(false);
       this.props.onProfileSelected(selectedProfileIndex);
-    };
-
-    this._delegate = (0, _nuclideRemoteConnection().decorateSshConnectionDelegateWithTracking)({
-      onKeyboardInteractive: (name, instructions, instructionsLang, prompts, finish) => {
-        // TODO: Display all prompts, not just the first one.
-        this.requestAuthentication(prompts[0], finish);
-      },
-      onWillConnect: () => {},
-      onDidConnect: (connection, config) => {
-        this.close(); // Close the dialog.
-
-        this.props.onConnect(connection, config);
-      },
-      onError: (errorType, error, config) => {
-        this.close(); // Close the dialog.
-
-        (0, _notification().notifySshHandshakeError)(errorType, error, config);
-        this.props.onError(error, config);
-        logger.debug(error);
-      }
-    });
-    this.state = {
-      finish: answers => {},
-      instructions: '',
-      isDirty: false,
-      mode: REQUEST_CONNECTION_DETAILS
-    };
+    }, _temp;
   }
 
   componentDidMount() {
     this._focus();
   }
 
-  componentDidUpdate(prevProps, prevState) {
-    if (this.state.mode !== prevState.mode) {
+  componentDidUpdate(prevProps) {
+    if (this.props.mode !== prevProps.mode) {
       this._focus();
-    } else if (this.state.mode === REQUEST_CONNECTION_DETAILS && this.props.selectedProfileIndex === prevProps.selectedProfileIndex && !this.state.isDirty && prevState.isDirty && this._okButton != null) {
+    } else if (this.props.mode === ConnectionDialogModes.REQUEST_CONNECTION_DETAILS && this.props.selectedProfileIndex === prevProps.selectedProfileIndex && !this.props.dirty && prevProps.dirty && this._okButton != null) {
       // When editing a profile and clicking "Save", the Save button disappears. Focus the primary
       // button after re-rendering so focus is on a logical element.
       this._okButton.focus();
@@ -343,17 +241,18 @@ class ConnectionDialog extends React.Component {
   }
 
   render() {
-    const mode = this.state.mode;
+    const mode = this.props.mode;
     let content;
     let isOkDisabled;
     let okButtonText;
 
-    if (mode === REQUEST_CONNECTION_DETAILS) {
+    if (mode === ConnectionDialogModes.REQUEST_CONNECTION_DETAILS) {
       content = React.createElement(_ConnectionDetailsPrompt().default, {
+        error: this.props.error,
         connectionProfiles: this.props.connectionProfiles,
         selectedProfileIndex: this.props.selectedProfileIndex,
         onAddProfileClicked: this.props.onAddProfileClicked,
-        onCancel: this.cancel,
+        onCancel: this._cancel,
         onConfirm: this.ok,
         onDeleteProfileClicked: this.props.onDeleteProfileClicked,
         onDidChange: this._handleDidChange,
@@ -364,14 +263,14 @@ class ConnectionDialog extends React.Component {
       });
       isOkDisabled = false;
       okButtonText = 'Connect';
-    } else if (mode === WAITING_FOR_CONNECTION || mode === WAITING_FOR_AUTHENTICATION) {
+    } else if (mode === ConnectionDialogModes.WAITING_FOR_CONNECTION || mode === ConnectionDialogModes.WAITING_FOR_AUTHENTICATION) {
       content = React.createElement(_IndeterminateProgressBar().default, null);
       isOkDisabled = true;
       okButtonText = 'Connect';
     } else {
       content = React.createElement(_AuthenticationPrompt().default, {
-        instructions: this.state.instructions,
-        onCancel: this.cancel,
+        instructions: this.props.connectionPromptInstructions,
+        onCancel: this._cancel,
         onConfirm: this.ok,
         ref: prompt => {
           this._content = prompt;
@@ -388,7 +287,7 @@ class ConnectionDialog extends React.Component {
       selectedProfile = this.props.connectionProfiles[this.props.selectedProfileIndex];
     }
 
-    if (this.state.isDirty && selectedProfile != null && selectedProfile.saveable) {
+    if (this.props.dirty && selectedProfile != null && selectedProfile.saveable) {
       saveButtonGroup = React.createElement(_ButtonGroup().ButtonGroup, {
         className: "inline-block"
       }, React.createElement(_Button().Button, {
@@ -404,7 +303,7 @@ class ConnectionDialog extends React.Component {
         justifyContent: 'flex-end'
       }
     }, saveButtonGroup, React.createElement(_ButtonGroup().ButtonGroup, null, React.createElement(_Button().Button, {
-      onClick: this.cancel,
+      onClick: this._cancel,
       ref: button => {
         this._cancelButton = button;
       }
@@ -416,27 +315,6 @@ class ConnectionDialog extends React.Component {
         this._okButton = button;
       }
     }, okButtonText))));
-  }
-
-  close() {
-    if (this._pendingHandshake != null) {
-      this._pendingHandshake.unsubscribe();
-
-      this._pendingHandshake = null;
-    }
-
-    if (this.props.onClosed) {
-      this.props.onClosed();
-    }
-  }
-
-  requestAuthentication(instructions, finish) {
-    this.setState({
-      finish,
-      instructions: instructions.prompt,
-      isDirty: false,
-      mode: REQUEST_AUTHENTICATION_DETAILS
-    });
   }
 
   getFormFields() {
@@ -470,24 +348,6 @@ class ConnectionDialog extends React.Component {
       authMethod,
       displayTitle
     };
-  }
-
-  _connect(connectionConfig) {
-    return _RxMin.Observable.defer(() => _nuclideRemoteConnection().RemoteConnection.reconnect(connectionConfig.host, connectionConfig.cwd, connectionConfig.displayTitle)).switchMap(existingConnection => {
-      if (existingConnection != null) {
-        this._delegate.onWillConnect(connectionConfig); // required for the API
-
-
-        this._delegate.onDidConnect(existingConnection, connectionConfig);
-
-        return _RxMin.Observable.empty();
-      }
-
-      const sshHandshake = (0, _connectBigDigSshHandshake().default)(connectionConfig, this._delegate);
-      return _RxMin.Observable.create(() => {
-        return () => sshHandshake.cancel();
-      });
-    }).subscribe(next => {}, err => this._delegate.onError(err.sshHandshakeErrorType || 'UNKNOWN', err, connectionConfig));
   }
 
 }

@@ -28,10 +28,10 @@ function Actions() {
   return data;
 }
 
-function _getCurrentExecutorId() {
-  const data = _interopRequireDefault(require("../getCurrentExecutorId"));
+function Selectors() {
+  const data = _interopRequireWildcard(require("./Selectors"));
 
-  _getCurrentExecutorId = function () {
+  Selectors = function () {
     return data;
   };
 
@@ -107,7 +107,7 @@ function executeEpic(actions, store) {
     const {
       code
     } = action.payload;
-    const currentExecutorId = (0, _getCurrentExecutorId().default)(store.getState()); // flowlint-next-line sketchy-null-string:off
+    const currentExecutorId = Selectors().getCurrentExecutorId(store.getState()); // flowlint-next-line sketchy-null-string:off
 
     if (!currentExecutorId) {
       throw new Error("Invariant violation: \"currentExecutorId\"");
@@ -125,6 +125,7 @@ function executeEpic(actions, store) {
       // Eventually, we'll want to allow providers to specify custom timestamps for records.
       timestamp: new Date(),
       sourceId: currentExecutorId,
+      sourceName: executor.name,
       kind: 'request',
       level: 'log',
       text: code,

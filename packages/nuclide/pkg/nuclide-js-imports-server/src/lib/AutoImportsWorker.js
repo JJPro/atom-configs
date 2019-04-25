@@ -205,7 +205,7 @@ async function main() {
   const newCache = new (_ExportCache().default)({
     root,
     configFromFlow
-  });
+  }); // eslint-disable-next-line nuclide-internal/unused-subscription
 
   _RxMin.Observable.merge(indexDirectory(index, hasteSettings), indexNodeModules(index)).subscribe(message => {
     sendUpdatesBatched(message);
@@ -255,6 +255,7 @@ function disposeForGC(index, cache) {
 
 
 function watchDirectoryRecursively(root, hasteSettings) {
+  // eslint-disable-next-line nuclide-internal/unused-subscription
   (0, _fileIndex().watchDirectory)(root).mergeMap(fileChange => handleFileChange(root, fileChange, hasteSettings), CONCURRENCY).subscribe(() => {}, error => {
     logger.error(`Failed to watch ${root}`, error);
   });
@@ -442,11 +443,10 @@ async function getExportsForFile(file, hasteSettings, fileContents_) {
     });
     const settings = process.env.JS_IMPORTS_INITIALIZATION_SETTINGS;
     const {
-      componentModulePathFilter,
-      uiComponentToolsIndexingGkEnabled
+      componentModulePathFilter
     } = settings != null ? JSON.parse(settings) : {};
 
-    if (Boolean(uiComponentToolsIndexingGkEnabled) && (componentModulePathFilter == null || file.includes(componentModulePathFilter))) {
+    if (componentModulePathFilter == null || file.includes(componentModulePathFilter)) {
       const definition = (0, _nuclideUiComponentToolsCommon().getComponentDefinitionFromAst)(file, ast);
 
       if (definition != null) {
@@ -622,7 +622,7 @@ function runChild() {
   process.on('message', message => {
     const {
       files
-    } = message;
+    } = message; // eslint-disable-next-line nuclide-internal/unused-subscription
 
     _RxMin.Observable.from(files).concatMap((file, index) => {
       // Note that we explicitly skip the main check here.

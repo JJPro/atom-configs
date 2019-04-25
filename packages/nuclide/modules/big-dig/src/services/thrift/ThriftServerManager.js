@@ -45,16 +45,6 @@ function _configUtils() {
   return data;
 }
 
-function _fsServer() {
-  const data = require("../fs/fsServer");
-
-  _fsServer = function () {
-    return data;
-  };
-
-  return data;
-}
-
 /**
  * Copyright (c) 2017-present, Facebook, Inc.
  * All rights reserved.
@@ -82,9 +72,7 @@ function _fsServer() {
 class ThriftServerManager {
   constructor(transport) {
     this._transport = transport;
-    this._logger = (0, _log4js().getLogger)('bigdig-thrift-service-manager'); // TODO: Support start server by config to support more thrift services
-
-    this._availableServices = new Set(['thrift-rfs']);
+    this._logger = (0, _log4js().getLogger)('bigdig-thrift-service-manager');
     this._configIdToServer = new Map(); // Transport onMessage returns observable
 
     this._subscription = this._transport.onMessage().map(message => (0, _util().decodeMessage)(message)).subscribe(message => this._handleMessage(message));
@@ -131,10 +119,6 @@ class ThriftServerManager {
       return;
     }
 
-    if (!this._availableServices.has(serverConfig.name)) {
-      throw new Error(`No available thrift service for ${serverConfig.name}`);
-    }
-
     if (command === 'start-server') {
       await this._startServer(id, serverConfig);
     } else if (command === 'stop-server') {
@@ -167,7 +151,7 @@ class ThriftServerManager {
         refCount: refCount + 1
       });
 
-      messagePayload = createSuccessResponse(String(server.getPort()));
+      messagePayload = createSuccessResponse(server.getConnectionOptions());
     } else {
       try {
         const server = await (0, _createThriftServer().createThriftServer)(serverConfig);
@@ -177,7 +161,7 @@ class ThriftServerManager {
           server
         });
 
-        messagePayload = createSuccessResponse(String(server.getPort()));
+        messagePayload = createSuccessResponse(server.getConnectionOptions());
       } catch (error) {
         messagePayload = createFailureResponse('Failed to create server');
 
@@ -237,11 +221,11 @@ class ThriftServerManager {
 
 exports.ThriftServerManager = ThriftServerManager;
 
-function createSuccessResponse(port) {
+function createSuccessResponse(connectionOptions) {
   return {
     type: 'response',
     success: true,
-    port
+    connectionOptions
   };
 }
 

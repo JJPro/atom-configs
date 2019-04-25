@@ -5,6 +5,16 @@ Object.defineProperty(exports, "__esModule", {
 });
 exports.default = void 0;
 
+function _Checkbox() {
+  const data = require("./Checkbox");
+
+  _Checkbox = function () {
+    return data;
+  };
+
+  return data;
+}
+
 function _SettingsUtils() {
   const data = require("./SettingsUtils");
 
@@ -31,15 +41,6 @@ function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj;
  * @format
  */
 class SettingsCheckbox extends React.Component {
-  constructor(...args) {
-    var _temp;
-
-    return _temp = super(...args), this._handleChange = event => {
-      const isChecked = event.target.checked;
-      this.props.onChange(isChecked);
-    }, _temp;
-  }
-
   render() {
     const keyPath = this.props.keyPath;
     const id = (0, _SettingsUtils().normalizeIdentifier)(keyPath);
@@ -50,14 +51,13 @@ class SettingsCheckbox extends React.Component {
       className: "checkbox"
     }, React.createElement("label", {
       htmlFor: id
-    }, React.createElement("input", {
-      checked: value,
+    }, React.createElement(_Checkbox().Checkbox, {
       id: id,
-      onChange: this._handleChange,
-      type: "checkbox"
-    }), React.createElement("div", {
-      className: "setting-title"
-    }, title)), React.createElement("div", {
+      checked: value,
+      className: "setting-title",
+      onChange: this.props.onChange,
+      label: title
+    })), React.createElement("div", {
       className: "setting-description"
     }, description));
   }

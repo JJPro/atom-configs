@@ -26,6 +26,16 @@ function _vscodeLanguageserver() {
   return data;
 }
 
+function _constants() {
+  const data = require("./constants");
+
+  _constants = function () {
+    return data;
+  };
+
+  return data;
+}
+
 function _ImportFormatter() {
   const data = require("./lib/ImportFormatter");
 
@@ -108,8 +118,11 @@ class CommandExecutor {
 
   executeCommand(command, args) {
     switch (command) {
-      case 'addImport':
+      case _constants().ADD_IMPORT_COMMAND_ID:
         return this._addImport(args);
+
+      case 'getAllImports':
+        return this._getAllImports(args[0]);
 
       default:
         command;
@@ -132,8 +145,11 @@ class CommandExecutor {
       body
     } = ast.program;
     const edits = getEditsForImport(this.importFormatter, fileMissingImport, missingImport, body);
+    this.connection.workspace.applyEdit(this._toWorkspaceEdit(fileMissingImport, edits));
+  }
 
-    const lspUri = _nuclideUri().default.nuclideUriToUri(fileMissingImport); // Version 2.0 LSP
+  _toWorkspaceEdit(filePath, edits) {
+    const lspUri = _nuclideUri().default.nuclideUriToUri(filePath); // Version 2.0 LSP
 
 
     const changes = {};
@@ -146,13 +162,24 @@ class CommandExecutor {
       },
       edits
     }];
-    this.connection.workspace.applyEdit({
+    return {
       changes,
       documentChanges
-    });
+    };
   }
 
-  getEditsForFixingAllImports(fileMissingImport) {
+  _getAllImports(filePath) {
+    const edits = this._getEditsForFixingAllImports(filePath);
+
+    const successfulEdits = edits.filter(edit => edit.newText !== '');
+    return {
+      edits,
+      addedRequires: successfulEdits.length > 0,
+      missingExports: successfulEdits.length !== edits.length
+    };
+  }
+
+  _getEditsForFixingAllImports(fileMissingImport) {
     const fileMissingImportUri = _nuclideUri().default.nuclideUriToUri(fileMissingImport);
 
     const ast = (0, _AutoImportsManager().parseFile)(this.documents.get(fileMissingImportUri).getText());
@@ -187,7 +214,7 @@ class CommandExecutor {
 
 exports.CommandExecutor = CommandExecutor;
 CommandExecutor.COMMANDS = {
-  addImport: true
+  [_constants().ADD_IMPORT_COMMAND_ID]: true
 };
 
 function getEditsForImport(importFormatter, fileMissingImport, missingImport, programBody) {
@@ -400,18 +427,27 @@ function findClosestImport(identifier, fileURI, filesWithExport) {
   });
 
   if (closestExports.length > 1) {
-    const closestByModuleID = findSmallestByMeasure(closestExports, ({
+    const matchingModules = findSmallestByMeasure(closestExports, ({
       uri
     }) => {
       const id = moduleID(uri);
       return id === identifier ? 0 : id.indexOf(identifier) !== -1 ? 1 : 2;
-    });
+    }); // Pick the best moduleID that matches.
 
-    if (closestByModuleID.length === 1) {
-      return closestByModuleID[0];
+    let bestModule = matchingModules[0];
+    let bestModuleID = moduleID(bestModule.uri);
+
+    for (let i = 1; i < matchingModules.length; i++) {
+      const thisModule = matchingModules[i];
+      const thisModuleID = moduleID(thisModule.uri);
+
+      if ((0, _util().compareForSuggestion)(thisModuleID, bestModuleID) < 0) {
+        bestModule = thisModule;
+        bestModuleID = thisModuleID;
+      }
     }
 
-    return null;
+    return bestModule;
   }
 
   return closestExports[0];

@@ -189,14 +189,16 @@ function waitsForFilePosition(filename, row, column, timeoutMs = 10000) {
 
 const mountedRootComponents = new Map();
 
-const oldReactRender = _reactDom.default.render.bind(_reactDom.default);
+const oldReactRender = _reactDom.default.render.bind(_reactDom.default); // $FlowFixMe Patching for test
+
 
 _reactDom.default.render = function render(element, container, callback) {
   mountedRootComponents.set(container, element);
   return oldReactRender(element, container, callback);
 };
 
-const oldReactUnmountComponentAtNode = _reactDom.default.unmountComponentAtNode.bind(_reactDom.default);
+const oldReactUnmountComponentAtNode = _reactDom.default.unmountComponentAtNode.bind(_reactDom.default); // $FlowFixMe Patching for test
+
 
 _reactDom.default.unmountComponentAtNode = function unmountComponentAtNode(container) {
   mountedRootComponents.delete(container);

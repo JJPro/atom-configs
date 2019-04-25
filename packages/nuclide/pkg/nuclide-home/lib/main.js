@@ -87,7 +87,7 @@ var _RxMin = require("rxjs/bundles/Rx.min.js");
 var _electron = require("electron");
 
 function _passesGK() {
-  const data = _interopRequireDefault(require("../../commons-node/passesGK"));
+  const data = _interopRequireDefault(require("../../../modules/nuclide-commons/passesGK"));
 
   _passesGK = function () {
     return data;

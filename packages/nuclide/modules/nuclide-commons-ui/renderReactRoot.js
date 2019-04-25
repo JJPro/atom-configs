@@ -37,8 +37,8 @@ function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj;
  * Create a DOM element and mount the React element in it. It will be unmounted when the node is
  * detached.
  */
-function renderReactRoot(reactElement) {
+function renderReactRoot(reactElement, profileName) {
   const element = new (_ReactMountRootElement().default)();
-  element.setReactElement(reactElement);
+  element.setReactElement(reactElement, profileName);
   return element;
 }

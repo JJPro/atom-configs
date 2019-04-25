@@ -3,7 +3,17 @@
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-exports.RemoteDirectory = void 0;
+exports.RemoteDirectory = exports.EDEN_PERFORMANCE_SAMPLE_RATE = void 0;
+
+function _memoize2() {
+  const data = _interopRequireDefault(require("lodash/memoize"));
+
+  _memoize2 = function () {
+    return data;
+  };
+
+  return data;
+}
 
 function _UniversalDisposable() {
   const data = _interopRequireDefault(require("../../../modules/nuclide-commons/UniversalDisposable"));
@@ -45,21 +55,41 @@ function _log4js() {
   return data;
 }
 
+function _nuclideAnalytics() {
+  const data = require("../../../modules/nuclide-analytics");
+
+  _nuclideAnalytics = function () {
+    return data;
+  };
+
+  return data;
+}
+
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-/**
- * Copyright (c) 2015-present, Facebook, Inc.
- * All rights reserved.
- *
- * This source code is licensed under the license found in the LICENSE file in
- * the root directory of this source tree.
- *
- * 
- * @format
- */
 const logger = (0, _log4js().getLogger)('nuclide-remote-connection');
 const MARKER_PROPERTY_FOR_REMOTE_DIRECTORY = '__nuclide_remote_directory__';
+const EDEN_PERFORMANCE_SAMPLE_RATE = 10;
+/**
+ * This is a global function because RemoteDirectory's are not re-used. Cached
+ * results must be global since they cannot be attached to an instance.
+ */
+
+exports.EDEN_PERFORMANCE_SAMPLE_RATE = EDEN_PERFORMANCE_SAMPLE_RATE;
+
+const _isEden = (0, _memoize2().default)(async (uri, fileSystemService) => {
+  if (_nuclideUri().default.endsWithEdenDir(uri)) {
+    // this is needed to avoid checking for .eden/.eden/root, which results in
+    // ELOOP: too many symbolic links encountered
+    return true;
+  }
+
+  const edenDir = _nuclideUri().default.join(uri, '.eden/root');
+
+  return fileSystemService.exists(edenDir);
+});
 /* Mostly implements https://atom.io/docs/api/latest/Directory */
+
 
 class RemoteDirectory {
   static isRemoteDirectory(directory) {
@@ -327,26 +357,35 @@ class RemoteDirectory {
 
 
   async getEntries(callback) {
-    let entries;
+    let entries = [];
+    const readDirError = await (0, _nuclideAnalytics().trackTimingSampled)('eden-filesystem-metrics:readdirSorted', async () => {
+      try {
+        entries = await this._getFileSystemService().readdirSorted(this._uri);
+        return false;
+      } catch (e) {
+        callback(e, null);
+        return true;
+      }
+    }, EDEN_PERFORMANCE_SAMPLE_RATE, {
+      isEden: await _isEden(this._uri, this._getFileSystemService()),
+      uri: this._uri
+    });
 
-    try {
-      entries = await this._getFileSystemService().readdirSorted(this._uri);
-    } catch (e) {
-      callback(e, null);
+    if (readDirError) {
       return;
     }
 
     const directories = [];
     const files = [];
     entries.forEach(entry => {
-      const [name, isFile, symlink] = entry;
+      const [name, isFile, isSymlink] = entry;
 
       const uri = _nuclideUri().default.createRemoteUri(this._host, this._joinLocalPath(name));
 
       if (isFile) {
-        files.push(this._server.createFile(uri, symlink));
+        files.push(this._server.createFile(uri, isSymlink));
       } else {
-        directories.push(this._server.createDirectory(uri, this._hgRepositoryDescription, symlink));
+        directories.push(this._server.createDirectory(uri, this._hgRepositoryDescription, isSymlink));
       }
     });
     callback(null, directories.concat(files));

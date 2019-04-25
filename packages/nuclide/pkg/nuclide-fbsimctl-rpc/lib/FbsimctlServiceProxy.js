@@ -259,13 +259,13 @@ Object.defineProperty(module.exports, "defs", {
       location: {
         type: "source",
         fileName: "FbsimctlService.js",
-        line: 32
+        line: 40
       },
       type: {
         location: {
           type: "source",
           fileName: "FbsimctlService.js",
-          line: 32
+          line: 40
         },
         kind: "function",
         argumentTypes: [{
@@ -294,13 +294,13 @@ Object.defineProperty(module.exports, "defs", {
       location: {
         type: "source",
         fileName: "FbsimctlService.js",
-        line: 40
+        line: 48
       },
       type: {
         location: {
           type: "source",
           fileName: "FbsimctlService.js",
-          line: 40
+          line: 48
         },
         kind: "function",
         argumentTypes: [{
@@ -328,13 +328,13 @@ Object.defineProperty(module.exports, "defs", {
       location: {
         type: "source",
         fileName: "FbsimctlService.js",
-        line: 52
+        line: 60
       },
       type: {
         location: {
           type: "source",
           fileName: "FbsimctlService.js",
-          line: 52
+          line: 60
         },
         kind: "function",
         argumentTypes: [{

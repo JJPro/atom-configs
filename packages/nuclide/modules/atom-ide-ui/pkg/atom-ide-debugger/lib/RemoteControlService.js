@@ -25,14 +25,14 @@ class RemoteControlService {
     return this._service.startDebugging(config);
   }
 
-  onDidStartDebugSession(callback) {
-    return this._service.onDidStartDebugSession(callback);
+  onDidChangeDebuggerSessions(callback) {
+    return this._service.getModel().onDidChangeProcesses(() => {
+      callback(this._service.getModel().getProcesses().map(p => p.configuration));
+    });
   }
 
-  onDidChangeProcesses(callback) {
-    return this._service.getModel().onDidChangeProcesses(() => {
-      callback(this._service.getModel().getProcesses());
-    });
+  getDebugSessions() {
+    return this._service.getModel().getProcesses().map(p => p.configuration);
   }
 
 }

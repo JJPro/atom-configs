@@ -415,7 +415,7 @@ class Activation {
             const threadId = parseInt(target.dataset.threadid, 10);
 
             if (!Number.isNaN(threadId)) {
-              return this._supportsTerminateThreadsRequest();
+              return this._supportsTerminateThreadsRequest() && !this._isReadOnlyTarget();
             }
           }
 
@@ -464,7 +464,7 @@ class Activation {
         }, {
           label: 'Run to Location',
           command: 'debugger:run-to-location',
-          shouldDisplay: event => this._service.getDebuggerMode() === _constants().DebuggerMode.PAUSED
+          shouldDisplay: event => this._service.getDebuggerMode() === _constants().DebuggerMode.PAUSED && !this._isReadOnlyTarget()
         }]
       }, {
         type: 'separator'
@@ -523,14 +523,8 @@ class Activation {
       focusedProcess
     } = this._service.viewModel;
 
-    if (focusedProcess == null || focusedStackFrame == null) {
+    if (focusedProcess == null || focusedStackFrame == null || !Boolean(focusedProcess.session.capabilities.supportsCompletionsRequest)) {
       return [];
-    } else if (!Boolean(focusedProcess.session.capabilities.supportsCompletionsRequest)) {
-      const scopes = await focusedStackFrame.getScopes();
-      return scopes.map(scope => ({
-        text: scope.name,
-        type: 'variable'
-      }));
     } else {
       const completions = await focusedProcess.completions(focusedStackFrame.frameId, text, request.bufferPosition, 0);
       return completions.map(item => ({
@@ -557,13 +551,6 @@ class Activation {
 
   dispose() {
     this._disposables.dispose();
-  }
-
-  consumeGatekeeperService(service) {
-    const disposable = this._layoutManager.consumeGatekeeperService(service);
-
-    disposable.add(this._service.consumeGatekeeperService(service));
-    return disposable;
   }
 
   _registerCommandsContextMenuAndOpener() {
@@ -610,7 +597,18 @@ class Activation {
     return disposable;
   }
 
+  _isReadOnlyTarget() {
+    const {
+      focusedProcess
+    } = this._service.viewModel;
+    return focusedProcess != null && Boolean(focusedProcess.configuration.isReadOnly);
+  }
+
   _continue() {
+    if (this._isReadOnlyTarget()) {
+      return;
+    }
+
     const {
       focusedThread
     } = this._service.viewModel;
@@ -632,6 +630,10 @@ class Activation {
   }
 
   _restart() {
+    if (this._isReadOnlyTarget()) {
+      return;
+    }
+
     const {
       focusedProcess
     } = this._service.viewModel;
@@ -642,6 +644,10 @@ class Activation {
   }
 
   _stepOver() {
+    if (this._isReadOnlyTarget()) {
+      return;
+    }
+
     const {
       focusedThread
     } = this._service.viewModel;
@@ -653,6 +659,10 @@ class Activation {
   }
 
   _stepInto() {
+    if (this._isReadOnlyTarget()) {
+      return;
+    }
+
     const {
       focusedThread
     } = this._service.viewModel;
@@ -664,6 +674,10 @@ class Activation {
   }
 
   _stepOut() {
+    if (this._isReadOnlyTarget()) {
+      return;
+    }
+
     const {
       focusedThread
     } = this._service.viewModel;
@@ -737,6 +751,10 @@ class Activation {
   }
 
   _terminateThread(event) {
+    if (this._isReadOnlyTarget()) {
+      return;
+    }
+
     const target = event.target;
 
     if (target.dataset.threadid) {
@@ -891,6 +909,10 @@ class Activation {
   }
 
   _runToLocation(event) {
+    if (this._isReadOnlyTarget()) {
+      return;
+    }
+
     this._executeWithEditorPath(event, (path, line) => {
       this._service.runToLocation(path, line);
     });
@@ -911,7 +933,8 @@ class Activation {
     } = this._service.viewModel;
 
     if (focusedThread != null) {
-      let callstackText = '';
+      let callstackText = ''; // eslint-disable-next-line nuclide-internal/unused-subscription
+
       focusedThread.getFullCallStack().filter(expectedStack => !expectedStack.isPending).take(1).subscribe(expectedStack => {
         expectedStack.getOrDefault([]).forEach((item, i) => {
           const path = _nuclideUri().default.basename(item.source.uri);

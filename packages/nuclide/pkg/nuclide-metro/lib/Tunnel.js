@@ -75,7 +75,7 @@ function openTunnel(serviceUri, behavior, port) {
     } else {
       return service.openTunnels([desired]);
     }
-  }).share();
+  }).mapTo('ready').share();
 }
 
 function _askToRequestTunnel(service, tunnel) {
@@ -103,7 +103,7 @@ function _askToRequestTunnel(service, tunnel) {
 
       notification.dismiss();
     };
-  });
+  }).mapTo('ready');
 }
 
 function _desiredTunnelTo(uri, port) {

@@ -119,7 +119,8 @@ class QueuedAckTransport {
       throw new Error('connect with existing this._transport');
     }
 
-    this._transport = transport;
+    this._transport = transport; // eslint-disable-next-line nuclide-internal/unused-subscription
+
     transport.onMessage().subscribe(this._handleMessage.bind(this));
     transport.onClose(() => this._handleTransportClose(transport));
   }

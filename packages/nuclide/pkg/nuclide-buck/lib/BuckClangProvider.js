@@ -5,6 +5,18 @@ Object.defineProperty(exports, "__esModule", {
 });
 exports.getClangProvider = getClangProvider;
 
+function _collection() {
+  const data = require("../../../modules/nuclide-commons/collection");
+
+  _collection = function () {
+    return data;
+  };
+
+  return data;
+}
+
+var _RxMin = require("rxjs/bundles/Rx.min.js");
+
 function _SimpleCache() {
   const data = require("../../../modules/nuclide-commons/SimpleCache");
 
@@ -26,7 +38,7 @@ function _types() {
 }
 
 function _nuclideAnalytics() {
-  const data = require("../../nuclide-analytics");
+  const data = require("../../../modules/nuclide-analytics");
 
   _nuclideAnalytics = function () {
     return data;
@@ -258,6 +270,16 @@ function getClangProvider(taskRunner, getBusySignalService, getConsolePrinter) {
         projectRoot,
         compilationDatabase: (0, _types().convertBuckClangCompilationDatabase)(buckCompilationDatabase)
       };
+    },
+
+    observeClangParams() {
+      // $FlowFixMe: type symbol-observable
+      return _RxMin.Observable.from(taskRunner._getStore()).startWith(taskRunner._getStore().getState()).map(({
+        projectRoot
+      }) => ({
+        root: projectRoot,
+        params: taskRunner.getCompilationDatabaseParamsForCurrentContext()
+      })).distinctUntilChanged((prev, next) => prev.root === next.root && (0, _collection().arrayEqual)(prev.params.args, next.params.args) && (0, _collection().arrayEqual)(prev.params.flavorsForTarget, next.params.flavorsForTarget));
     },
 
     resetForSource(src) {

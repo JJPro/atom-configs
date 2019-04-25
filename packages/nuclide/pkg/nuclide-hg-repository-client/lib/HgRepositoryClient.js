@@ -5,6 +5,16 @@ Object.defineProperty(exports, "__esModule", {
 });
 exports.HgRepositoryClient = void 0;
 
+function _HgService() {
+  const data = require("../../nuclide-hg-rpc/lib/HgService");
+
+  _HgService = function () {
+    return data;
+  };
+
+  return data;
+}
+
 function _nuclideUri() {
   const data = _interopRequireDefault(require("../../../modules/nuclide-commons/nuclideUri"));
 
@@ -161,42 +171,6 @@ const FETCH_BOOKMARKS_TIMEOUT = 15 * 1000;
  */
 const DID_CHANGE_CONFLICT_STATE = 'did-change-conflict-state';
 
-function getRevisionStatusCache(revisionsCache, workingDirectoryPath) {
-  try {
-    // $FlowFB
-    const FbRevisionStatusCache = require("./fb/RevisionStatusCache").default;
-
-    return new FbRevisionStatusCache(revisionsCache, workingDirectoryPath);
-  } catch (e) {
-    return {
-      getCachedRevisionStatuses() {
-        return new Map();
-      },
-
-      observeRevisionStatusesChanges() {
-        return _RxMin.Observable.empty();
-      },
-
-      refresh() {}
-
-    };
-  }
-}
-/**
- *
- * Section: HgRepositoryClient
- *
- */
-
-/**
- * HgRepositoryClient runs on the machine that Nuclide/Atom is running on.
- * It is the interface that other Atom packages will use to access Mercurial.
- * It caches data fetched from an HgService.
- * It implements the same interface as GitRepository, (https://atom.io/docs/api/latest/GitRepository)
- * in addition to providing asynchronous methods for some getters.
- */
-
-
 class HgRepositoryClient {
   // An instance of HgRepositoryClient may be cloned to share the subscriptions
   // across multiple atom projects in the same hg repository, but allow
@@ -223,7 +197,6 @@ class HgRepositoryClient {
     this._sharedMembers.isInConflict = false;
     this._sharedMembers.isDestroyed = false;
     this._sharedMembers.revisionsCache = new (_RevisionsCache().default)(this._sharedMembers.workingDirectoryPath, hgService);
-    this._sharedMembers.revisionStatusCache = getRevisionStatusCache(this._sharedMembers.revisionsCache, this._sharedMembers.workingDirectoryPath);
     this._sharedMembers.revisionIdToFileChanges = new (_lruCache().default)({
       max: 100
     });
@@ -240,7 +213,6 @@ class HgRepositoryClient {
       isLoading: true,
       bookmarks: []
     });
-    this._sharedMembers.bufferDiffsFromHeadCache = new Map();
     this._sharedMembers.repoSubscriptions = this._sharedMembers.service.createRepositorySubscriptions(this._sharedMembers.workingDirectoryPath).catch(error => {
       atom.notifications.addWarning('Mercurial: failed to subscribe to watchman!');
       (0, _log4js().getLogger)('nuclide-hg-repository-client').error(`Failed to subscribe to watchman in ${this._sharedMembers.workingDirectoryPath}`, error);
@@ -404,10 +376,6 @@ class HgRepositoryClient {
     return this._sharedMembers.isFetchingPathStatuses.asObservable();
   }
 
-  observeRevisionStatusesChanges() {
-    return this._sharedMembers.revisionStatusCache.observeRevisionStatusesChanges();
-  }
-
   observeUncommittedStatusChanges() {
     return this._sharedMembers.hgUncommittedStatusChanges;
   }
@@ -440,8 +408,22 @@ class HgRepositoryClient {
     return _RxMin.Observable.merge(this._tryObserve(s => s.observeLockFilesDidChange().refCount()), this._sharedMembers.refreshLocksFilesObserver.asObservable());
   }
 
-  observeHeadRevision() {
-    return this.observeRevisionChanges().map(revisionInfoFetched => revisionInfoFetched.revisions.find(revision => revision.isHead)).let(_observable().compact).distinctUntilChanged((prevRev, nextRev) => prevRev.hash === nextRev.hash);
+  observeWatchmanHealth() {
+    return this._tryObserve(s => s.observeWatchmanHealth().refCount());
+  }
+  /*
+   * fetchPreviousHashes: setting this would fetch all the hashes that this commit
+   * was represented by, for example a rebase can change the hash from a -> b and
+   * setting this flag will fetch 'a' as well as part of revisionInfo previousHashes
+   */
+
+
+  observeHeadRevision(fetchPreviousHashes = false) {
+    return this.observeRevisionChanges().map(revisionInfoFetched => revisionInfoFetched.revisions.find(revision => revision.isHead)).let(_observable().compact).distinctUntilChanged((prevRev, nextRev) => prevRev.hash === nextRev.hash).switchMap(rev => {
+      return fetchPreviousHashes === false ? _RxMin.Observable.of(rev) : this._sharedMembers.service.fetchHeadRevisionInfo(this.getWorkingDirectory()).refCount().map(previousRevisionInfos => Object.assign({}, rev, {
+        previousHashes: previousRevisionInfos.map(previousRevisionInfo => previousRevisionInfo.hash)
+      }));
+    });
   }
   /**
    *
@@ -721,22 +703,8 @@ class HgRepositoryClient {
    */
 
 
-  setDiffInfo(filePath, diffInfo) {
-    if (this.isPathRelevantToRepository(filePath)) {
-      this._sharedMembers.bufferDiffsFromHeadCache.set(filePath, diffInfo);
-    }
-  }
-
-  deleteDiffInfo(filePath) {
-    this._sharedMembers.bufferDiffsFromHeadCache.delete(filePath);
-  }
-
-  clearAllDiffInfo() {
-    this._sharedMembers.bufferDiffsFromHeadCache.clear();
-  }
-
   getDiffStats(filePath) {
-    return this._sharedMembers.bufferDiffsFromHeadCache.get(filePath) || {
+    return {
       added: 0,
       deleted: 0
     };
@@ -754,9 +722,7 @@ class HgRepositoryClient {
 
 
   getLineDiffs(filePath, text) {
-    const diffInfo = this._sharedMembers.bufferDiffsFromHeadCache.get(filePath);
-
-    return diffInfo != null ? diffInfo.lineDiffs : [];
+    return [];
   }
   /**
    *
@@ -915,16 +881,8 @@ class HgRepositoryClient {
     });
   }
 
-  refreshRevisionsStatuses() {
-    this._sharedMembers.revisionStatusCache.refresh();
-  }
-
   getCachedRevisions() {
     return this._sharedMembers.revisionsCache.getCachedRevisions().revisions;
-  }
-
-  getCachedRevisionStatuses() {
-    return this._sharedMembers.revisionStatusCache.getCachedRevisionStatuses();
   } // See HgService.getBaseRevision.
 
 
@@ -1063,6 +1021,10 @@ class HgRepositoryClient {
 
   fold(from, to, message) {
     return this._sharedMembers.service.fold(this._sharedMembers.workingDirectoryPath, from, to, message).refCount();
+  }
+
+  importPatch(patch, noCommit = false) {
+    return this._sharedMembers.service.importPatch(this._sharedMembers.workingDirectoryPath, patch, noCommit).refCount();
   }
 
   _clearClientCache(filePaths) {

@@ -227,6 +227,7 @@ class BigDigServer {
         subscriber.onConnection(transport);
       } // subsequent messages will be BigDig messages
       // TODO: could the message be a Buffer?
+      // eslint-disable-next-line nuclide-internal/unused-subscription
 
 
       qaTransport.onMessage().subscribe(message => {

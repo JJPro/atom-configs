@@ -181,7 +181,7 @@ class MutationObservable extends DOMObserverObservable {
     } // $FlowFixMe(>=0.55.0) Flow suppress
 
 
-    super(MutationObserver, target);
+    super(MutationObserver, target, options);
   }
 
 }

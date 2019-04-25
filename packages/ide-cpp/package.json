@@ -1,0 +1,123 @@
+{
+  "_from": "https://www.atom.io/api/packages/ide-cpp/versions/0.0.3/tarball",
+  "_id": "ide-cpp@0.0.3",
+  "_inBundle": false,
+  "_integrity": "sha512-Do3+jXV1shbRH+A/k3BMfBi3xWOl8ESZjNCfI7XCb0f1GmzYtkZkGOauf9EcL7P2IgszdRXteuq8r3diuQvD8g==",
+  "_location": "/ide-cpp",
+  "_phantomChildren": {},
+  "_requested": {
+    "type": "remote",
+    "raw": "https://www.atom.io/api/packages/ide-cpp/versions/0.0.3/tarball",
+    "rawSpec": "https://www.atom.io/api/packages/ide-cpp/versions/0.0.3/tarball",
+    "saveSpec": "https://www.atom.io/api/packages/ide-cpp/versions/0.0.3/tarball",
+    "fetchSpec": "https://www.atom.io/api/packages/ide-cpp/versions/0.0.3/tarball"
+  },
+  "_requiredBy": [
+    "#USER",
+    "/"
+  ],
+  "_resolved": "https://www.atom.io/api/packages/ide-cpp/versions/0.0.3/tarball",
+  "_shasum": "9ccc5973d54b36ec0d34a4131ae521e9eb0394d8",
+  "_spec": "https://www.atom.io/api/packages/ide-cpp/versions/0.0.3/tarball",
+  "_where": "/private/var/folders/v6/2396r3r94fq_jdzvfqzs9zx40000gn/T/apm-install-dir-118921-52337-gsfr7a.yhuqg",
+  "bugs": {
+    "url": "https://github.com/thomasjo/atom-ide-cpp/issues"
+  },
+  "bundleDependencies": false,
+  "configSchema": {
+    "clangdPath": {
+      "type": "string",
+      "default": "/usr/bin/clangd"
+    }
+  },
+  "consumedServices": {
+    "linter-indie": {
+      "versions": {
+        "2.0.0": "NA_consumeLinterV2"
+      }
+    },
+    "datatip": {
+      "versions": {
+        "0.1.0": "NA_consumeDatatip"
+      }
+    }
+  },
+  "dependencies": {
+    "atom-languageclient": "^0.6.3"
+  },
+  "deprecated": false,
+  "description": "C++ and C language support for Atom-IDE",
+  "devDependencies": {
+    "snazzy": "^7.0.0",
+    "standard": "^10.0.3"
+  },
+  "engines": {
+    "atom": ">=1.21.0"
+  },
+  "enhancedScopes": [
+    "source.c",
+    "source.cpp"
+  ],
+  "homepage": "https://github.com/thomasjo/atom-ide-cpp#readme",
+  "keywords": [
+    "c++",
+    "c",
+    "ide",
+    "clangd"
+  ],
+  "license": "MIT",
+  "main": "./lib/main",
+  "name": "ide-cpp",
+  "providedServices": {
+    "autocomplete.provider": {
+      "versions": {
+        "2.0.0": "provideAutocomplete"
+      }
+    },
+    "code-format.range": {
+      "versions": {
+        "0.1.0": "provideCodeFormat"
+      }
+    },
+    "code-highlight": {
+      "versions": {
+        "0.1.0": "provideCodeHighlight"
+      }
+    },
+    "definitions": {
+      "versions": {
+        "0.1.0": "NA_provideDefinitions"
+      }
+    },
+    "find-references": {
+      "versions": {
+        "0.1.0": "NA_provideFindReferences"
+      }
+    },
+    "outline-view": {
+      "versions": {
+        "0.1.0": "NA_provideOutlines"
+      }
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/thomasjo/atom-ide-cpp.git"
+  },
+  "standard": {
+    "globals": [
+      "afterEach",
+      "atom",
+      "beforeEach",
+      "describe",
+      "expect",
+      "it",
+      "jasmine",
+      "runs",
+      "spyOn",
+      "waitsFor",
+      "waitsForPromise"
+    ]
+  },
+  "version": "0.0.3"
+}

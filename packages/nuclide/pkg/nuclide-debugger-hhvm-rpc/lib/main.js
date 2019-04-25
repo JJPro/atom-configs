@@ -55,7 +55,7 @@ function _process() {
 var _fs = _interopRequireDefault(require("fs"));
 
 function _passesGK() {
-  const data = _interopRequireDefault(require("../../commons-node/passesGK"));
+  const data = _interopRequireDefault(require("../../../modules/nuclide-commons/passesGK"));
 
   _passesGK = function () {
     return data;
@@ -231,16 +231,23 @@ async function _getAttachArgs(config) {
   const startupDocumentPath = await _getStartupDocumentPath(config);
   const logFilePath = await _getHHVMLogFilePath();
   let debugPort = config.debugPort;
+  let domainSocketPath = null;
 
   if (debugPort == null) {
     try {
       // $FlowFB
-      const fetch = require("../../commons-node/fb-sitevar").fetchSitevarOnce;
+      const fetch = require('fb-interngraph/sitevar').fetchSitevarOnce;
 
       const siteVar = await fetch('NUCLIDE_VSP_DEBUGGER_CONFIG');
 
-      if (siteVar != null && siteVar.hhvm_attach_port != null) {
-        debugPort = siteVar.hhvm_attach_port;
+      if (siteVar != null) {
+        if (siteVar.hhvm_attach_port != null) {
+          debugPort = siteVar.hhvm_attach_port;
+        }
+
+        if (siteVar.hhvm_domain_socket_path != null) {
+          domainSocketPath = siteVar.hhvm_domain_socket_path;
+        }
       }
     } catch (e) {}
 
@@ -252,6 +259,7 @@ async function _getAttachArgs(config) {
   const warnOnInterceptedFunctions = await (0, _passesGK().default)('nuclide_debugger_hhvm_warn_on_intercept');
   return {
     debugPort,
+    domainSocketPath,
     startupDocumentPath,
     logFilePath,
     warnOnInterceptedFunctions,
@@ -315,15 +323,19 @@ async function getAttachTargetList() {
   });
 }
 
-async function terminateHhvmWrapperProcesses() {
-  // Note: we cannot match the full path to the wrapper reliably due
-  // to V8 caching, which might map to a prior version of Nuclide
-  // if it's available and the source of the hasn't changed between versions.
-  const wrapperPathSuffix = 'nuclide/pkg/nuclide-debugger-hhvm-rpc/lib/hhvmWrapper.js';
-  (await (0, _process().psTree)()).filter(p => {
-    const parts = p.commandWithArgs.split(' ');
-    return parts.length === 2 && parts[0].endsWith('node') && parts[1].endsWith(wrapperPathSuffix);
-  }).forEach(p => {
-    process.kill(p.pid, 'SIGKILL');
-  });
+async function terminateHhvmWrapperProcesses(pid) {
+  if (!Number.isNaN(pid) && pid > 0) {
+    process.kill(pid, 'SIGKILL');
+  } else {
+    // Note: we cannot match the full path to the wrapper reliably due
+    // to V8 caching, which might map to a prior version of Nuclide
+    // if it's available and the source of the hasn't changed between versions.
+    const wrapperPathSuffix = 'nuclide/pkg/nuclide-debugger-hhvm-rpc/lib/hhvmWrapper.js';
+    (await (0, _process().psTree)()).filter(p => {
+      const parts = p.commandWithArgs.split(' ');
+      return parts.length === 2 && parts[0].endsWith('node') && parts[1].endsWith(wrapperPathSuffix);
+    }).forEach(p => {
+      process.kill(p.pid, 'SIGKILL');
+    });
+  }
 }

@@ -48,7 +48,7 @@ function _builtinTypes() {
 }
 
 function _nuclideAnalytics() {
-  const data = require("../../nuclide-analytics");
+  const data = require("../../../modules/nuclide-analytics");
 
   _nuclideAnalytics = function () {
     return data;
@@ -230,7 +230,7 @@ class RpcConnection {
     this._rpcRequestId = 1;
     this._rpcResponseId = 1;
     this._serviceRegistry = serviceRegistry;
-    this._objectRegistry = new (_ObjectRegistry().ObjectRegistry)(kind, this._serviceRegistry, this);
+    this._objectRegistry = new (_ObjectRegistry().ObjectRegistry)(kind, this._serviceRegistry, this); // eslint-disable-next-line nuclide-internal/unused-subscription
 
     this._transport.onMessage().subscribe(message => {
       this._handleMessage(message);
@@ -473,7 +473,8 @@ class RpcConnection {
       result = _RxMin.Observable.throw(new Error('Expected an Observable, but the function returned something else.')).publish();
     } else {
       result = returnVal;
-    }
+    } // eslint-disable-next-line nuclide-internal/unused-subscription
+
 
     result // Marshal in a map() so that errors are caught below.
     .map(data => this.marshal(data, elementType)) // Send the next, error, and completion events of the observable across the socket.

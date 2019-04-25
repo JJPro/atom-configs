@@ -27,6 +27,16 @@ function _renderReactRoot() {
   return data;
 }
 
+function _LoadingSpinner() {
+  const data = require("../../../modules/nuclide-commons-ui/LoadingSpinner");
+
+  _LoadingSpinner = function () {
+    return data;
+  };
+
+  return data;
+}
+
 function _UniversalDisposable() {
   const data = _interopRequireDefault(require("../../../modules/nuclide-commons/UniversalDisposable"));
 
@@ -81,39 +91,45 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 class ImageEditorView {
   constructor(editor) {
     this.element = document.createElement('div');
-    this.element.className = 'nuclide-image-view-wrapper';
+    this.element.className = 'nuclide-image-view-wrapper'; // Add a temporary element to display a spinner until it is replaced
+
+    const spinner = (0, _renderReactRoot().renderReactRoot)(React.createElement("div", {
+      className: "nuclide-image-view-loading-spinner"
+    }, React.createElement(_LoadingSpinner().LoadingSpinner, null)));
+    this.element.appendChild(spinner);
     this._disposables = new (_UniversalDisposable().default)( // We need to defer loading the real view until the local file is ready because it assumes it
     // exists.
     editor.whenReady(() => {
-      // In some weird cases (e.g. Dash cached a deleted file path?), we might have tried to open
+      let viewElement; // In some weird cases (e.g. Dash cached a deleted file path?), we might have tried to open
       // a nonexistent file. In that case, just show an error. It's important that we don't create
       // an AtomImageEditorView because that will try to stat the nonexistent file and error.
+
       if (!_fs.default.existsSync((0, _nullthrows().default)(editor.getLocalPath()))) {
-        const message = (0, _renderReactRoot().renderReactRoot)(React.createElement(_Message().Message, {
+        viewElement = (0, _renderReactRoot().renderReactRoot)(React.createElement(_Message().Message, {
           type: "error"
         }, "Image doesn't exist"));
-        message.style.flexDirection = 'column';
-        this.element.appendChild(message);
-        return;
-      } // AtomImageEditorView tries to do a stat using the result of `getPath()` so we give it a
-      // proxy that always returns the local path instead of the real editor. (We don't want to
-      // change the editor's `getPath()` because other things use that for display purposes and we
-      // want to show the remote path.)
+        viewElement.style.flexDirection = 'column';
+      } else {
+        // AtomImageEditorView tries to do a stat using the result of `getPath()` so we give it a
+        // proxy that always returns the local path instead of the real editor. (We don't want to
+        // change the editor's `getPath()` because other things use that for display purposes and we
+        // want to show the remote path.)
+        const proxy = new Proxy(editor, {
+          get(obj, prop) {
+            if (prop === 'getPath') {
+              return editor.getLocalPath;
+            } // $FlowIgnore
 
 
-      const proxy = new Proxy(editor, {
-        get(obj, prop) {
-          if (prop === 'getPath') {
-            return editor.getLocalPath;
-          } // $FlowIgnore
+            return obj[prop];
+          }
 
+        });
+        this._realView = new (_imageEditorView().default)(proxy);
+        viewElement = this._realView.element;
+      }
 
-          return obj[prop];
-        }
-
-      });
-      this._realView = new (_imageEditorView().default)(proxy);
-      this.element.appendChild(this._realView.element);
+      this.element.replaceChild(viewElement, spinner);
     }), () => {
       if (this._realView != null) {
         this._realView.destroy();

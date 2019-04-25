@@ -22,6 +22,16 @@ exports.printTaskSucceededEpic = printTaskSucceededEpic;
 exports.printTaskErroredEpic = printTaskErroredEpic;
 exports.appendMessageToConsoleEpic = appendMessageToConsoleEpic;
 
+function _paneItem() {
+  const data = require("../../../../modules/nuclide-commons-atom/pane-item");
+
+  _paneItem = function () {
+    return data;
+  };
+
+  return data;
+}
+
 function _observable() {
   const data = require("../../../../modules/nuclide-commons/observable");
 
@@ -53,7 +63,7 @@ function _tasks() {
 }
 
 function _nuclideAnalytics() {
-  const data = require("../../../nuclide-analytics");
+  const data = require("../../../../modules/nuclide-analytics");
 
   _nuclideAnalytics = function () {
     return data;
@@ -128,8 +138,6 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  * 
  * @format
  */
-const CONSOLE_VIEW_URI = 'atom://nuclide/console';
-
 function setProjectRootForNewTaskRunnerEpic(actions, store) {
   return actions.ofType(Actions().REGISTER_TASK_RUNNER).mergeMap(action => {
     if (!(action.type === Actions().REGISTER_TASK_RUNNER)) {
@@ -294,8 +302,7 @@ function combineTaskRunnerStatesEpic(actions, store, options) {
     }
 
     const runnersAndStates = taskRunners.map(taskRunner => getTaskRunnerState(taskRunner, projectRoot));
-    return _RxMin.Observable.from(runnersAndStates) // $FlowFixMe: type combineAll
-    .combineAll().map(tuples => {
+    return _RxMin.Observable.from(runnersAndStates).combineAll().map(tuples => {
       const statesForTaskRunners = new Map();
       tuples.forEach(result => {
         if (store.getState().taskRunners.includes(result.taskRunner)) {
@@ -636,12 +643,21 @@ function printTaskSucceededEpic(actions, store) {
     const {
       taskRunner
     } = action.payload;
-    const capitalizedType = type.slice(0, 1).toUpperCase() + type.slice(1);
+    let text;
+
+    if (type !== 'debug') {
+      const capitalizedType = type.slice(0, 1).toUpperCase() + type.slice(1);
+      text = `${capitalizedType} succeeded.`;
+    } else {
+      // "Debug succeeded." makes no sense here.
+      text = 'Debugger started.';
+    }
+
     return {
       type: Actions().TASK_MESSAGE,
       payload: {
         message: {
-          text: `${capitalizedType} succeeded.`,
+          text,
           level: 'success'
         },
         taskRunner
@@ -682,7 +698,7 @@ function printTaskErroredEpic(actions, store) {
     // the globally registered `atom.notifications.onDidAddNotification` callback.
 
 
-    if (!isConsoleVisible()) {
+    if (!(0, _paneItem().isConsoleVisible)()) {
       addAtomErrorNotification(label, buttons, description);
       return _RxMin.Observable.empty();
     } // Otherwise if the console is visible, we manually register the error
@@ -700,15 +716,6 @@ function printTaskErroredEpic(actions, store) {
       }
     });
   });
-}
-
-function isConsoleVisible() {
-  const consolePane = atom.workspace.paneForURI(CONSOLE_VIEW_URI);
-  const consoleItem = consolePane && consolePane.getActiveItem();
-  const paneContainer = atom.workspace.paneContainerForItem(consoleItem); // This visibility check has been taken from
-  // https://github.com/atom/atom/blob/v1.28.2/src/workspace.js#L1084
-
-  return (paneContainer === atom.workspace.getCenter() || paneContainer != null && paneContainer.isVisible()) && consoleItem === consolePane.getActiveItem();
 }
 
 let taskFailedNotification;
@@ -758,6 +765,7 @@ function createTaskObservable(taskMeta, getState) {
       metadata: taskMeta,
       task,
       progress: null,
+      status: null,
       startDate: new Date()
     };
     const events = (0, _tasks().observableFromTask)(task);
@@ -772,6 +780,13 @@ function createTaskObservable(taskMeta, getState) {
           type: Actions().TASK_PROGRESS,
           payload: {
             progress: event.progress
+          }
+        });
+      } else if (event.type === 'status') {
+        return _RxMin.Observable.of({
+          type: Actions().TASK_STATUS,
+          payload: {
+            status: event.status
           }
         });
       } else if (event.type === 'message') {
@@ -907,7 +922,10 @@ function getTaskRunnerState(taskRunner, projectRoot) {
         tasks: enabled ? tasks : []
       }
     });
-  }))) // We need the initial state to return within reasonable time, otherwise the toolbar hangs.
+  }))) // Process task runner updates on the next tick rather than immediately.
+  // Otherwise if active task runner changes, the new task runner could synchronously send
+  // a state update before epics are fully processed.
+  .observeOn(_RxMin.Scheduler.asap) // We need the initial state to return within reasonable time, otherwise the toolbar hangs.
   // We don't want to start with all runners disabled because it causes UI jumps
   // when a preferred runner gets enabled after a non-preferred one.
   .race(_RxMin.Observable.timer(10000).switchMap(() => _RxMin.Observable.throw('Enabling timed out'))).catch(error => {

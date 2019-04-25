@@ -78,13 +78,13 @@ class RecentFilesService {
     }));
   }
 
-  dispose() {
+  async dispose() {
     this._subscriptions.dispose(); // Try one last time to sync back. Changes should be periodically saved,
     // so if this doesn't run before we quit, that's OK. If package deactivation
     // were async, then we could wait for the DB save to complete.
 
 
-    RecentFilesDB().syncCache(true);
+    await RecentFilesDB().syncCache(true);
   }
 
 }

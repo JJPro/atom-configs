@@ -11,16 +11,6 @@ var React = _interopRequireWildcard(require("react"));
 
 var _reactDom = _interopRequireDefault(require("react-dom"));
 
-function _observePaneItemVisibility() {
-  const data = _interopRequireDefault(require("../../../modules/nuclide-commons-atom/observePaneItemVisibility"));
-
-  _observePaneItemVisibility = function () {
-    return data;
-  };
-
-  return data;
-}
-
 function _DragResizeContainer() {
   const data = require("../../../modules/nuclide-commons-ui/DragResizeContainer");
 
@@ -53,10 +43,10 @@ function _Constants() {
   return data;
 }
 
-function _FileTreeHelpers() {
-  const data = _interopRequireDefault(require("../lib/FileTreeHelpers"));
+function FileTreeHelpers() {
+  const data = _interopRequireWildcard(require("../lib/FileTreeHelpers"));
 
-  _FileTreeHelpers = function () {
+  FileTreeHelpers = function () {
     return data;
   };
 
@@ -253,18 +243,8 @@ function _goToLocation() {
   return data;
 }
 
-function _nuclideUri() {
-  const data = _interopRequireDefault(require("../../../modules/nuclide-commons/nuclideUri"));
-
-  _nuclideUri = function () {
-    return data;
-  };
-
-  return data;
-}
-
 function _nuclideAnalytics() {
-  const data = require("../../nuclide-analytics");
+  const data = require("../../../modules/nuclide-analytics");
 
   _nuclideAnalytics = function () {
     return data;
@@ -384,8 +364,6 @@ class FileTreeSidebarComponent extends React.Component {
       const uncommittedFileChanges = Selectors().getFileChanges(this.props.store.getState());
       const generatedOpenChangedFiles = Selectors().getGeneratedOpenChangedFiles(this.props.store.getState());
       const isCalculatingChanges = Selectors().getIsCalculatingChanges(this.props.store.getState());
-      const title = this.getTitle();
-      const path = this.getPath();
       const workingSetsStore = Selectors().getWorkingSetsStore(this.props.store.getState());
       const filter = Selectors().getFilter(this.props.store.getState());
       const filterFound = Selectors().getFilterFound(this.props.store.getState());
@@ -398,8 +376,6 @@ class FileTreeSidebarComponent extends React.Component {
         uncommittedFileChanges,
         generatedOpenChangedFiles,
         isCalculatingChanges,
-        title,
-        path,
         workingSetsStore,
         filter,
         filterFound,
@@ -407,12 +383,6 @@ class FileTreeSidebarComponent extends React.Component {
         uncommittedChangesExpanded,
         openFilesExpanded
       });
-
-      if (title !== this.state.title || path !== this.state.path) {
-        this._emitter.emit('did-change-title', title);
-
-        this._emitter.emit('did-change-path', path);
-      }
     };
 
     this._handleFoldersExpandedChange = isCollapsed => {
@@ -467,10 +437,9 @@ class FileTreeSidebarComponent extends React.Component {
     this._getFilteredUncommittedFileChanges = (0, _reselect().createSelector)([state => state.uncommittedFileChanges], filterMultiRootFileChanges);
     this._emitter = new _atom.Emitter();
     this.state = {
-      hidden: false,
       shouldRenderToolbar: false,
       scrollerHeight: window.innerHeight,
-      scrollerWidth: this.getPreferredWidth(),
+      scrollerWidth: _Constants().PREFERRED_WIDTH,
       showOpenFiles: true,
       showUncommittedChanges: true,
       showUncommittedChangesKind: 'Uncommitted changes',
@@ -480,8 +449,6 @@ class FileTreeSidebarComponent extends React.Component {
       uncommittedFileChanges: _immutable().default.Map(),
       generatedOpenChangedFiles: _immutable().default.Map(),
       isCalculatingChanges: false,
-      path: 'No Current Working Directory',
-      title: 'File Tree',
       isFileTreeHovered: false,
       workingSetsStore: Selectors().getWorkingSetsStore(this.props.store.getState()),
       filter: Selectors().getFilter(this.props.store.getState()),
@@ -492,7 +459,7 @@ class FileTreeSidebarComponent extends React.Component {
     };
     this._showOpenConfigValues = (0, _observable().cacheWhileSubscribed)(_featureConfig().default.observeAsStream(_Constants().SHOW_OPEN_FILE_CONFIG_KEY));
     this._showUncommittedConfigValue = (0, _observable().cacheWhileSubscribed)(_featureConfig().default.observeAsStream(_Constants().SHOW_UNCOMMITTED_CHANGES_CONFIG_KEY));
-    this._showUncommittedKindConfigValue = _FileTreeHelpers().default.observeUncommittedChangesKindConfigKey();
+    this._showUncommittedKindConfigValue = FileTreeHelpers().observeUncommittedChangesKindConfigKey();
     this._scrollerElements = new _RxMin.Subject();
     this._scrollerRef = null;
     this._disposables = new (_UniversalDisposable().default)(this._emitter, this._subscribeToResizeEvents());
@@ -507,8 +474,7 @@ class FileTreeSidebarComponent extends React.Component {
 
     this._processExternalUpdate();
 
-    this._disposables.add((0, _event().observableFromSubscribeFunction)(cb => new (_UniversalDisposable().default)(this.props.store.subscribe(cb))) // $FlowFixMe
-    .throttle(() => _observable().nextAnimationFrame).subscribe(() => {
+    this._disposables.add((0, _event().observableFromSubscribeFunction)(cb => new (_UniversalDisposable().default)(this.props.store.subscribe(cb))).let((0, _observable().throttle)(() => _observable().nextAnimationFrame)).subscribe(() => {
       this._processExternalUpdate();
     }), observeAllModifiedStatusChanges().let((0, _observable().toggle)(this._showOpenConfigValues)).subscribe(() => this._setModifiedUris()), this._monitorActiveUri(), this._showOpenConfigValues.subscribe(showOpenFiles => this.setState({
       showOpenFiles
@@ -538,9 +504,7 @@ class FileTreeSidebarComponent extends React.Component {
       // disposables, they'll be managed for us.
 
       return _RxMin.Observable.create(() => (0, _ContextMenu().showMenuForEvent)(event, menuTemplate));
-    }).subscribe(), (0, _observePaneItemVisibility().default)(this).subscribe(visible => {
-      this.didChangeVisibility(visible);
-    }));
+    }).subscribe());
   }
 
   componentWillUnmount() {
@@ -551,16 +515,18 @@ class FileTreeSidebarComponent extends React.Component {
     }
   }
 
-  componentDidUpdate(prevProps, prevState) {
-    if (prevState.hidden && !this.state.hidden) {
-      // If "Reveal File on Switch" is enabled, ensure the scroll position is synced to where the
-      // user expects when the side bar shows the file tree.
-      if (_featureConfig().default.get(_Constants().REVEAL_FILE_ON_SWITCH_SETTING)) {
-        atom.commands.dispatch(atom.views.getView(atom.workspace), 'tree-view:reveal-active-file');
-      }
-
-      this.props.store.dispatch(Actions().clearFilter());
+  isFocused() {
+    if (this._scrollerRef == null) {
+      return false;
     }
+
+    const el = _reactDom.default.findDOMNode(this._scrollerRef);
+
+    if (el == null) {
+      return false;
+    }
+
+    return el.contains(document.activeElement);
   }
 
   _subscribeToResizeEvents() {
@@ -582,6 +548,24 @@ class FileTreeSidebarComponent extends React.Component {
       scrollerHeight: rect.height,
       scrollerWidth: rect.width
     }));
+  }
+
+  focus() {
+    if (this._scrollerRef == null) {
+      return;
+    }
+
+    const el = _reactDom.default.findDOMNode(this._scrollerRef);
+
+    if (el == null) {
+      return;
+    }
+
+    if (!(el instanceof HTMLElement)) {
+      throw new Error("Invariant violation: \"el instanceof HTMLElement\"");
+    }
+
+    el.focus();
   }
 
   _renderToolbar(workingSetsStore) {
@@ -775,119 +759,6 @@ All the changes across your entire stacked diff.
         activeUri: editor.getPath()
       });
     }));
-  }
-
-  isFocused() {
-    if (this._scrollerRef == null) {
-      return false;
-    }
-
-    const el = _reactDom.default.findDOMNode(this._scrollerRef);
-
-    if (el == null) {
-      return false;
-    }
-
-    return el.contains(document.activeElement);
-  }
-
-  focus() {
-    if (this._scrollerRef == null) {
-      return;
-    }
-
-    const el = _reactDom.default.findDOMNode(this._scrollerRef);
-
-    if (el == null) {
-      return;
-    }
-
-    if (!(el instanceof HTMLElement)) {
-      throw new Error("Invariant violation: \"el instanceof HTMLElement\"");
-    }
-
-    el.focus();
-  }
-
-  getTitle() {
-    const cwdKey = Selectors().getCwdKey(this.props.store.getState());
-
-    if (cwdKey == null) {
-      return 'File Tree';
-    }
-
-    return _nuclideUri().default.basename(cwdKey);
-  } // This is unfortunate, but Atom uses getTitle() to get the text in the tab and getPath() to get
-  // the text in the tool-tip.
-
-
-  getPath() {
-    const cwdKey = Selectors().getCwdKey(this.props.store.getState());
-
-    if (cwdKey == null) {
-      return 'No Current Working Directory';
-    }
-
-    const trimmed = _nuclideUri().default.trimTrailingSeparator(cwdKey);
-
-    const directory = _nuclideUri().default.getPath(trimmed);
-
-    const host = _nuclideUri().default.getHostnameOpt(trimmed);
-
-    if (host == null) {
-      return `Current Working Directory: ${directory}`;
-    }
-
-    return `Current Working Directory: '${directory}' on '${host}'`;
-  }
-
-  getDefaultLocation() {
-    return 'left';
-  }
-
-  getAllowedLocations() {
-    return ['left', 'right'];
-  }
-
-  getPreferredWidth() {
-    return 300;
-  }
-
-  getIconName() {
-    return 'file-directory';
-  }
-
-  getURI() {
-    return _Constants().WORKSPACE_VIEW_URI;
-  }
-
-  didChangeVisibility(visible) {
-    this.setState({
-      hidden: !visible
-    });
-  }
-
-  serialize() {
-    return {
-      deserializer: 'nuclide.FileTreeSidebarComponent'
-    };
-  }
-
-  copy() {
-    // The file tree store wasn't written to support multiple instances, so try to prevent it.
-    return false;
-  }
-
-  isPermanentDockItem() {
-    return true;
-  }
-
-  onDidChangeTitle(callback) {
-    return this._emitter.on('did-change-title', callback);
-  }
-
-  onDidChangePath(callback) {
-    return this._emitter.on('did-change-path', callback);
   }
 
 }

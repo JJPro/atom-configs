@@ -15,6 +15,16 @@ function _AtomInput() {
   return data;
 }
 
+function _nuclideUri() {
+  const data = _interopRequireDefault(require("../../../../modules/nuclide-commons/nuclideUri"));
+
+  _nuclideUri = function () {
+    return data;
+  };
+
+  return data;
+}
+
 var React = _interopRequireWildcard(require("react"));
 
 function _Button() {
@@ -47,17 +57,9 @@ function _Section() {
   return data;
 }
 
-function _Tunnel() {
-  const data = require("../../../nuclide-socket-rpc/lib/Tunnel");
-
-  _Tunnel = function () {
-    return data;
-  };
-
-  return data;
-}
-
 function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) { var desc = Object.defineProperty && Object.getOwnPropertyDescriptor ? Object.getOwnPropertyDescriptor(obj, key) : {}; if (desc.get || desc.set) { Object.defineProperty(newObj, key, desc); } else { newObj[key] = obj[key]; } } } } newObj.default = obj; return newObj; } }
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 /**
  * Copyright (c) 2015-present, Facebook, Inc.
@@ -83,11 +85,14 @@ class ManualTunnelSection extends React.Component {
 
   render() {
     let boxContents;
+    const {
+      workingDirectory
+    } = this.props;
 
-    if (this.props.workingDirectoryHost == null || this.props.workingDirectoryHost === 'localhost') {
+    if (workingDirectory == null || !_nuclideUri().default.isRemote(workingDirectory)) {
       boxContents = 'Set a remote Current Working Root to open tunnels to that host.';
     } else {
-      boxContents = this._getManualEntryForm(this.props.workingDirectoryHost);
+      boxContents = this._getManualEntryForm(workingDirectory);
     }
 
     return React.createElement(_Section().Section, {
@@ -98,10 +103,10 @@ class ManualTunnelSection extends React.Component {
     }, boxContents));
   }
 
-  _getManualEntryForm(hostname) {
+  _getManualEntryForm(uri) {
     const workingRootLabel = React.createElement("code", {
       className: "nuclide-ssh-tunnels-manual-tunnel-section-host-field"
-    }, (0, _Tunnel().shortenHostname)(hostname), ":");
+    }, _nuclideUri().default.nuclideUriToDisplayHostname(uri), ":");
     const localhostLabel = React.createElement("code", {
       className: "nuclide-ssh-tunnels-manual-tunnel-section-host-field"
     }, "localhost:");
@@ -160,12 +165,12 @@ class ManualTunnelSection extends React.Component {
   }
 
   _openTunnel() {
-    if (!(this.props.workingDirectoryHost != null && this.props.workingDirectoryHost !== 'localhost' && this.state.fromPort != null && this.state.toPort != null)) {
-      throw new Error("Invariant violation: \"this.props.workingDirectoryHost != null &&\\n        this.props.workingDirectoryHost !== 'localhost' &&\\n        this.state.fromPort != null &&\\n        this.state.toPort != null\"");
+    if (!(this.props.workingDirectory != null && _nuclideUri().default.isRemote(this.props.workingDirectory) && this.state.fromPort != null && this.state.toPort != null)) {
+      throw new Error("Invariant violation: \"this.props.workingDirectory != null &&\\n        nuclideUri.isRemote(this.props.workingDirectory) &&\\n        this.state.fromPort != null &&\\n        this.state.toPort != null\"");
     }
 
-    const fromHost = this.state.fromCurrentWorkingRoot ? this.props.workingDirectoryHost : 'localhost';
-    const toHost = this.state.fromCurrentWorkingRoot ? 'localhost' : this.props.workingDirectoryHost;
+    const fromHost = this.state.fromCurrentWorkingRoot ? this.props.workingDirectory : 'localhost';
+    const toHost = this.state.fromCurrentWorkingRoot ? 'localhost' : this.props.workingDirectory;
     const tunnel = {
       from: {
         host: fromHost,
@@ -183,7 +188,7 @@ class ManualTunnelSection extends React.Component {
   }
 
   _openButtonEnabled() {
-    return this.props.workingDirectoryHost != null && this.props.workingDirectoryHost !== 'localhost' && this.state.fromPort != null && this.state.toPort != null;
+    return this.props.workingDirectory != null && _nuclideUri().default.isRemote(this.props.workingDirectory) && this.state.fromPort != null && this.state.toPort != null;
   }
 
   _switchToAndFrom() {

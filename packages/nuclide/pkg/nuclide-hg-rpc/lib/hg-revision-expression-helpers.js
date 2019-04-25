@@ -9,6 +9,7 @@ exports.fetchCommonAncestorOfHeadAndRevision = fetchCommonAncestorOfHeadAndRevis
 exports.fetchRevisionsInfo = fetchRevisionsInfo;
 exports.fetchRevisionInfoBetweenRevisions = fetchRevisionInfoBetweenRevisions;
 exports.fetchRevisionInfo = fetchRevisionInfo;
+exports.fetchHeadRevisionInfo = fetchHeadRevisionInfo;
 exports.fetchSmartlogRevisions = fetchSmartlogRevisions;
 exports.parseRevisionInfoOutput = parseRevisionInfoOutput;
 exports.parseSuccessorData = parseSuccessorData;
@@ -207,10 +208,14 @@ async function fetchRevisionInfo(revisionExpression, workingDirectory) {
   return revisionInfo;
 }
 
+function fetchHeadRevisionInfo(workingDirectory) {
+  return fetchRevisionsInfo(`predecessors(${_hgConstants().HEAD_REVISION_EXPRESSION})`, workingDirectory, {
+    hidden: true
+  }).publish();
+}
+
 function fetchSmartlogRevisions(workingDirectory) {
-  // This will get the `smartlog()` expression revisions
-  // and the head revision commits to the nearest public commit parent.
-  const revisionExpression = 'smartlog() + parents(smartlog())';
+  const revisionExpression = 'smartlog()';
   return fetchRevisionsInfo(revisionExpression, workingDirectory, {
     shouldLimit: false
   }).publish();

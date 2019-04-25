@@ -5,6 +5,16 @@ Object.defineProperty(exports, "__esModule", {
 });
 exports.default = void 0;
 
+function _DraggableFile() {
+  const data = require("../../../modules/nuclide-commons-ui/DraggableFile");
+
+  _DraggableFile = function () {
+    return data;
+  };
+
+  return data;
+}
+
 function _reactRedux() {
   const data = require("react-redux");
 
@@ -15,10 +25,10 @@ function _reactRedux() {
   return data;
 }
 
-function _FileTreeHelpers() {
-  const data = _interopRequireDefault(require("../lib/FileTreeHelpers"));
+function FileTreeHelpers() {
+  const data = _interopRequireWildcard(require("../lib/FileTreeHelpers"));
 
-  _FileTreeHelpers = function () {
+  FileTreeHelpers = function () {
     return data;
   };
 
@@ -119,10 +129,10 @@ function _hgConstants() {
   return data;
 }
 
-function _FileTreeHgHelpers() {
-  const data = _interopRequireDefault(require("../lib/FileTreeHgHelpers"));
+function FileTreeHgHelpers() {
+  const data = _interopRequireWildcard(require("../lib/FileTreeHgHelpers"));
 
-  _FileTreeHgHelpers = function () {
+  FileTreeHgHelpers = function () {
     return data;
   };
 
@@ -151,9 +161,9 @@ function _PathWithFileIcon() {
 
 var _RxMin = require("rxjs/bundles/Rx.min.js");
 
-function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) { var desc = Object.defineProperty && Object.getOwnPropertyDescriptor ? Object.getOwnPropertyDescriptor(obj, key) : {}; if (desc.get || desc.set) { Object.defineProperty(newObj, key, desc); } else { newObj[key] = obj[key]; } } } } newObj.default = obj; return newObj; } }
-
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) { var desc = Object.defineProperty && Object.getOwnPropertyDescriptor ? Object.getOwnPropertyDescriptor(obj, key) : {}; if (desc.get || desc.set) { Object.defineProperty(newObj, key, desc); } else { newObj[key] = obj[key]; } } } } newObj.default = obj; return newObj; } }
 
 /**
  * Copyright (c) 2015-present, Facebook, Inc.
@@ -168,11 +178,9 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 const SUBSEQUENT_FETCH_SPINNER_DELAY = 500;
 const INITIAL_FETCH_SPINNER_DELAY = 25;
 const INDENT_LEVEL = 17;
+const FILE_TREE_DRAG_SOURCE = 'file-tree';
 
 class FileTreeEntryComponent extends React.Component {
-  // Keep track of the # of dragenter/dragleave events in order to properly decide
-  // when an entry is truly hovered/unhovered, since these fire many times over
-  // the duration of one user interaction.
   constructor(props) {
     super(props);
 
@@ -186,8 +194,7 @@ class FileTreeEntryComponent extends React.Component {
       const {
         isSelected
       } = this.props;
-
-      const selectionMode = _FileTreeHelpers().default.getSelectionMode(event);
+      const selectionMode = FileTreeHelpers().getSelectionMode(event);
 
       if (selectionMode === 'multi-select' && !isSelected) {
         this.props.addSelectedNode();
@@ -213,7 +220,7 @@ class FileTreeEntryComponent extends React.Component {
         return;
       }
 
-      const selectionMode = _FileTreeHelpers().default.getSelectionMode(event);
+      const selectionMode = FileTreeHelpers().getSelectionMode(event);
 
       if (selectionMode === 'range-select' || selectionMode === 'invalid-select') {
         return;
@@ -258,41 +265,43 @@ class FileTreeEntryComponent extends React.Component {
     };
 
     this._onDragEnter = event => {
-      event.stopPropagation();
-      const nodes = this.props.selectedNodes;
+      event.stopPropagation(); // $FlowFixMe Flow does not know that currentTarget is a full DOM node.
 
-      if (!this.props.isPreview && nodes.size === 1 && (0, _nullthrows().default)(nodes.first()).isRoot) {
+      if (event.currentTarget.contains(event.relatedTarget)) {
+        return;
+      }
+
+      if (!this.props.node.isContainer) {
+        return;
+      }
+
+      const {
+        selectedNodes
+      } = this.props;
+      const singleRootNodeIsSelected = !this.props.isPreview && selectedNodes.size === 1 && (0, _nullthrows().default)(selectedNodes.first()).isRoot;
+      const movableNodes = selectedNodes.filter(node => FileTreeHgHelpers().isValidRename(node.uri, this.props.node.uri));
+      const haveUploadableOSFiles = this.props.canTransferFiles && event.dataTransfer && event.dataTransfer.types.includes('Files');
+
+      if ((0, _DraggableFile().dragEventCameFromDraggableFile)(event)) {
+        // Ideally we would check to see if the rename was valid, but we don't have permission to peek inside the dataTransfer data.
+        this.props.setDragHoveredNode();
+      } else if (haveUploadableOSFiles) {
+        this.props.setDragHoveredNode();
+      } else if (singleRootNodeIsSelected) {
         this.props.reorderDragInto();
-        return;
-      }
-
-      const movableNodes = nodes.filter(node => _FileTreeHgHelpers().default.isValidRename(node, this.props.node.uri)); // Ignores hover over invalid targets.
-
-      if (!this.props.node.isContainer || movableNodes.size === 0) {
-        return;
-      }
-
-      if (this.dragEventCount <= 0) {
-        this.dragEventCount = 0;
+      } else if (movableNodes.size > 0) {
         this.props.setDragHoveredNode();
       }
-
-      this.dragEventCount++;
     };
 
     this._onDragLeave = event => {
-      event.stopPropagation(); // Avoid calling an unhoverNode action if dragEventCount is already 0.
+      event.stopPropagation(); // $FlowFixMe Flow does not know that currentTarget is a full DOM node.
 
-      if (this.dragEventCount === 0) {
+      if (event.currentTarget.contains(event.relatedTarget)) {
         return;
       }
 
-      this.dragEventCount--;
-
-      if (this.dragEventCount <= 0) {
-        this.dragEventCount = 0;
-        this.props.unhoverNode();
-      }
+      this.props.unhoverNode();
     };
 
     this._onDragStart = event => {
@@ -325,7 +334,9 @@ class FileTreeEntryComponent extends React.Component {
         dataTransfer.effectAllowed = 'move';
         dataTransfer.setDragImage(fileIcon, -8, -4);
         dataTransfer.setData('initialPath', this.props.node.uri);
-      }
+        dataTransfer.setData('nuclideSource', FILE_TREE_DRAG_SOURCE);
+      } // eslint-disable-next-line nuclide-internal/unused-subscription
+
 
       _observable().nextAnimationFrame.subscribe(() => {
         if (!(document.body != null)) {
@@ -352,15 +363,24 @@ class FileTreeEntryComponent extends React.Component {
     };
 
     this._onDrop = event => {
+      var _event$dataTransfer;
+
       event.preventDefault();
       event.stopPropagation();
+      const externalDragPath = getExternalDragPath(event);
       const dragNode = this.props.selectedNodes.size === 1 ? this.props.selectedNodes.first() : null;
+      const files = (_event$dataTransfer = event.dataTransfer) === null || _event$dataTransfer === void 0 ? void 0 : _event$dataTransfer.files;
 
-      if (dragNode != null && dragNode.isRoot) {
+      if (externalDragPath != null) {
+        this.props.movePathToNode(externalDragPath);
+      } else if (files && files.length && this.props.canTransferFiles) {
+        if (this.props.node.isContainer) {
+          this.props.uploadDroppedFiles(files);
+        } else {// TODO: Show warning
+        }
+      } else if (dragNode != null && dragNode.isRoot) {
         this.props.reorderRoots();
       } else {
-        // Reset the dragEventCount for the currently dragged node upon dropping.
-        this.dragEventCount = 0;
         this.props.moveToNode();
       }
     };
@@ -383,7 +403,6 @@ class FileTreeEntryComponent extends React.Component {
       event.preventDefault();
     };
 
-    this.dragEventCount = 0;
     this.state = {
       isLoading: props.node.isLoading
     };
@@ -395,7 +414,7 @@ class FileTreeEntryComponent extends React.Component {
 
 
   shouldComponentUpdate(nextProps, nextState) {
-    return nextProps.node !== this.props.node || nextProps.isSelected !== this.props.isSelected || nextProps.isFocused !== this.props.isFocused || nextProps.isPreview !== this.props.isPreview || nextProps.usePreviewTabs !== this.props.usePreviewTabs || nextProps.isEditingWorkingSet !== this.props.isEditingWorkingSet || nextState.isLoading !== this.state.isLoading;
+    return nextProps.node !== this.props.node || nextProps.isSelected !== this.props.isSelected || nextProps.isFocused !== this.props.isFocused || nextProps.isPreview !== this.props.isPreview || nextProps.usePreviewTabs !== this.props.usePreviewTabs || nextProps.isEditingWorkingSet !== this.props.isEditingWorkingSet || nextProps.vcsStatusCode !== this.props.vcsStatusCode || nextState.isLoading !== this.state.isLoading;
   }
 
   UNSAFE_componentWillReceiveProps(nextProps) {
@@ -444,7 +463,8 @@ class FileTreeEntryComponent extends React.Component {
   render() {
     const {
       node,
-      isSelected
+      isSelected,
+      vcsStatusCode
     } = this.props;
     const outerClassName = (0, _classnames().default)('entry', {
       'file list-item': !node.isContainer,
@@ -465,8 +485,6 @@ class FileTreeEntryComponent extends React.Component {
     let statusClass;
 
     if (!this.props.isEditingWorkingSet) {
-      const vcsStatusCode = node.vcsStatusCode;
-
       if (vcsStatusCode === _hgConstants().StatusCodeNumber.MODIFIED) {
         statusClass = 'status-modified';
       } else if (vcsStatusCode === _hgConstants().StatusCodeNumber.ADDED) {
@@ -624,8 +642,10 @@ class FileTreeEntryComponent extends React.Component {
 const mapStateToProps = (state, ownProps) => ({
   isSelected: Selectors().getSelectedNodes(state).includes(ownProps.node),
   isFocused: Selectors().getFocusedNodes(state).includes(ownProps.node),
-  usePreviewTabs: Selectors().getConf(state).usePreviewTabs,
-  isEditingWorkingSet: Selectors().isEditingWorkingSet(state)
+  usePreviewTabs: Selectors().getUsePreviewTabs(state),
+  isEditingWorkingSet: Selectors().isEditingWorkingSet(state),
+  canTransferFiles: Selectors().getCanTransferFiles(state),
+  vcsStatusCode: Selectors().getVcsStatus(state)(ownProps.node)
 });
 
 const mapDispatchToProps = (dispatch, ownProps) => ({
@@ -688,8 +708,38 @@ const mapDispatchToProps = (dispatch, ownProps) => ({
   },
   moveToNode: () => {
     dispatch(Actions().moveToNode(ownProps.node.rootUri, ownProps.node.uri));
+  },
+  uploadDroppedFiles: files => {
+    dispatch(Actions().uploadDroppedFiles(ownProps.node, files));
+  },
+  movePathToNode: uri => {
+    dispatch(Actions().movePathToNode(uri, ownProps.node));
   }
 });
+
+function getExternalDragPath(event) {
+  const {
+    dataTransfer
+  } = event;
+
+  if (dataTransfer == null) {
+    return null;
+  }
+
+  const nuclideSource = dataTransfer.getData('nuclideSource'); // For drag events within File Tree we use the selected nodes not `dataTransfer`.
+  // Ignore these events.
+
+  if (nuclideSource === FILE_TREE_DRAG_SOURCE) {
+    return null;
+  } // This is what <DraggableFile> uses.
+
+
+  const initialPath = dataTransfer.getData('initialPath'); // This is what https://github.com/atom/tabs uses.
+
+  const textPlain = dataTransfer.getData('text/plain'); // `dataTransfer.getData()` returns empty string if the value has not been set.
+
+  return initialPath || textPlain || null;
+}
 
 var _default = (0, _reactRedux().connect)(mapStateToProps, mapDispatchToProps)(FileTreeEntryComponent);
 

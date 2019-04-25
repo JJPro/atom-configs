@@ -25,6 +25,16 @@ function _classnames() {
   return data;
 }
 
+function _Message() {
+  const data = require("../../../modules/nuclide-commons-ui/Message");
+
+  _Message = function () {
+    return data;
+  };
+
+  return data;
+}
+
 function _nullthrows() {
   const data = _interopRequireDefault(require("nullthrows"));
 
@@ -76,6 +86,16 @@ function _MutableListSelector() {
 }
 
 var React = _interopRequireWildcard(require("react"));
+
+function _marked() {
+  const data = _interopRequireDefault(require("marked"));
+
+  _marked = function () {
+    return data;
+  };
+
+  return data;
+}
 
 function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) { var desc = Object.defineProperty && Object.getOwnPropertyDescriptor ? Object.getOwnPropertyDescriptor(obj, key) : {}; if (desc.get || desc.set) { Object.defineProperty(newObj, key, desc); } else { newObj[key] = obj[key]; } } } } newObj.default = obj; return newObj; } }
 
@@ -336,8 +356,11 @@ class ConnectionDetailsPrompt extends React.Component {
       onItemDoubleClicked: this.props.onConfirm,
       onAddButtonClicked: this.props.onAddProfileClicked,
       onDeleteButtonClicked: this._onDeleteProfileClicked
-    })), React.createElement(_ConnectionDetailsForm().default, {
-      className: "nuclide-remote-projects-connection-details",
+    })), React.createElement("div", {
+      className: "nuclide-remote-projects-connection-details"
+    }, React.createElement(ErrorMessage, {
+      error: this.props.error
+    }), React.createElement(_ConnectionDetailsForm().default, {
       initialUsername: prefilledConnectionParams.username,
       initialServer: prefilledConnectionParams.server,
       initialRemoteServerCommand: prefilledConnectionParams.remoteServerCommand,
@@ -354,9 +377,56 @@ class ConnectionDetailsPrompt extends React.Component {
       ref: form => {
         this._connectionDetailsForm = form;
       }
-    }));
+    })));
   }
 
 }
 
 exports.default = ConnectionDetailsPrompt;
+
+function ErrorMessage(props) {
+  const {
+    error
+  } = props;
+
+  if (error == null) {
+    return null;
+  }
+
+  const title = error.title == null ? 'An unexpected error occurred.' : error.title;
+  return React.createElement(_Message().Message, {
+    type: "error",
+    className: "nuclide-remote-projects-connection-error-message"
+  }, React.createElement("span", {
+    className: "nuclide-remote-projects-connection-error-message-title"
+  }, title), React.createElement(TroubleshootingTips, {
+    detail: error.body
+  }));
+}
+
+class TroubleshootingTips extends React.Component {
+  constructor(...args) {
+    var _temp;
+
+    return _temp = super(...args), this._addTooltip = el => {
+      const formattedDetail = (0, _marked().default)((0, _nullthrows().default)(this.props.detail));
+      (0, _addTooltip().default)({
+        title: `<div class="nuclide-remote-projects-connection-error-message-tooltip-body">${formattedDetail}</div>`,
+        placement: 'bottom',
+        delay: 0
+      })(el);
+    }, _temp;
+  }
+
+  render() {
+    if (this.props.detail == null) {
+      return null;
+    }
+
+    return React.createElement("span", {
+      ref: this._addTooltip,
+      className: "nuclide-remote-projects-error-troubleshooting-tips"
+    }, "Troubleshooting Tips");
+  }
+
+}

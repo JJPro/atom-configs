@@ -1341,7 +1341,7 @@ module.exports = _client => {
       });
     }
 
-    sendLspNotification(arg0, arg1, arg2) {
+    sendLspNotification(arg0, arg1) {
       return _client.callRemoteMethod(_client.marshal(this, {
         kind: "named",
         location: {
@@ -1351,12 +1351,6 @@ module.exports = _client => {
         },
         name: "LanguageService"
       }), "sendLspNotification", "promise", _client.marshalArguments(Array.from(arguments), [{
-        name: "filePath",
-        type: {
-          kind: "named",
-          name: "NuclideUri"
-        }
-      }, {
         name: "method",
         type: {
           kind: "string"
@@ -3613,7 +3607,7 @@ Object.defineProperty(module.exports, "defs", {
       location: {
         type: "source",
         fileName: "types.js",
-        line: 49
+        line: 48
       },
       name: "OutlineTreeKind",
       definition: {
@@ -3762,7 +3756,7 @@ Object.defineProperty(module.exports, "defs", {
       location: {
         type: "source",
         fileName: "types.js",
-        line: 27
+        line: 26
       },
       name: "OutlineTree",
       definition: {
@@ -3838,7 +3832,7 @@ Object.defineProperty(module.exports, "defs", {
       location: {
         type: "source",
         fileName: "types.js",
-        line: 44
+        line: 43
       },
       name: "Outline",
       definition: {
@@ -4169,7 +4163,14 @@ Object.defineProperty(module.exports, "defs", {
           type: {
             kind: "string"
           },
-          optional: false
+          optional: true
+        }, {
+          name: "dataBuffer",
+          type: {
+            kind: "named",
+            name: "Buffer"
+          },
+          optional: true
         }]
       }
     },
@@ -5180,12 +5181,6 @@ Object.defineProperty(module.exports, "defs", {
           },
           kind: "function",
           argumentTypes: [{
-            name: "filePath",
-            type: {
-              kind: "named",
-              name: "NuclideUri"
-            }
-          }, {
             name: "method",
             type: {
               kind: "string"
@@ -5207,7 +5202,7 @@ Object.defineProperty(module.exports, "defs", {
           location: {
             type: "source",
             fileName: "LanguageService.js",
-            line: 296
+            line: 292
           },
           kind: "function",
           argumentTypes: [{
@@ -5227,7 +5222,7 @@ Object.defineProperty(module.exports, "defs", {
           location: {
             type: "source",
             fileName: "LanguageService.js",
-            line: 300
+            line: 296
           },
           kind: "function",
           argumentTypes: [],

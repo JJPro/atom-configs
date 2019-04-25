@@ -43,6 +43,14 @@ class ANSIStreamOutput {
     this._output('\x1b[K');
   }
 
+  boldVideo() {
+    this._output('\x1b[1m');
+  }
+
+  normalVideo() {
+    this._output('\x1b[0m');
+  }
+
 }
 
 exports.ANSIStreamOutput = ANSIStreamOutput;

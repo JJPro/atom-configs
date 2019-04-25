@@ -16,7 +16,7 @@ function _nuclideRemoteConnection() {
 }
 
 function _nuclideAnalytics() {
-  const data = require("../../nuclide-analytics");
+  const data = require("../../../modules/nuclide-analytics");
 
   _nuclideAnalytics = function () {
     return data;
@@ -37,14 +37,14 @@ function _nuclideAnalytics() {
  */
 // Provides Diagnostics for un-typed regions of Hack code.
 class TypeCoverageProvider {
-  constructor(name, selector, priority, analyticsEventName, icon, connectionToLanguageService) {
+  constructor(name, grammarScopes, priority, analyticsEventName, icon, connectionToLanguageService) {
     this.displayName = name;
     this.priority = priority;
-    this.grammarScopes = selector;
+    this.grammarScopes = grammarScopes;
     this.icon = icon;
     this._analyticsEventName = analyticsEventName;
     this._connectionToLanguageService = connectionToLanguageService;
-    this._onToggleValue = false;
+    this._onToggleValue = false; // eslint-disable-next-line nuclide-internal/unused-subscription
 
     this._connectionToLanguageService.observeValues().subscribe(async languageService => {
       const ls = await languageService;
@@ -52,8 +52,8 @@ class TypeCoverageProvider {
     });
   }
 
-  static register(name, selector, config, connectionToLanguageService) {
-    return atom.packages.serviceHub.provide('nuclide-type-coverage', config.version, new TypeCoverageProvider(name, selector, config.priority, config.analyticsEventName, config.icon, connectionToLanguageService));
+  static register(name, grammarScopes, config, connectionToLanguageService) {
+    return atom.packages.serviceHub.provide('nuclide-type-coverage', config.version, new TypeCoverageProvider(name, grammarScopes, config.priority, config.analyticsEventName, config.icon, connectionToLanguageService));
   }
 
   async getCoverage(path) {

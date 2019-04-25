@@ -103,6 +103,26 @@ class RoutingAtomCommands {
     await Promise.all(promises);
   }
 
+  getClipboardContents() {
+    const commands = this._server.getDefaultAtomCommands();
+
+    if (commands != null) {
+      return commands.getClipboardContents();
+    } else {
+      throw new Error('No connected Atom windows');
+    }
+  }
+
+  setClipboardContents(text) {
+    const commands = this._server.getDefaultAtomCommands();
+
+    if (commands != null) {
+      return commands.setClipboardContents(text);
+    } else {
+      throw new Error('No connected Atom windows');
+    }
+  }
+
   dispose() {}
 
 }

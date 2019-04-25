@@ -15,6 +15,16 @@ function _Format() {
   return data;
 }
 
+function _TokenizedLine() {
+  const data = _interopRequireDefault(require("./TokenizedLine"));
+
+  _TokenizedLine = function () {
+    return data;
+  };
+
+  return data;
+}
+
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 /**
@@ -36,7 +46,7 @@ class BreakpointListCommand {
     this._debugger = debug;
   }
 
-  async execute(args) {
+  async execute(line) {
     const breakpoints = this._debugger.getAllBreakpoints().sort((left, right) => left.index - right.index);
 
     if (breakpoints.length === 0) {
@@ -58,8 +68,9 @@ class BreakpointListCommand {
       const stoppedHere = bpt.id != null && stopped === bpt;
       const index = (0, _Format().default)(`${stoppedHere ? '*' : ' '}#${bpt.index}`, indexSize + 1);
       const attrs = attributes.length === 0 ? '' : `(${attributes.join(',')})`;
+      const cond = bpt.condition();
 
-      this._console.outputLine(`${index} ${bpt.toString()} ${attrs}`);
+      this._console.outputLine(`${index} ${bpt.toString()} ${attrs}${cond == null ? '' : ` if ${cond}`}`);
     });
   }
 

@@ -47,7 +47,7 @@ function _analytics() {
 }
 
 function rawAnalyticsService() {
-  const data = _interopRequireWildcard(require("../../nuclide-analytics/lib/track"));
+  const data = _interopRequireWildcard(require("../../../modules/nuclide-analytics/lib/track"));
 
   rawAnalyticsService = function () {
     return data;
@@ -56,8 +56,18 @@ function rawAnalyticsService() {
   return data;
 }
 
+function _fbAppsessionObserver() {
+  const data = require("../../fb-appsession-observer");
+
+  _fbAppsessionObserver = function () {
+    return data;
+  };
+
+  return data;
+}
+
 function _once() {
-  const data = _interopRequireDefault(require("../../commons-node/once"));
+  const data = _interopRequireDefault(require("../../../modules/nuclide-commons/once"));
 
   _once = function () {
     return data;
@@ -119,5 +129,5 @@ const initializeLogging = (0, _once().default)(() => {
 exports.initializeLogging = initializeLogging;
 
 function setupLoggingService() {
-  (0, _analytics().setRawAnalyticsService)(rawAnalyticsService());
+  (0, _analytics().setRawAnalyticsService)(rawAnalyticsService(), (0, _fbAppsessionObserver().observeApplicationSession)());
 }

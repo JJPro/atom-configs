@@ -92,13 +92,34 @@ function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj;
 class BuckToolbarSettings extends React.Component {
   constructor(props) {
     super(props);
+
+    this._onBuildArgsChange = args => {
+      this.setState({
+        buildArguments: args
+      });
+    };
+
+    this._onRunArgsChange = args => {
+      this.setState({
+        runArguments: args
+      });
+    };
+
+    this._onCompileDbArgsChange = args => {
+      this.setState({
+        compileDbArguments: args
+      });
+    };
+
     const {
       buildArguments,
-      runArguments
+      runArguments,
+      compileDbArguments
     } = props.settings;
     this.state = {
       buildArguments: buildArguments == null ? '' : (0, _string().shellQuote)(buildArguments),
-      runArguments: runArguments == null ? '' : (0, _string().shellQuote)(runArguments)
+      runArguments: runArguments == null ? '' : (0, _string().shellQuote)(runArguments),
+      compileDbArguments: compileDbArguments == null ? '' : (0, _string().shellQuote)(compileDbArguments)
     };
   }
 
@@ -114,13 +135,19 @@ class BuckToolbarSettings extends React.Component {
       tabIndex: "0",
       initialValue: this.state.buildArguments,
       placeholderText: "Extra arguments to Buck itself (e.g. --num-threads 4)",
-      onDidChange: this._onBuildArgsChange.bind(this),
+      onDidChange: this._onBuildArgsChange,
       onConfirm: this._onSave.bind(this)
     }), React.createElement("label", null, "Run Arguments:"), React.createElement(_AtomInput().AtomInput, {
       tabIndex: "0",
       initialValue: this.state.runArguments,
       placeholderText: "Custom command-line arguments to pass to the app/binary",
-      onDidChange: this._onRunArgsChange.bind(this),
+      onDidChange: this._onRunArgsChange,
+      onConfirm: this._onSave.bind(this)
+    }), React.createElement("label", null, "Compilation Database Arguments:"), React.createElement(_AtomInput().AtomInput, {
+      tabIndex: "0",
+      initialValue: this.state.compileDbArguments,
+      placeholderText: "Extra arguments when building for language support (e.g. @mode/dev)",
+      onDidChange: this._onCompileDbArgsChange,
       onConfirm: this._onSave.bind(this)
     }), extraSettingsUi), React.createElement("div", {
       style: {
@@ -169,23 +196,12 @@ class BuckToolbarSettings extends React.Component {
     }
   }
 
-  _onBuildArgsChange(args) {
-    this.setState({
-      buildArguments: args
-    });
-  }
-
-  _onRunArgsChange(args) {
-    this.setState({
-      runArguments: args
-    });
-  }
-
   _onSave() {
     try {
       this.props.onSave({
-        buildArguments: (0, _string().shellParse)(this.state.buildArguments),
-        runArguments: (0, _string().shellParse)(this.state.runArguments)
+        buildArguments: (0, _string().shellParseWithGlobs)(this.state.buildArguments),
+        runArguments: (0, _string().shellParseWithGlobs)(this.state.runArguments),
+        compileDbArguments: (0, _string().shellParseWithGlobs)(this.state.compileDbArguments)
       });
     } catch (err) {
       atom.notifications.addError('Could not parse arguments', {

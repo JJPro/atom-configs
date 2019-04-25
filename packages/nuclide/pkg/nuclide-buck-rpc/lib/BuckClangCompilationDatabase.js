@@ -161,9 +161,10 @@ class BuckClangCompilationDatabaseHandler {
     }
 
     let queryTarget = null;
+    const extraArgs = this._params.args.length === 0 ? await BuckService()._getPreferredArgsForRepo(buckRoot) : this._params.args;
 
     try {
-      const owners = (await BuckService().getOwners(buckRoot, src, [], TARGET_KIND_REGEX)).filter(x => x.indexOf(DEFAULT_HEADERS_TARGET) === -1); // Deprioritize Android-related targets because they build with gcc and
+      const owners = (await BuckService().getOwners(buckRoot, src, extraArgs, TARGET_KIND_REGEX, false)).filter(x => x.indexOf(DEFAULT_HEADERS_TARGET) === -1); // Deprioritize Android-related targets because they build with gcc and
       // require gcc intrinsics that cause libclang to throw bad diagnostics.
 
       owners.sort((a, b) => {
@@ -201,29 +202,28 @@ class BuckClangCompilationDatabaseHandler {
 
     const target = queryTarget;
 
-    this._sourceToTargetKey.set(src, this._targetCache.keyForArgs([buckRoot, target]));
+    this._sourceToTargetKey.set(src, this._targetCache.keyForArgs([buckRoot, target, extraArgs]));
 
-    return this._targetCache.getOrCreate([buckRoot, target], () => this._loadCompilationDatabaseForBuckTarget(buckRoot, target));
+    return this._targetCache.getOrCreate([buckRoot, target, extraArgs], () => this._loadCompilationDatabaseForBuckTarget(buckRoot, target, extraArgs));
   }
 
-  async _loadCompilationDatabaseForBuckTarget(buckProjectRoot, target) {
+  async _loadCompilationDatabaseForBuckTarget(buckProjectRoot, target, extraArgs) {
     const allFlavors = ['compilation-database', ...this._params.flavorsForTarget];
 
     if (this._params.useDefaultPlatform) {
-      const platform = await BuckService().getDefaultPlatform(buckProjectRoot, target);
+      const platform = await BuckService().getDefaultPlatform(buckProjectRoot, target, extraArgs, false);
 
       if (platform != null) {
         allFlavors.push(platform);
       }
     }
 
-    const allArgs = this._params.args.length === 0 ? await BuckService()._getFbRepoSpecificArgs(buckProjectRoot) : this._params.args;
     const buildTarget = target + '#' + allFlavors.join(',');
     const buildReport = await BuckService().build(buckProjectRoot, [// Small builds, like those used for a compilation database, can degrade overall
     // `buck build` performance by unnecessarily invalidating the Action Graph cache.
     // See https://buckbuild.com/concept/buckconfig.html#client.skip-action-graph-cache
     // for details on the importance of using skip-action-graph-cache=true.
-    '--config', 'client.skip-action-graph-cache=true', buildTarget, ...allArgs], {
+    '--config', 'client.skip-action-graph-cache=true', buildTarget, ...extraArgs], {
       commandOptions: {
         timeout: BUCK_TIMEOUT
       }
@@ -238,14 +238,15 @@ class BuckClangCompilationDatabaseHandler {
     const firstResult = Object.keys(buildReport.results)[0];
     let pathToCompilationDatabase = buildReport.results[firstResult].output;
     pathToCompilationDatabase = _nuclideUri().default.join(buckProjectRoot, pathToCompilationDatabase);
-    const buildFile = await BuckService().getBuildFile(buckProjectRoot, target);
+    const buildFile = await BuckService().getBuildFile(buckProjectRoot, target, extraArgs);
     const compilationDB = {
       file: pathToCompilationDatabase,
       flagsFile: buildFile,
       libclangPath: null,
+      target,
       warnings: []
     };
-    return this._processCompilationDb(compilationDB, buckProjectRoot, allArgs);
+    return this._processCompilationDb(compilationDB, buckProjectRoot, extraArgs);
   }
 
   async _processCompilationDb(db, buckRoot, args) {
@@ -271,6 +272,7 @@ class BuckClangCompilationDatabaseHandler {
     }
 
     return new Promise((resolve, reject) => {
+      // eslint-disable-next-line nuclide-internal/unused-subscription
       ClangService().loadFilesFromCompilationDatabaseAndCacheThem(file, db.flagsFile).refCount().subscribe(path => this._sourceCache.set(path, Promise.resolve(db)), reject, // on error
       resolve // on complete
       );

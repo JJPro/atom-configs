@@ -65,6 +65,8 @@ function _classnames() {
   return data;
 }
 
+var _RxMin = require("rxjs/bundles/Rx.min.js");
+
 function _constants() {
   const data = require("./constants");
 
@@ -127,7 +129,7 @@ class BreakpointDisplayController {
 
     this._gutter = gutter;
 
-    this._disposables.addUntilDestroyed(editor, gutter.onDidDestroy(this._handleGutterDestroyed.bind(this)), editor.observeGutters(this._registerGutterMouseHandlers.bind(this)), (0, _event().observableFromSubscribeFunction)(debuggerModel.onDidChangeBreakpoints.bind(debuggerModel)) // Debounce to account for bulk updates and not block the UI
+    this._disposables.addUntilDestroyed(editor, gutter.onDidDestroy(this._handleGutterDestroyed.bind(this)), editor.observeGutters(this._registerGutterMouseHandlers.bind(this)), _RxMin.Observable.merge((0, _event().observableFromSubscribeFunction)(debuggerModel.onDidChangeBreakpoints.bind(debuggerModel)), (0, _event().observableFromSubscribeFunction)(this._service.viewModel.onDidChangeDebuggerFocus.bind(this._service.viewModel))) // Debounce to account for bulk updates and not block the UI
     .let((0, _observable().fastDebounce)(10)).startWith(null).subscribe(this._update.bind(this)), this._editor.onDidDestroy(this._handleTextEditorDestroyed.bind(this)), this._registerEditorContextMenuHandler());
   }
 
@@ -232,7 +234,7 @@ class BreakpointDisplayController {
 
   _getLineForBp(bp) {
     // Zero-based breakpoints line map (to match UI markers).
-    return (bp.endLine != null && !Number.isNaN(bp.endLine) ? bp.endLine : bp.line) - 1;
+    return bp.line - 1;
   }
   /**
    * Update the display with the current set of breakpoints for this editor.
@@ -327,12 +329,20 @@ class BreakpointDisplayController {
     if (!event.isValid) {
       this._service.removeBreakpoints(breakpoint.getId());
     } else if (event.oldHeadBufferPosition.row !== event.newHeadBufferPosition.row) {
-      this._service.updateBreakpoints(breakpoint.uri, {
-        [breakpoint.getId()]: Object.assign({}, breakpoint, {
-          // VSP is 1-based line numbers.
-          line: event.newHeadBufferPosition.row + 1
-        })
-      });
+      const newBp = {
+        // VSP is 1-based line numbers.
+        line: event.newHeadBufferPosition.row + 1,
+        id: breakpoint.getId(),
+        uri: breakpoint.uri,
+        column: 0,
+        enabled: breakpoint.enabled
+      };
+
+      if (breakpoint.condition != null) {
+        newBp.condition = breakpoint.condition;
+      }
+
+      this._service.updateBreakpoints([newBp]);
     }
   }
 

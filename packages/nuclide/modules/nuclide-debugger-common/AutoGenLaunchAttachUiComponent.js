@@ -27,10 +27,10 @@ function _Checkbox() {
   return data;
 }
 
-function _RadioGroup() {
-  const data = _interopRequireDefault(require("../nuclide-commons-ui/RadioGroup"));
+function _Dropdown() {
+  const data = require("../nuclide-commons-ui/Dropdown");
 
-  _RadioGroup = function () {
+  _Dropdown = function () {
     return data;
   };
 
@@ -185,7 +185,6 @@ class AutoGenLaunchAttachUiComponent extends React.Component {
       const {
         launch,
         vsAdapterType,
-        threads,
         getProcessName
       } = config;
       const stringValues = new Map();
@@ -205,7 +204,8 @@ class AutoGenLaunchAttachUiComponent extends React.Component {
 
         if (type === 'path') {
           try {
-            const resolvedPath = this.props.pathResolver == null ? value : await this.props.pathResolver(targetUri, value);
+            const trimmedValue = value.trim();
+            const resolvedPath = this.props.pathResolver == null ? trimmedValue : await this.props.pathResolver(targetUri, trimmedValue);
             stringValues.set(name, resolvedPath);
           } catch (_) {
             stringValues.set(name, value);
@@ -274,9 +274,7 @@ class AutoGenLaunchAttachUiComponent extends React.Component {
         debugMode: launch ? 'launch' : 'attach',
         adapterType: vsAdapterType,
         config: values,
-        showThreads: threads,
         customControlButtons: [],
-        threadsComponentTitle: 'Threads',
         processName: getProcessName(values),
         isRestartable: true
       });
@@ -513,16 +511,17 @@ class AutoGenLaunchAttachUiComponent extends React.Component {
       }));
     } else if (type === 'enum' && property.enums != null) {
       const enums = property.enums;
-      const selectedValue = this.state.enumValues.get(name) || '';
-      return React.createElement("div", null, nameLabel, React.createElement(_RadioGroup().default, {
-        selectedIndex: enums.indexOf(selectedValue),
-        optionLabels: enums.map((enumValue, i) => React.createElement("label", {
-          key: i
-        }, enumValue)),
-        onSelectedChange: index => {
-          this.state.enumValues.set(name, enums[index]);
+      const selectedValue = this.state.enumValues.get(name) || null;
+      return React.createElement("div", null, nameLabel, React.createElement("div", null, React.createElement("label", null, description)), React.createElement(_Dropdown().Dropdown, {
+        options: enums.map(enumValue => ({
+          value: enumValue,
+          label: (0, _string().capitalize)(enumValue.replace(/([A-Z])/g, ' $1'))
+        })),
+        onChange: enumValue => {
+          this.state.enumValues.set(name, enumValue);
           this.props.configIsValidChanged(this._debugButtonShouldEnable());
-        }
+        },
+        value: selectedValue
       }));
     } else if (type === 'process') {
       return React.createElement("div", null, nameLabel, React.createElement(_SelectableFilterableProcessTable().default, {

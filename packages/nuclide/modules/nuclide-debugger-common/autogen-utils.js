@@ -104,12 +104,19 @@ function getNativeAutoGenConfig(vsAdapterType) {
     defaultValue: '',
     visible: true
   };
+  const corePath = {
+    name: 'coreDumpPath',
+    type: 'path',
+    description: 'Optional path to a core file to load in the debugger',
+    required: false,
+    defaultValue: '',
+    visible: true
+  };
   const debugTypeMessage = `using ${vsAdapterType === _constants().VsAdapterTypes.NATIVE_GDB ? 'gdb' : 'lldb'}`;
   const autoGenLaunchConfig = {
     launch: true,
     vsAdapterType,
-    threads: true,
-    properties: [program, cwd, args, env],
+    properties: [program, cwd, args, env, corePath],
     scriptPropertyName: 'program',
     scriptExtension: '.c',
     cwdPropertyName: 'working directory',
@@ -137,7 +144,6 @@ function getNativeAutoGenConfig(vsAdapterType) {
   const autoGenAttachConfig = {
     launch: false,
     vsAdapterType,
-    threads: true,
     properties: [pid],
     header: React.createElement("p", null, "Attach to a running native process ", debugTypeMessage),
 

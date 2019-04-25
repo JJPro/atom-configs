@@ -43,14 +43,18 @@ class VsAdapterSpawner {
         'pipe'],
         env: Object.assign({}, env, {
           ELECTRON_RUN_AS_NODE: 1
-        }),
+        }, adapter.env),
         input: _RxMin.Observable.from(stdinBuffer).concat(this._stdin),
         killTreeWhenDone: true,
-        killTreeSignal: 'SIGKILL'
+        killTreeSignal: 'SIGKILL',
+        isExitError: () => false,
+        cwd: adapter.cwd == null ? undefined : adapter.cwd
       };
 
       if (adapter.command === 'node') {
         adapter.command = process.execPath;
+      } else if (adapter.command === 'sudo' && adapter.args[0] === 'node') {
+        adapter.args[0] = process.execPath;
       }
 
       return (0, _process().observeProcessRaw)(adapter.command, adapter.args, options);

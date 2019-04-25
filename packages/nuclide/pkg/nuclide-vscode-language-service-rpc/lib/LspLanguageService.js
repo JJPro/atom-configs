@@ -106,7 +106,7 @@ function _SafeStreamMessageReader() {
 }
 
 function _nuclideAnalytics() {
-  const data = require("../../nuclide-analytics");
+  const data = require("../../../modules/nuclide-analytics");
 
   _nuclideAnalytics = function () {
     return data;
@@ -614,7 +614,7 @@ class LspLanguageService {
       // initialize, because any of these events might fire before initialize
       // has even returned.
 
-      this._lspConnection = new (_LspConnection().LspConnection)(jsonRpcConnection);
+      this._lspConnection = new (_LspConnection().LspConnection)(jsonRpcConnection, this._languageServerName);
 
       this._lspConnection.onDispose(perConnectionDisposables.dispose.bind(perConnectionDisposables));
 
@@ -1315,38 +1315,10 @@ class LspLanguageService {
   async _handleStatusRequest(params, token) {
     // CARE! This method may be called before initialization has finished.
     const actions = params.actions || [];
-    let status;
+    const status = convert().lspStatus_atomStatus(params);
 
-    switch (params.type) {
-      case _protocol().MessageType.Error:
-        status = {
-          kind: 'red',
-          message: params.message == null ? '' : params.message,
-          buttons: actions.map(action => action.title)
-        };
-        break;
-
-      case _protocol().MessageType.Warning:
-        status = {
-          kind: 'yellow',
-          message: params.message == null ? '' : params.message,
-          shortMessage: params.shortMessage,
-          progress: params.progress == null ? undefined : {
-            numerator: params.progress.numerator,
-            denominator: params.progress.denominator
-          }
-        };
-        break;
-
-      case _protocol().MessageType.Info:
-        status = {
-          kind: 'green',
-          message: params.message
-        };
-        break;
-
-      default:
-        return null;
+    if (status == null) {
+      return null;
     }
 
     const response = await this._showStatus(status);
@@ -1464,16 +1436,13 @@ class LspLanguageService {
     const subscriptionTypes = new Set([[_protocol().WatchKind.Create, _protocol().FileChangeType.Created], [_protocol().WatchKind.Change, _protocol().FileChangeType.Changed], [_protocol().WatchKind.Delete, _protocol().FileChangeType.Deleted]] // eslint-disable-next-line no-bitwise
     .filter(([kind]) => (watcherKind & kind) !== 0).map(([_, changeType]) => changeType));
     const subscription = await watchmanClient.watchDirectoryRecursive(this._projectRoot, subscriptionName, subscriptionOptions);
-
-    _RxMin.Observable.fromEvent(subscription, 'change').subscribe(fileChanges => {
+    return new (_UniversalDisposable().default)(subscription, _RxMin.Observable.fromEvent(subscription, 'change').subscribe(fileChanges => {
       const fileEvents = fileChanges.map(fileChange => convert().watchmanFileChange_lspFileEvent(fileChange, subscription.path)).filter(fileEvent => subscriptionTypes.has(fileEvent.type));
 
       this._lspConnection.didChangeWatchedFiles({
         changes: fileEvents
       });
-    });
-
-    return subscription;
+    }));
   }
 
   _handleUnregisterCapability(params) {
@@ -2063,127 +2032,8 @@ class LspLanguageService {
       children: []
     }]);
     return {
-      outlineTrees: this._createOutlineTreeHierarchy(list).children
+      outlineTrees: createOutlineTreeHierarchy(list, this._lspPreferences.reconstructOutlineStrategy, this._logger).children
     };
-  }
-
-  _createOutlineTreeHierarchy(list) {
-    // Sorting the list of symbols is the first thing we do! First, sort by start
-    // location (smallest first) and within that by end location (largest first).
-    // This results in our list being a pre-order flattening of the tree.
-    list.sort(([, aNode], [, bNode]) => {
-      const r = aNode.startPosition.compare(bNode.startPosition);
-
-      if (r !== 0) {
-        return r;
-      } // LSP always provides an endPosition
-
-
-      if (!(aNode.endPosition != null && bNode.endPosition != null)) {
-        throw new Error("Invariant violation: \"aNode.endPosition != null && bNode.endPosition != null\"");
-      }
-
-      return bNode.endPosition.compare(aNode.endPosition);
-    });
-    const root = {
-      plainText: '',
-      startPosition: new (_simpleTextBuffer().Point)(0, 0),
-      children: []
-    }; // Q. how to reconstruct a hierarchy out of a flat list of symbols?
-    // There are two answers...
-
-    if (this._lspPreferences.reconstructOutlineStrategy === 'containerName') {
-      // A1. We'll do it based on containerName.
-      // We'll need to look up for parents by name, so construct a map from names to nodes
-      // of that name. Note: an undefined SymbolInformation.containerName means root,
-      // but it's easier for us to represent with ''.
-      const mapElements = list.map(([symbol, node]) => [symbol.name, node]);
-      const map = (0, _collection().collect)(mapElements);
-
-      if (map.has('')) {
-        this._logger.error('Outline textDocument/documentSymbol returned an empty symbol name');
-      } // The algorithm for reconstructing the tree out of list items rests on identifying
-      // an item's parent based on the item's containerName. It's easy if there's only one
-      // parent of that name. But if there are multiple parent candidates, we'll try to pick
-      // the one that comes immediately lexically before the item. (If there are no parent
-      // candidates, we've been given a malformed item, so we'll just ignore it.)
-
-
-      map.set('', [root]);
-
-      for (const [symbol, node] of list) {
-        const parentName = symbol.containerName || '';
-        const parentCandidates = map.get(parentName);
-
-        if (parentCandidates == null) {
-          this._logger.error(`Outline textDocument/documentSymbol ${symbol.name} is missing container ${parentName}, setting container to root`);
-
-          root.children.push(node);
-        } else {
-          if (!(parentCandidates.length > 0)) {
-            throw new Error("Invariant violation: \"parentCandidates.length > 0\"");
-          } // Find the first candidate that's lexically *after* our symbol.
-
-
-          const symbolPos = convert().lspPosition_atomPoint(symbol.location.range.start);
-          const iAfter = parentCandidates.findIndex(p => p.startPosition.compare(symbolPos) > 0);
-
-          if (iAfter === -1) {
-            // No candidates after item? Then item's parent is the last candidate.
-            parentCandidates[parentCandidates.length - 1].children.push(node);
-          } else if (iAfter === 0) {
-            // All candidates after item? That's an error! We'll arbitrarily pick first one.
-            parentCandidates[0].children.push(node);
-
-            this._logger.error(`Outline textDocument/documentSymbol ${symbol.name} comes after its container`);
-          } else {
-            // Some candidates before+after? Then item's parent is the last candidate before.
-            parentCandidates[iAfter - 1].children.push(node);
-          }
-        }
-      }
-    } else {
-      // A2. We'll use their ranges. Any node whose range is entirely contained
-      // within another is a child of that other.
-      // Implementation: We'll trust that there aren't overlapping spans.
-      // First, sort by start location (smallest first) and within that by end
-      // location (largest first). After that sort, our list will be a pre-order
-      // flattening of the tree.
-      // Next, iterate through the list in order, maintaining a "spine" to the
-      // most recent node we've done. For each subsequent element of the list,
-      // it will be a child of the lowest element in the spine to contain it.
-      const spine = [root];
-
-      for (const [, node] of list) {
-        while (spine.length > 1) {
-          const candidate = spine[spine.length - 1]; // parent candidate
-
-          if (!(node.endPosition != null)) {
-            throw new Error("Invariant violation: \"node.endPosition != null\"");
-          }
-
-          const nodeRange = new (_simpleTextBuffer().Range)(node.startPosition, node.endPosition);
-
-          if (!(candidate.endPosition != null)) {
-            throw new Error("Invariant violation: \"candidate.endPosition != null\"");
-          }
-
-          const candidateRange = new (_simpleTextBuffer().Range)(candidate.startPosition, candidate.endPosition);
-
-          if (candidateRange.containsRange(nodeRange)) {
-            break; // found the lowest element in the spine that contains node
-          }
-
-          spine.pop();
-        }
-
-        const parent = spine[spine.length - 1];
-        parent.children.push(node);
-        spine.push(node);
-      }
-    }
-
-    return root;
   }
   /** Returns code lens information for the given file. */
 
@@ -2734,7 +2584,12 @@ class LspLanguageService {
     return this._lspConnection._jsonRpcConnection.sendRequest(method, params);
   }
 
-  async sendLspNotification(filePath, notificationMethod, params) {
+  async sendLspNotification(notificationMethod, params) {
+    // Wait until state is running before sending notification.
+    const waitUntilRunning = this._state.takeWhile(s => s !== 'Running').ignoreElements();
+
+    await waitUntilRunning.toPromise();
+
     this._lspConnection._jsonRpcConnection.sendNotification(notificationMethod, params);
   }
 
@@ -2853,4 +2708,121 @@ class JsonRpcTraceLogger {
     this._logger.trace(`LSP.trace: ${message} ${data || ''}`);
   }
 
+}
+
+function createOutlineTreeHierarchy(list, reconstructOutlineStrategy, logger) {
+  // Sorting the list of symbols is the first thing we do! First, sort by start
+  // location (smallest first) and within that by end location (largest first).
+  // This results in our list being a pre-order flattening of the tree.
+  list.sort(([, aNode], [, bNode]) => {
+    const r = aNode.startPosition.compare(bNode.startPosition);
+
+    if (r !== 0) {
+      return r;
+    } // LSP always provides an endPosition
+
+
+    if (!(aNode.endPosition != null && bNode.endPosition != null)) {
+      throw new Error("Invariant violation: \"aNode.endPosition != null && bNode.endPosition != null\"");
+    }
+
+    return bNode.endPosition.compare(aNode.endPosition);
+  });
+  const root = {
+    plainText: '',
+    startPosition: new (_simpleTextBuffer().Point)(0, 0),
+    children: []
+  }; // Q. how to reconstruct a hierarchy out of a flat list of symbols?
+  // There are two answers...
+
+  if (reconstructOutlineStrategy === 'containerName') {
+    // A1. We'll do it based on containerName.
+    // We'll need to look up for parents by name, so construct a map from names to nodes
+    // of that name. Note: an undefined SymbolInformation.containerName means root,
+    // but it's easier for us to represent with ''.
+    const mapElements = list.map(([symbol, node]) => [symbol.name, node]);
+    const map = (0, _collection().collect)(mapElements);
+
+    if (map.has('')) {
+      logger.error('Outline textDocument/documentSymbol returned an empty symbol name');
+    } // The algorithm for reconstructing the tree out of list items rests on identifying
+    // an item's parent based on the item's containerName. It's easy if there's only one
+    // parent of that name. But if there are multiple parent candidates, we'll try to pick
+    // the one that comes immediately lexically before the item. (If there are no parent
+    // candidates, we've been given a malformed item, so we'll just ignore it.)
+
+
+    map.set('', [root]);
+
+    for (const [symbol, node] of list) {
+      const parentName = symbol.containerName || '';
+      const parentCandidates = map.get(parentName);
+
+      if (parentCandidates == null) {
+        logger.error(`Outline textDocument/documentSymbol ${symbol.name} is missing container ${parentName}, setting container to root`);
+        root.children.push(node);
+      } else {
+        if (!(parentCandidates.length > 0)) {
+          throw new Error("Invariant violation: \"parentCandidates.length > 0\"");
+        } // Find the first candidate that's lexically *after* our symbol.
+
+
+        const symbolPos = convert().lspPosition_atomPoint(symbol.location.range.start);
+        const iAfter = parentCandidates.findIndex(p => p.startPosition.compare(symbolPos) > 0);
+
+        if (iAfter === -1) {
+          // No candidates after item? Then item's parent is the last candidate.
+          parentCandidates[parentCandidates.length - 1].children.push(node);
+        } else if (iAfter === 0) {
+          // All candidates after item? That's an error! We'll arbitrarily pick first one.
+          parentCandidates[0].children.push(node);
+          logger.error(`Outline textDocument/documentSymbol ${symbol.name} comes after its container`);
+        } else {
+          // Some candidates before+after? Then item's parent is the last candidate before.
+          parentCandidates[iAfter - 1].children.push(node);
+        }
+      }
+    }
+  } else {
+    // A2. We'll use their ranges. Any node whose range is entirely contained
+    // within another is a child of that other.
+    // Implementation: We'll trust that there aren't overlapping spans.
+    // First, sort by start location (smallest first) and within that by end
+    // location (largest first). After that sort, our list will be a pre-order
+    // flattening of the tree.
+    // Next, iterate through the list in order, maintaining a "spine" to the
+    // most recent node we've done. For each subsequent element of the list,
+    // it will be a child of the lowest element in the spine to contain it.
+    const spine = [root];
+
+    for (const [, node] of list) {
+      while (spine.length > 1) {
+        const candidate = spine[spine.length - 1]; // parent candidate
+
+        if (!(node.endPosition != null)) {
+          throw new Error("Invariant violation: \"node.endPosition != null\"");
+        }
+
+        const nodeRange = new (_simpleTextBuffer().Range)(node.startPosition, node.endPosition);
+
+        if (!(candidate.endPosition != null)) {
+          throw new Error("Invariant violation: \"candidate.endPosition != null\"");
+        }
+
+        const candidateRange = new (_simpleTextBuffer().Range)(candidate.startPosition, candidate.endPosition);
+
+        if (candidateRange.containsRange(nodeRange)) {
+          break; // found the lowest element in the spine that contains node
+        }
+
+        spine.pop();
+      }
+
+      const parent = spine[spine.length - 1];
+      parent.children.push(node);
+      spine.push(node);
+    }
+  }
+
+  return root;
 }

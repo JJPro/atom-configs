@@ -20,7 +20,7 @@ function _log4js() {
 }
 
 function _runtimeInfo() {
-  const data = require("../../commons-node/runtime-info");
+  const data = require("../../../modules/nuclide-commons/runtime-info");
 
   _runtimeInfo = function () {
     return data;

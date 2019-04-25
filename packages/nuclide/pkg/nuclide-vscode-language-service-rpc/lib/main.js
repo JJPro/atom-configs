@@ -56,7 +56,7 @@ function _LspLanguageService() {
 }
 
 function _systemInfo() {
-  const data = require("../../commons-node/system-info");
+  const data = require("../../../modules/nuclide-commons/system-info");
 
   _systemInfo = function () {
     return data;

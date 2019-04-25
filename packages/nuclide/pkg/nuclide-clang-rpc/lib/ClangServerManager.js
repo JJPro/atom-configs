@@ -223,7 +223,8 @@ class ClangServerManager {
   }
 
   async _checkMemoryUsageImpl() {
-    const serverPids = this._servers.values().map(server => server.getPID()).filter(Boolean);
+    const serverPids = this._servers // $FlowFixMe Missing in typings
+    .values().map(server => server.getPID()).filter(Boolean);
 
     if (serverPids.length === 0) {
       return 0;
@@ -236,7 +237,7 @@ class ClangServerManager {
     let count = usage.size;
 
     if (count > 1 && total > this._memoryLimit) {
-      const toDispose = [];
+      const toDispose = []; // $FlowFixMe Missing in typings
 
       this._servers.rforEach((server, key) => {
         const mem = usage.get(server.getPID());

@@ -72,7 +72,7 @@ function _nuclideUri() {
 }
 
 function _once() {
-  const data = _interopRequireDefault(require("../../commons-node/once"));
+  const data = _interopRequireDefault(require("../../../modules/nuclide-commons/once"));
 
   _once = function () {
     return data;
@@ -332,6 +332,7 @@ class PythonSingleFileLanguageService {
       stdout = await (0, _process().runCommand)(command, args, {
         cwd: dirName,
         input: contents,
+        env: await (0, _process().getOriginalEnvironment)(),
         // At the moment, yapf outputs 3 possible exit codes:
         // 0 - success, no content change.
         // 2 - success, contents changed.
@@ -458,6 +459,7 @@ async function runLinterCommand(src) {
 
   return (0, _process().runCommand)(command, [src], {
     cwd: dirName,
+    env: await (0, _process().getOriginalEnvironment)(),
     // 1 indicates unclean lint result (i.e. has errors/warnings).
     isExitError: exit => exit.exitCode == null || exit.exitCode > 1
   }).toPromise();

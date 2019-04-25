@@ -5,6 +5,16 @@ Object.defineProperty(exports, "__esModule", {
 });
 exports.BuckBuildSystem = void 0;
 
+function _log4js() {
+  const data = require("log4js");
+
+  _log4js = function () {
+    return data;
+  };
+
+  return data;
+}
+
 function _consumeFirstProvider() {
   const data = _interopRequireDefault(require("../../../modules/nuclide-commons-atom/consumeFirstProvider"));
 
@@ -16,7 +26,7 @@ function _consumeFirstProvider() {
 }
 
 function _passesGK() {
-  const data = _interopRequireDefault(require("../../commons-node/passesGK"));
+  const data = _interopRequireDefault(require("../../../modules/nuclide-commons/passesGK"));
 
   _passesGK = function () {
     return data;
@@ -41,16 +51,6 @@ function _tasks() {
   const data = require("../../commons-node/tasks");
 
   _tasks = function () {
-    return data;
-  };
-
-  return data;
-}
-
-function _log4js() {
-  const data = require("log4js");
-
-  _log4js = function () {
     return data;
   };
 
@@ -105,6 +105,12 @@ class BuckBuildSystem {
   constructor() {
     this._diagnosticUpdates = new _RxMin.Subject();
     this._diagnosticInvalidations = new _RxMin.Subject();
+    this._statusMemory = {
+      // we'll only add one "target" to the "Building... " title
+      addedBuildTargetToTitle: false,
+      title: 'No events from buck...',
+      body: ''
+    };
   }
 
   build(opts) {
@@ -143,10 +149,7 @@ class BuckBuildSystem {
     const buildArguments = taskSettings.buildArguments || [];
     const runArguments = taskSettings.runArguments || [];
     const targetString = getCommandStringForResolvedBuildTarget(buildTarget);
-    return _RxMin.Observable.fromPromise(buckService.getHTTPServerPort(buckRoot)).catch(err => {
-      (0, _log4js().getLogger)('nuclide-buck').warn(`Failed to get httpPort for ${_nuclideUri().default.getPath(buckRoot)}`, err);
-      return _RxMin.Observable.of(-1);
-    }).switchMap(httpPort => {
+    return _RxMin.Observable.fromPromise(buckService.getHTTPServerPort(buckRoot)).switchMap(httpPort => {
       let socketEvents = null;
       let buildId = null;
       const socketStream = buckService.getWebSocketStream(buckRoot, httpPort).refCount().map(message => message) // The do() and filter() ensures that we only listen to messages
@@ -196,6 +199,114 @@ class BuckBuildSystem {
       invalidations: this._diagnosticInvalidations
     };
   }
+  /*
+  * _processStatusEvent recieves an ANSI-stripped line of Buck superconsole
+  *  stdout as input with flags set by the ANSI. This function combines the
+  *  _statusMemory to reconstruct the buck superconsole. State is also used
+  *  for summarized title for the element. The TaskEvent we return contains:
+  *  title: the summarized one-line info based on buck state (max len: 35)
+  *  body: the combined stream inbetween reset flags which constitutes the
+  *         state that the buck superconsole wants to represent.
+  *
+  * TODO refactor this logic into a react scoped class that can construct
+  *  these as react elements.
+  */
+
+
+  _processStatusEvent(event) {
+    if (event == null || event.type !== 'buck-status' || event.message == null || event.message === '' || event.message.length <= 1) {
+      return _RxMin.Observable.empty();
+    }
+
+    if (event.reset) {
+      this._statusMemory.addedBuildTargetToTitle = false;
+      this._statusMemory.body = '';
+    }
+
+    const PARSING_BUCK_FILES_REGEX = /(Pars.* )([\d:]+\d*\.?\d*)\s(min|sec)/g;
+    const CREATING_ACTION_GRAPH_REGEX = /(Creat.* )([\d:]+\d*\.?\d*)\s(min|sec)/g;
+    const BUILDING_REGEX = /(Buil.* )([\d:]+\d*\.?\d*)\s(min|sec)/g;
+    const BUILD_TARGET_REGEX = /\s-\s.*\/(?!.*\/)(.*)\.\.\.\s([\d:]+\d*\.?\d*)\s(min|sec)/g;
+    const STARTING_BUCK_REGEX = /(Starting.*)/g;
+    /* We'll attempt to match the event.message to a few known regex matches,
+    * otherwise we'll ignore it. When we find a match, we'll parse it for
+    * length, markup, and set the title.
+    */
+
+    let match = PARSING_BUCK_FILES_REGEX.exec(event.message);
+
+    if (match == null) {
+      match = CREATING_ACTION_GRAPH_REGEX.exec(event.message);
+    }
+
+    if (match == null) {
+      match = BUILDING_REGEX.exec(event.message);
+    }
+
+    if (match != null && match.length > 1) {
+      let prefix = match[1];
+
+      if (prefix.length > 25) {
+        prefix = prefix.slice(0, 25);
+      } // TODO refactor this logic into a react scoped class that can construct
+      // these as react elements.
+
+
+      this._statusMemory.title = `${prefix}<span>${match[2]}</span> ${match[3]}`;
+    }
+    /* this block parses the first subsequent Building... line
+    * (i.e. " - fldr/com/facebook/someTarget:someTarget#header-info 2.3 sec")
+    * into: "Building... someTarget:som 2.3 sec". & gates itself with addedBuildTargetToTitle
+    */
+
+
+    if (match == null && !this._statusMemory.addedBuildTargetToTitle) {
+      match = BUILD_TARGET_REGEX.exec(event.message);
+
+      if (match != null) {
+        let target = match[1].split('#')[0];
+
+        if (target.length > 12) {
+          target = target.slice(0, 12);
+        }
+
+        this._statusMemory.title = `Building ../${target} <span>${match[2]}</span> ${match[3]}`;
+        this._statusMemory.addedBuildTargetToTitle = true;
+      }
+    }
+
+    if (match == null) {
+      match = STARTING_BUCK_REGEX.exec(event.message);
+
+      if (match != null) {
+        let target = match[0];
+
+        if (target.length > 35) {
+          target = target.slice(0, 35);
+        }
+
+        this._statusMemory.title = target;
+      }
+    } // logging lines that don't match our REGEX so we can manually add them later
+
+
+    if (match == null) {
+      (0, _log4js().getLogger)('nuclide-buck-superconsole').warn('no match:' + event.message);
+    } // body is cleared by event.reset, otherwise we append a newline & message
+
+
+    this._statusMemory.body = event.reset ? event.message.trim() : this._statusMemory.body + '<br/>' + event.message.trim();
+    return _RxMin.Observable.of({
+      type: 'status',
+      status: {
+        type: 'bulletin',
+        bulletin: {
+          title: this._statusMemory.title,
+          body: this._statusMemory.body
+        }
+      }
+    });
+  }
   /**
    * Processes side diagnostics, converts relevant events to TaskEvents.
    */
@@ -211,6 +322,8 @@ class BuckBuildSystem {
     return _RxMin.Observable.concat(events.flatMap(event => {
       if (event.type === 'progress') {
         return _RxMin.Observable.of(event);
+      } else if (event.type === 'buck-status') {
+        return this._processStatusEvent(event);
       } else if (event.type === 'log') {
         return (0, _tasks().createMessage)(event.message, event.level);
       } else if (event.type === 'build-output') {

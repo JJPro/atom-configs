@@ -182,14 +182,16 @@ class BreakpointConfigComponent extends React.Component {
     const bp = {
       line: breakpoint.line,
       column: breakpoint.column,
-      enabled: breakpoint.enabled
+      enabled: breakpoint.enabled,
+      id: breakpoint.getId(),
+      uri: breakpoint.uri
     };
 
     if (condition !== '') {
       bp.condition = condition;
     }
 
-    await service.addBreakpoints(breakpoint.uri, [bp]);
+    await service.addUIBreakpoints([bp]);
     (0, _analytics().track)(_constants().AnalyticsEvents.DEBUGGER_BREAKPOINT_UPDATE_CONDITION, {
       path: breakpoint.uri,
       line: breakpoint.line,
@@ -208,7 +210,7 @@ class BreakpointConfigComponent extends React.Component {
       className: "debugger-bp-config-header"
     }, "Edit breakpoint"), React.createElement("div", {
       className: "block"
-    }, React.createElement("label", null, "Breakpoint at ", _nuclideUri().default.basename(this.props.breakpoint.uri), ":", this.props.breakpoint.endLine != null ? this.props.breakpoint.endLine : this.props.breakpoint.line)), React.createElement("div", {
+    }, React.createElement("label", null, "Breakpoint at ", _nuclideUri().default.basename(this.props.breakpoint.uri), ":", this.props.breakpoint.line)), React.createElement("div", {
       className: "block"
     }, React.createElement(_Checkbox().Checkbox, {
       onChange: isChecked => {

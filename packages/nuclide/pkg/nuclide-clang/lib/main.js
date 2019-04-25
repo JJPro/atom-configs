@@ -176,9 +176,9 @@ function createAutocompleteProvider() {
 
 function createTypeHintProvider() {
   return {
-    inclusionPriority: 1,
+    priority: 1,
     providerName: _constants().PACKAGE_NAME,
-    selector: Array.from(_constants().GRAMMAR_SET).join(', '),
+    grammarScopes: Array.from(_constants().GRAMMAR_SET),
 
     typeHint(editor, position) {
       return _TypeHintHelpers().default.typeHint(editor, position);
@@ -228,7 +228,6 @@ function provideOutlineView() {
     name: _constants().PACKAGE_NAME,
     priority: 10,
     grammarScopes: Array.from(_constants().GRAMMAR_SET),
-    updateOnEdit: false,
 
     getOutline(editor) {
       return _OutlineViewHelpers().default.getOutline(editor);

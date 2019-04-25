@@ -66,6 +66,14 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 if (!(_electron.remote != null && _electron.remote.ipcMain != null && _electron.ipcRenderer != null)) {
   throw new Error("Invariant violation: \"remote != null && remote.ipcMain != null && ipcRenderer != null\"");
 }
+/**
+ * This module provides a wrapper around an atom$Config to be used for storing
+ * data not intended to be accessed by Nuclide users (which should be accessed
+ * using feature-config or atom.config). These config values are accessed/stored
+ * on disk in the NUCLIDE_CONFIG_FILE and should only be modified via the
+ * NuclideConfig / ConfigManager functions provided by this module's export
+ */
+
 
 const Config = atom.config.constructor;
 const NUCLIDE_CONFIG_FILE = 'nuclide-config.cson';
@@ -156,9 +164,11 @@ const nuclideConfig = new NuclideConfig(config);
  * values from different sources
  */
 
-_electron.remote.ipcMain.on(UPDATE_NUCLIDE_CONFIG_SETTINGS, __updateConfigSettingsListener); // export for testing
+_electron.remote.ipcMain.on(UPDATE_NUCLIDE_CONFIG_SETTINGS, __updateConfigSettingsListener); // NB: This isn't described correctly in electron-flowtype-definitions, so we'll
+// fake it out
 
 
+// export for testing
 function __updateConfigSettingsListener(event, {
   settings,
   options

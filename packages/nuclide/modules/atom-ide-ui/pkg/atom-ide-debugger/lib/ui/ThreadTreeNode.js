@@ -111,6 +111,16 @@ function _classnames() {
 
 var _reactDom = _interopRequireDefault(require("react-dom"));
 
+function _Icon() {
+  const data = require("../../../../../nuclide-commons-ui/Icon");
+
+  _Icon = function () {
+    return data;
+  };
+
+  return data;
+}
+
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) { var desc = Object.defineProperty && Object.getOwnPropertyDescriptor ? Object.getOwnPropertyDescriptor(obj, key) : {}; if (desc.get || desc.set) { Object.defineProperty(newObj, key, desc); } else { newObj[key] = obj[key]; } } } } newObj.default = obj; return newObj; } }
@@ -315,11 +325,20 @@ class ThreadTreeNode extends React.Component {
       event.stopPropagation();
     };
 
+    const canTerminateThread = Boolean(thread.process.session.capabilities.supportsTerminateThreadsRequest) && thread.threadId > 0 && thread.stopped;
+    const terminateThread = canTerminateThread ? React.createElement(_Icon().Icon, {
+      className: "debugger-terminate-thread-control",
+      icon: "x",
+      title: "Terminate thread",
+      onClick: () => {
+        service.terminateThreads([this.props.thread.threadId]);
+      }
+    }) : null;
     const formattedTitle = React.createElement("span", {
       onClick: handleTitleClick,
       className: isFocused ? (0, _classnames().default)('debugger-tree-process-thread-selected') : '',
       title: 'Thread ID: ' + thread.threadId + ', Name: ' + thread.name
-    }, this.props.threadTitle);
+    }, this.props.threadTitle, " ", terminateThread);
 
     if (!thread.stopped || !stackFrames.isPending && !stackFrames.isError && stackFrames.value.length === 0) {
       return React.createElement(_Tree().TreeItem, {

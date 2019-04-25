@@ -10,6 +10,16 @@ function _createPackage() {
   return data;
 }
 
+function _epicHelpers() {
+  const data = require("../../../modules/nuclide-commons/epicHelpers");
+
+  _epicHelpers = function () {
+    return data;
+  };
+
+  return data;
+}
+
 function _UniversalDisposable() {
   const data = _interopRequireDefault(require("../../../modules/nuclide-commons/UniversalDisposable"));
 
@@ -97,7 +107,7 @@ function _bindObservableAsProps() {
 }
 
 function _nuclideAnalytics() {
-  const data = require("../../nuclide-analytics");
+  const data = require("../../../modules/nuclide-analytics");
 
   _nuclideAnalytics = function () {
     return data;
@@ -134,8 +144,7 @@ class Activation {
         value: ''
       }]
     };
-    const epics = Object.keys(Epics()).map(k => Epics()[k]).filter(epic => typeof epic === 'function');
-    const rootEpic = (0, _reduxObservable().combineEpics)(...epics);
+    const rootEpic = (0, _epicHelpers().combineEpicsFromImports)(Epics(), 'nuclide-http-request-sender');
     this._store = (0, _reduxMin().createStore)(Reducers().app, initialState, (0, _reduxMin().applyMiddleware)((0, _reduxObservable().createEpicMiddleware)(rootEpic)));
     this._actionCreators = (0, _reduxMin().bindActionCreators)(Actions(), this._store.dispatch);
     this._requestEditDialog = null;

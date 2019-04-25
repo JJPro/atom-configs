@@ -65,7 +65,7 @@ function _featureConfig() {
 }
 
 function _runtimeInfo() {
-  const data = require("../../commons-node/runtime-info");
+  const data = require("../../../modules/nuclide-commons/runtime-info");
 
   _runtimeInfo = function () {
     return data;
@@ -104,10 +104,10 @@ function _nuclideRpc() {
   return data;
 }
 
-function _nuclideMarshalersAtom() {
-  const data = require("../../nuclide-marshalers-atom");
+function _nuclideMarshalersClient() {
+  const data = require("../../nuclide-marshalers-client");
 
-  _nuclideMarshalersAtom = function () {
+  _nuclideMarshalersClient = function () {
     return data;
   };
 
@@ -150,7 +150,7 @@ function createLocalRpcClient() {
   }).switchMap(([port, env]) => (0, _process().spawn)(fbNodeRun, ['node', // Electron v1.7.x will also allow --inspect=0.
   `--inspect=${port}`, '--require', require.resolve("../../commons-node/load-transpiler"), require.resolve("./LocalRpcServer")], spawnOptions)) : (0, _process().fork)('--require', [require.resolve("../../commons-node/load-transpiler"), require.resolve("./LocalRpcServer")], spawnOptions);
   const transport = new (_IpcTransports().IpcClientTransport)(localServerProcess);
-  return _nuclideRpc().RpcConnection.createLocal(transport, _nuclideMarshalersAtom().getAtomSideLoopbackMarshalers, _servicesConfig().default);
+  return _nuclideRpc().RpcConnection.createLocal(transport, _nuclideMarshalersClient().getClientSideLoopbackMarshalers, _servicesConfig().default);
 }
 
 function getlocalService(serviceName) {

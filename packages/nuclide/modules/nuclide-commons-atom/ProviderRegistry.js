@@ -53,12 +53,14 @@ class ProviderRegistry {
     if (index !== -1) {
       this._providers.splice(index, 1);
     }
-  }
+  } // TODO deprecate since there can be N providers.
+
 
   getProviderForEditor(editor) {
     const grammar = editor.getGrammar().scopeName;
     return this.findProvider(grammar);
-  }
+  } // TODO create an ordering or priority aware util to prefer instead.
+
 
   getAllProvidersForEditor(editor) {
     const grammar = editor.getGrammar().scopeName;

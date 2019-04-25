@@ -7,6 +7,26 @@ exports.touchFileDB = touchFileDB;
 exports.getAllRecents = getAllRecents;
 exports.syncCache = syncCache;
 
+function _memoize2() {
+  const data = _interopRequireDefault(require("lodash/memoize"));
+
+  _memoize2 = function () {
+    return data;
+  };
+
+  return data;
+}
+
+function _log4js() {
+  const data = require("log4js");
+
+  _log4js = function () {
+    return data;
+  };
+
+  return data;
+}
+
 function _lruCache() {
   const data = _interopRequireDefault(require("lru-cache"));
 
@@ -27,21 +47,22 @@ function _idbKeyval() {
   return data;
 }
 
+function _debounce() {
+  const data = _interopRequireDefault(require("../../../modules/nuclide-commons/debounce"));
+
+  _debounce = function () {
+    return data;
+  };
+
+  return data;
+}
+
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-/**
- * Copyright (c) 2015-present, Facebook, Inc.
- * All rights reserved.
- *
- * This source code is licensed under the license found in the LICENSE file in
- * the root directory of this source tree.
- *
- *  strict-local
- * @format
- */
 const MAX_RECENT_FILES = 100;
-const CLEAN_CACHE_TIMEOUT = 1000 * 15;
+const SYNC_CACHE_DEBOUNCE = 1000 * 15;
 const RECENT_FILES_DB_NAME = 'nuclide-recent-files';
+const logger = (0, _log4js().getLogger)('RecentFilesDB');
 /**
  * We don't want to keep making IDB calls for performance reasons, and we only
  * care about tracking MAX_RECENT_FILES files.  So, we keep the LRU cached
@@ -49,45 +70,29 @@ const RECENT_FILES_DB_NAME = 'nuclide-recent-files';
  * save back to the database (only the top 100) periodically.
  */
 
-let cachedLRU;
-/**
- * Keep a timeout to prevent too many repeated saves to the database.
- */
+const ensureCache = (0, _memoize2().default)(async () => {
+  const dbEntries = await _idbKeyval().default.get(RECENT_FILES_DB_NAME).catch(err => {
+    logger.warn('Error retrieving recent files from IndexedDB', err);
+    return null;
+  });
+  const cachedLRU = (0, _lruCache().default)({
+    max: MAX_RECENT_FILES
+  });
 
-let dbUpdateTimeout;
-/**
- * Load in cachedLRU if it isn't there already.
- */
-
-async function ensureCache() {
-  if (!cachedLRU) {
-    const dbEntries = await _idbKeyval().default.get(RECENT_FILES_DB_NAME);
-    cachedLRU = (0, _lruCache().default)({
-      max: MAX_RECENT_FILES
-    });
-
-    if (dbEntries && dbEntries.length > 0) {
-      cachedLRU.load(dbEntries);
-    }
+  if (dbEntries && dbEntries.length > 0) {
+    cachedLRU.load(dbEntries);
   }
 
   return cachedLRU;
-}
+});
 /**
  * Update the timestamp for a file in the list of LRU files that is backed by
  * the database.
  */
 
-
 async function touchFileDB(path, time) {
   (await ensureCache()).set(path, time);
-
-  if (!dbUpdateTimeout) {
-    dbUpdateTimeout = setTimeout(() => {
-      dbUpdateTimeout = null;
-      syncCache();
-    }, CLEAN_CACHE_TIMEOUT);
-  }
+  debouncedSyncCache();
 }
 /**
  * Get the LRU files.
@@ -104,13 +109,14 @@ async function getAllRecents() {
 
 
 async function syncCache(clearCache = false) {
-  if (cachedLRU) {
-    // This technically saves the "value" as a serialized json, but it will only
-    // be up to MAX_RECENT_FILES long.
-    await _idbKeyval().default.set(RECENT_FILES_DB_NAME, cachedLRU.dump());
+  const cachedLRU = await ensureCache(); // This technically saves the "value" as a serialized json, but it will only
+  // be up to MAX_RECENT_FILES long.
 
-    if (clearCache) {
-      cachedLRU = null;
-    }
+  await _idbKeyval().default.set(RECENT_FILES_DB_NAME, cachedLRU.dump()).catch(err => logger.warn('Error in syncCache', err));
+
+  if (clearCache) {
+    ensureCache.cache.clear();
   }
 }
+
+const debouncedSyncCache = (0, _debounce().default)(syncCache, SYNC_CACHE_DEBOUNCE);

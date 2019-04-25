@@ -25,12 +25,12 @@ function _diff() {
  * 
  * @format
  */
-function computeDiff(oldText, newText) {
+function computeDiff(oldText, newText, ignoreWhitespace = false) {
   const {
     addedLines,
     removedLines,
     chunks
-  } = _computeDiffChunks(oldText, newText);
+  } = _computeDiffChunks(oldText, newText, ignoreWhitespace);
 
   const {
     oldLineOffsets,
@@ -54,7 +54,7 @@ function computeDiff(oldText, newText) {
   };
 }
 
-function _computeDiffChunks(oldText_, newText_) {
+function _computeDiffChunks(oldText_, newText_, ignoreWhitespace) {
   let oldText = oldText_;
   let newText = newText_; // If the last line has changes, JsDiff doesn't return that.
   // Generally, content with new line ending are easier to calculate offsets for.
@@ -64,7 +64,9 @@ function _computeDiffChunks(oldText_, newText_) {
     newText += '\n';
   }
 
-  const lineDiff = (0, _diff().diffLines)(oldText, newText);
+  const lineDiff = (0, _diff().diffLines)(oldText, newText, {
+    ignoreWhitespace
+  });
   const chunks = [];
   let addedCount = 0;
   let removedCount = 0;

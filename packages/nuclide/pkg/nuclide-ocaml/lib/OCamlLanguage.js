@@ -138,8 +138,7 @@ function createLanguageService() {
     outline: {
       version: '0.1.0',
       priority: 1,
-      analyticsEventName: 'ocaml.outline',
-      updateOnEdit: false
+      analyticsEventName: 'ocaml.outline'
     },
     definition: {
       version: '0.1.0',

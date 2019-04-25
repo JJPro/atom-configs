@@ -67,16 +67,6 @@ function _nuclideOpenFiles() {
   return data;
 }
 
-function _dompurify() {
-  const data = _interopRequireDefault(require("dompurify"));
-
-  _dompurify = function () {
-    return data;
-  };
-
-  return data;
-}
-
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 /**
@@ -89,12 +79,21 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  * 
  * @format
  */
-const domPurify = (0, _dompurify().default)();
 const RETRIES = 3;
+const MAX_LENS_LENGTH = 500;
+const TRUNCATION_MESSAGE = '...\n(truncated, click to copy)';
 
 function makeResolvableLens(editor, markerLayer, lens) {
   const marker = markerLayer.markBufferPosition(lens.range.start);
   const element = document.createElement('span');
+  const lensInfo = {
+    lens,
+    element,
+    fullText: null,
+    marker,
+    resolved: false,
+    retries: 0
+  };
   element.classList.add('code-lens-content'); // Put in a nonbreaking space to reserve the space in the editor. If
   // the space is already reserved, Atom won't have to scroll the
   // editor down as we resolve code lenses.
@@ -102,8 +101,8 @@ function makeResolvableLens(editor, markerLayer, lens) {
   element.innerHTML = '\xa0';
 
   const listener = () => {
-    if (element.innerText != null && _featureConfig().default.get('nuclide-ocaml.codeLensCopy')) {
-      atom.clipboard.write(element.innerText);
+    if (lensInfo.fullText != null && _featureConfig().default.get('nuclide-ocaml.codeLensCopy')) {
+      atom.clipboard.write(lensInfo.fullText);
       const tooltipDispose = atom.tooltips.add(element, {
         title: 'Copied code lens to clipboard.',
         placement: 'auto',
@@ -129,13 +128,7 @@ function makeResolvableLens(editor, markerLayer, lens) {
     position: 'before',
     item: containingElement
   });
-  return {
-    lens,
-    element,
-    marker,
-    resolved: false,
-    retries: 0
-  };
+  return lensInfo;
 }
 
 function getCodeLensPositions(atomLanguageService, logger, editor) {
@@ -216,10 +209,18 @@ function resolveVisible(resolveInfo) {
       }
 
       if (lens != null && lens.command != null) {
-        const text = domPurify.sanitize(lens.command.title, {
-          ALLOWED_TAGS: []
-        });
-        lensInfo.element.innerHTML = text;
+        lensInfo.fullText = lens.command.title;
+        let text = lensInfo.fullText;
+
+        if (text.length > MAX_LENS_LENGTH) {
+          text = text.substr(0, MAX_LENS_LENGTH - TRUNCATION_MESSAGE.length) + TRUNCATION_MESSAGE;
+        }
+
+        if (!_featureConfig().default.get('nuclide-ocaml.codeLensMultiLine')) {
+          text = text.replace(/\s/gm, ' ');
+        }
+
+        lensInfo.element.innerText = text;
       } else if (lensInfo.retries < RETRIES) {
         lensInfo.resolved = false;
         lensInfo.retries++;

@@ -25,6 +25,16 @@ function _fbWatchman() {
   return data;
 }
 
+function _observable() {
+  const data = require("../../nuclide-commons/observable");
+
+  _observable = function () {
+    return data;
+  };
+
+  return data;
+}
+
 function _promise() {
   const data = require("../../nuclide-commons/promise");
 
@@ -44,6 +54,8 @@ function _string() {
 
   return data;
 }
+
+var _RxMin = require("rxjs/bundles/Rx.min.js");
 
 function _path() {
   const data = require("./path");
@@ -92,7 +104,7 @@ const logger = (0, _log4js().getLogger)('nuclide-watchman-helpers');
 const WATCHMAN_SETTLE_TIME_MS = 2500;
 const DEFAULT_WATCHMAN_RECONNECT_DELAY_MS = 100;
 exports.DEFAULT_WATCHMAN_RECONNECT_DELAY_MS = DEFAULT_WATCHMAN_RECONNECT_DELAY_MS;
-const MAXIMUM_WATCHMAN_RECONNECT_DELAY_MS = 30 * 1000;
+const MAXIMUM_WATCHMAN_RECONNECT_DELAY_MS = 60 * 1000;
 
 class WatchmanClient {
   constructor() {
@@ -101,19 +113,25 @@ class WatchmanClient {
     this._initWatchmanClient();
 
     this._serializedReconnect = (0, _promise().serializeAsyncCall)(async () => {
-      logger.info('Calling _reconnectClient from _serializedReconnect in %dms', this._reconnectDelayMs);
-      await (0, _promise().sleep)(this._reconnectDelayMs);
-      this._reconnectDelayMs *= 2; // exponential backoff
+      let tries = 0;
+      return _RxMin.Observable.defer(() => _RxMin.Observable.fromPromise(this._reconnectClient()).catch(error => {
+        logger.warn(`_reconnectClient failed (try #${tries}):`, error.message);
+        tries++;
+        return _RxMin.Observable.throw(error);
+      })).retryWhen(errors => errors.flatMap(() => {
+        this._reconnectDelayMs *= 2; // exponential backoff
 
-      if (this._reconnectDelayMs > MAXIMUM_WATCHMAN_RECONNECT_DELAY_MS) {
-        this._reconnectDelayMs = MAXIMUM_WATCHMAN_RECONNECT_DELAY_MS;
-      }
+        if (this._reconnectDelayMs > MAXIMUM_WATCHMAN_RECONNECT_DELAY_MS) {
+          this._reconnectDelayMs = MAXIMUM_WATCHMAN_RECONNECT_DELAY_MS;
+        }
 
-      return this._reconnectClient().catch(error => {
-        logger.error('_reconnectClient failed', error);
-      });
+        logger.info('Calling _reconnectClient from _serializedReconnect in %dms', this._reconnectDelayMs);
+        return _RxMin.Observable.timer(this._reconnectDelayMs);
+      })).toPromise();
     });
     this._subscriptions = new Map();
+    this._lastKnownClockTimes = new Map();
+    this._healthSubject = new _RxMin.Subject();
   }
 
   async dispose() {
@@ -121,6 +139,8 @@ class WatchmanClient {
     client.removeAllListeners(); // disable reconnection
 
     client.end();
+
+    this._healthSubject.complete();
   }
 
   async _initWatchmanClient() {
@@ -155,6 +175,21 @@ class WatchmanClient {
   }
 
   async _reconnectClient() {
+    // we must be unhealthy if we have to reconnect
+    this._healthSubject.next(false); // If we got an error after making a subscription, the reconnect needs to
+    // remove that subscription to try again, so it doesn't keep leaking subscriptions.
+
+
+    if (this._clientPromise != null) {
+      const client = await this._clientPromise;
+
+      if (client != null) {
+        logger.info('Ending existing watchman client to reconnect a new one');
+        client.removeAllListeners();
+        client.end();
+      }
+    }
+
     logger.error('Watchman client disconnected, reconnecting a new client!');
     await this._initWatchmanClient();
     logger.info('Watchman client re-initialized, restoring subscriptions');
@@ -169,6 +204,8 @@ class WatchmanClient {
     logger.info(`Attempting to restore ${numSubscriptions} Watchman subscriptions.`);
     let numRestored = 0;
     await Promise.all(watchSubscriptions.map(async (subscription, index) => {
+      var _this$_lastKnownClock;
+
       // Note that this call to `watchman watch-project` could fail if the
       // subscription.path has been unmounted/deleted.
       await this._watchProject(subscription.path); // We have already missed the change events from the disconnect time,
@@ -180,14 +217,23 @@ class WatchmanClient {
         name,
         options,
         root
-      } = subscription;
-      subscription.options.since = await this._clock(root);
+      } = subscription; // Assuming we had previously connected and gotten an event, we can
+      // reconnect `since` that time, so that we get any events we missed.
+
+      subscription.options.since = (_this$_lastKnownClock = this._lastKnownClockTimes.get(root)) !== null && _this$_lastKnownClock !== void 0 ? _this$_lastKnownClock : await this._clock(root);
       logger.info(`Subscribing to ${name}: (${index + 1}/${numSubscriptions})`);
       await this._subscribe(root, name, options);
       ++numRestored;
       logger.info(`Subscribed to ${name}: (${numRestored}/${numSubscriptions}) complete.`);
-      this._reconnectDelayMs = DEFAULT_WATCHMAN_RECONNECT_DELAY_MS;
     }));
+
+    if (numRestored === numSubscriptions) {
+      logger.info('Successfully reconnected all %d subscriptions.', numRestored); // if everything got restored, reset the reconnect backoff time
+
+      this._reconnectDelayMs = DEFAULT_WATCHMAN_RECONNECT_DELAY_MS;
+
+      this._healthSubject.next(true);
+    }
   }
 
   _getSubscription(entryPath) {
@@ -208,6 +254,11 @@ class WatchmanClient {
     if (subscription == null) {
       logger.error('Subscription not found for response:!', response);
       return;
+    } // save the clock time of this event in case we disconnect in the future
+
+
+    if (response != null && response.root != null && response.clock != null) {
+      this._lastKnownClockTimes.set(response.root, response.clock);
     }
 
     if (Array.isArray(response.files)) {
@@ -230,6 +281,9 @@ class WatchmanClient {
 
     if (existingSubscription) {
       existingSubscription.subscriptionCount++;
+
+      this._healthSubject.next(true);
+
       return existingSubscription;
     } else {
       const {
@@ -267,6 +321,9 @@ class WatchmanClient {
       this._setSubscription(subscriptionName, subscription);
 
       await this._subscribe(watchRoot, subscriptionName, options);
+
+      this._healthSubject.next(true);
+
       return subscription;
     }
   }
@@ -365,6 +422,12 @@ class WatchmanClient {
       this._clientPromise.then(client => {
         client.command(args, (error, response) => error ? reject(error) : resolve(response));
       }).catch(reject);
+    });
+  }
+
+  observeHealth() {
+    return this._healthSubject.asObservable().distinctUntilChanged().let((0, _observable().fastDebounce)(200)).distinctUntilChanged().do(health => {
+      logger.info('is watchman healthy?', health);
     });
   }
 

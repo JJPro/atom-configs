@@ -18,7 +18,7 @@ function _UniversalDisposable() {
 }
 
 function _LinterAdapter() {
-  const data = require("../services/LinterAdapter");
+  const data = require("./LinterAdapter");
 
   _LinterAdapter = function () {
     return data;

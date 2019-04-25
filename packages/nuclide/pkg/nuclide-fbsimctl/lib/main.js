@@ -48,7 +48,7 @@ function _log4js() {
 }
 
 function _nuclideAnalytics() {
-  const data = require("../../nuclide-analytics");
+  const data = require("../../../modules/nuclide-analytics");
 
   _nuclideAnalytics = function () {
     return data;
@@ -76,18 +76,19 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  * This source code is licensed under the license found in the LICENSE file in
  * the root directory of this source tree.
  *
- * 
+ *  strict-local
  * @format
  */
+// $FlowIgnore untyped import
 const poller = createPoller();
 
 function observeIosDevices() {
   return poller;
 }
 
-function createPoller() {
+function createPoller(serviceUri = '') {
   return _RxMin.Observable.interval(2000).startWith(0).exhaustMap(() => {
-    const service = (0, _nuclideRemoteConnection().getFbsimctlServiceByNuclideUri)('');
+    const service = (0, _nuclideRemoteConnection().getFbsimctlServiceByNuclideUri)(serviceUri);
 
     if (service == null) {
       // Gracefully handle a lost remote connection
@@ -95,19 +96,50 @@ function createPoller() {
     }
 
     return _RxMin.Observable.fromPromise(service.getDevices()).map(devices => _expected().Expect.value(devices)).catch(error => {
-      const message = error.code !== 'ENOENT' ? error.message : "'fbsimctl' not found in $PATH.";
-      return _RxMin.Observable.of(_expected().Expect.error(new Error("Can't fetch iOS devices. " + message)));
+      let message;
+
+      if (error.code === 'ENOENT') {
+        message = "'fbsimctl' not found in $PATH.";
+      } else if (typeof error.message === 'string' && (error.message.includes('plist does not exist') || error.message.includes('No Xcode Directory at'))) {
+        message = "Xcode path is invalid, use 'xcode-select' in a terminal to select path to an Xcode installation.";
+      } else if ( // RPC call timed out
+      error.name === 'RpcTimeoutError' || // RPC call succeeded, but the fbsimctl call itself timed out
+      error.message === 'Timeout has occurred') {
+        message = 'Request timed out, retrying...';
+      } else if (error.message === 'Connection Closed') {
+        return _RxMin.Observable.of(_expected().Expect.pending());
+      } else {
+        message = error.message;
+      }
+
+      const newError = new Error("Can't fetch iOS devices. " + message); // $FlowIgnore
+
+      newError.originalError = error;
+      return _RxMin.Observable.of(_expected().Expect.error(newError));
     });
-  }).distinctUntilChanged((a, b) => (0, _expected().expectedEqual)(a, b, (v1, v2) => (0, _collection().arrayEqual)(v1, v2, _shallowequal().default), (e1, e2) => e1.message === e2.message)).do(value => {
+  }).distinctUntilChanged((a, b) => (0, _expected().expectedEqual)(a, b, (v1, v2) => (0, _collection().arrayEqual)(v1, v2, _shallowequal().default), (e1, e2) => e1.message === e2.message)).do(async value => {
     if (value.isError) {
       const {
         error
       } = value;
       const logger = (0, _log4js().getLogger)('nuclide-fbsimctl');
-      logger.warn(value.error.message);
-      (0, _nuclideAnalytics().track)('nuclide-fbsimctl:device-poller:error', {
+      let extras = {
         error
-      });
+      };
+
+      try {
+        if ( // $FlowIgnore
+        error.originalError != null && // $FlowIgnore
+        error.originalError.code === 'ENOENT') {
+          const serverEnv = await (0, _nuclideRemoteConnection().getInfoServiceByNuclideUri)(serviceUri).getServerEnvironment();
+          extras = Object.assign({}, extras, {
+            pathEnv: serverEnv.PATH
+          });
+        }
+      } finally {
+        logger.warn(value.error.message);
+        (0, _nuclideAnalytics().track)('nuclide-fbsimctl:device-poller:error', extras);
+      }
     }
   }).publishReplay(1).refCount();
 }

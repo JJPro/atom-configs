@@ -34,14 +34,16 @@ exports.openPasteDialogEpic = openPasteDialogEpic;
 exports.updateWorkingSetEpic = updateWorkingSetEpic;
 exports.deleteSelectedNodesEpic = deleteSelectedNodesEpic;
 exports.moveToNodeEpic = moveToNodeEpic;
+exports.movePathToNodeEpic = movePathToNodeEpic;
 exports.expandNodeEpic = expandNodeEpic;
 exports.expandNodeDeepEpic = expandNodeDeepEpic;
 exports.reorderRootsEpic = reorderRootsEpic;
 exports.loadDataEpic = loadDataEpic;
 exports.updateGeneratedStatusEpic = updateGeneratedStatusEpic;
+exports.uploadDroppedFilesEpic = uploadDroppedFilesEpic;
 
 function _passesGK() {
-  const data = require("../../../commons-node/passesGK");
+  const data = require("../../../../modules/nuclide-commons/passesGK");
 
   _passesGK = function () {
     return data;
@@ -80,10 +82,10 @@ function _Constants() {
   return data;
 }
 
-function _FileTreeHgHelpers() {
-  const data = _interopRequireDefault(require("../FileTreeHgHelpers"));
+function FileTreeHgHelpers() {
+  const data = _interopRequireWildcard(require("../FileTreeHgHelpers"));
 
-  _FileTreeHgHelpers = function () {
+  FileTreeHgHelpers = function () {
     return data;
   };
 
@@ -194,18 +196,8 @@ function _nuclideVcsBase() {
   return data;
 }
 
-function _FileTreeDispatcher() {
-  const data = require("../FileTreeDispatcher");
-
-  _FileTreeDispatcher = function () {
-    return data;
-  };
-
-  return data;
-}
-
 function _nuclideAnalytics() {
-  const data = require("../../../nuclide-analytics");
+  const data = require("../../../../modules/nuclide-analytics");
 
   _nuclideAnalytics = function () {
     return data;
@@ -214,10 +206,10 @@ function _nuclideAnalytics() {
   return data;
 }
 
-function _FileTreeHelpers() {
-  const data = _interopRequireDefault(require("../FileTreeHelpers"));
+function FileTreeHelpers() {
+  const data = _interopRequireWildcard(require("../FileTreeHelpers"));
 
-  _FileTreeHelpers = function () {
+  FileTreeHelpers = function () {
     return data;
   };
 
@@ -245,7 +237,7 @@ function _nuclideHgRpc() {
 }
 
 function _systemInfo() {
-  const data = require("../../../commons-node/system-info");
+  const data = require("../../../../modules/nuclide-commons/system-info");
 
   _systemInfo = function () {
     return data;
@@ -314,9 +306,9 @@ function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj;
 const logger = (0, _log4js().getLogger)('nuclide-file-tree');
 
 function confirmNodeEpic(actions, store) {
-  return actions.ofType(_FileTreeDispatcher().ActionTypes.CONFIRM_NODE).do(action => {
-    if (!(action.type === _FileTreeDispatcher().ActionTypes.CONFIRM_NODE)) {
-      throw new Error("Invariant violation: \"action.type === ActionTypes.CONFIRM_NODE\"");
+  return actions.ofType(Actions().CONFIRM_NODE).do(action => {
+    if (!(action.type === Actions().CONFIRM_NODE)) {
+      throw new Error("Invariant violation: \"action.type === Actions.CONFIRM_NODE\"");
     }
 
     const {
@@ -333,13 +325,13 @@ function confirmNodeEpic(actions, store) {
     if (node.isContainer) {
       if (node.isExpanded) {
         store.dispatch({
-          type: _FileTreeDispatcher().ActionTypes.COLLAPSE_NODE,
+          type: Actions().COLLAPSE_NODE,
           nodeKey,
           rootKey
         });
       } else {
         store.dispatch({
-          type: _FileTreeDispatcher().ActionTypes.EXPAND_NODE,
+          type: Actions().EXPAND_NODE,
           nodeKey,
           rootKey
         });
@@ -347,12 +339,11 @@ function confirmNodeEpic(actions, store) {
     } else {
       (0, _nuclideAnalytics().track)('file-tree-open-file', {
         uri: nodeKey
-      });
-      const conf = Selectors().getConf(store.getState()); // goToLocation doesn't support pending panes
+      }); // goToLocation doesn't support pending panes
       // eslint-disable-next-line nuclide-internal/atom-apis
 
-      atom.workspace.open(_FileTreeHelpers().default.keyToPath(nodeKey), {
-        activatePane: pending && conf.focusEditorOnFileSelection || !pending,
+      atom.workspace.open(FileTreeHelpers().keyToPath(nodeKey), {
+        activatePane: pending && Selectors().getFocusEditorOnFileSelection(store.getState()) || !pending,
         searchAllPanes: true,
         pending
       });
@@ -361,7 +352,7 @@ function confirmNodeEpic(actions, store) {
 }
 
 function keepPreviewTabEpic(actions) {
-  return actions.ofType(_FileTreeDispatcher().ActionTypes.KEEP_PREVIEW_TAB).do(() => {
+  return actions.ofType(Actions().KEEP_PREVIEW_TAB).do(() => {
     const activePane = atom.workspace.getActivePane();
 
     if (activePane != null) {
@@ -371,9 +362,9 @@ function keepPreviewTabEpic(actions) {
 }
 
 function openEntrySplitEpic(actions) {
-  return actions.ofType(_FileTreeDispatcher().ActionTypes.OPEN_ENTRY_SPLIT).do(action => {
-    if (!(action.type === _FileTreeDispatcher().ActionTypes.OPEN_ENTRY_SPLIT)) {
-      throw new Error("Invariant violation: \"action.type === ActionTypes.OPEN_ENTRY_SPLIT\"");
+  return actions.ofType(Actions().OPEN_ENTRY_SPLIT).do(action => {
+    if (!(action.type === Actions().OPEN_ENTRY_SPLIT)) {
+      throw new Error("Invariant violation: \"action.type === Actions.OPEN_ENTRY_SPLIT\"");
     }
 
     const {
@@ -382,7 +373,7 @@ function openEntrySplitEpic(actions) {
       side
     } = action;
     const pane = atom.workspace.getCenter().getActivePane();
-    atom.workspace.openURIInPane(_FileTreeHelpers().default.keyToPath(nodeKey), pane.split(orientation, side));
+    atom.workspace.openURIInPane(FileTreeHelpers().keyToPath(nodeKey), pane.split(orientation, side));
   }).ignoreElements();
 }
 /**
@@ -394,15 +385,15 @@ function updateRepositoriesEpic(actions, store) {
   // TODO: This isn't really the best way to manage these. Instead we should use something like
   // `reconcileSetDiffs()`. It's only done this way because this was refactored from a giant class
   let disposableForRepository = new (Immutable().Map)();
-  return actions.ofType(_FileTreeDispatcher().ActionTypes.UPDATE_REPOSITORIES).switchMap(async action => {
-    if (!(action.type === _FileTreeDispatcher().ActionTypes.UPDATE_REPOSITORIES)) {
-      throw new Error("Invariant violation: \"action.type === ActionTypes.UPDATE_REPOSITORIES\"");
+  return actions.ofType(Actions().UPDATE_REPOSITORIES).switchMap(async action => {
+    if (!(action.type === Actions().UPDATE_REPOSITORIES)) {
+      throw new Error("Invariant violation: \"action.type === Actions.UPDATE_REPOSITORIES\"");
     }
 
     const {
       rootDirectories
     } = action;
-    const rootKeys = rootDirectories.map(directory => _FileTreeHelpers().default.dirPathToKey(directory.getPath())); // $FlowFixMe
+    const rootKeys = rootDirectories.map(directory => FileTreeHelpers().dirPathToKey(directory.getPath())); // $FlowFixMe
 
     const rootRepos = await Promise.all(rootDirectories.map(directory => (0, _nuclideVcsBase().repositoryForPath)(directory.getPath()))); // t7114196: Given the current implementation of HgRepositoryClient, each root directory will
     // always correspond to a unique instance of HgRepositoryClient. Ideally, if multiple subfolders
@@ -418,7 +409,7 @@ function updateRepositoriesEpic(actions, store) {
 
     const nextRepos = Immutable().Set(rootKeysForRepository.keys());
     store.dispatch({
-      type: _FileTreeDispatcher().ActionTypes.SET_REPOSITORIES,
+      type: Actions().SET_REPOSITORIES,
       repositories: nextRepos
     });
     const removedRepos = prevRepos.subtract(nextRepos);
@@ -456,8 +447,7 @@ function updateRepositoriesEpic(actions, store) {
         // We special-case the HgRepository because it offers up the
         // required observable directly, and because it actually allows us to pick
         const hgRepo = repo;
-
-        const hgChanges = _FileTreeHelpers().default.observeUncommittedChangesKindConfigKey().map(kind => {
+        const hgChanges = FileTreeHelpers().observeUncommittedChangesKindConfigKey().map(kind => {
           switch (kind) {
             case 'Uncommitted changes':
               return hgRepo.observeUncommittedStatusChanges();
@@ -479,7 +469,6 @@ function updateRepositoriesEpic(actions, store) {
               };
           }
         }).share();
-
         vcsChanges = hgChanges.switchMap(c => c.statusChanges).distinctUntilChanged(_collection().mapEqual);
         vcsCalculating = hgChanges.switchMap(c => c.isCalculatingChanges);
       }
@@ -502,9 +491,9 @@ function updateRepositoriesEpic(actions, store) {
 }
 
 function revealNodeKeyEpic(actions, store) {
-  return actions.ofType(_FileTreeDispatcher().ActionTypes.REVEAL_NODE_KEY).do(action => {
-    if (!(action.type === _FileTreeDispatcher().ActionTypes.REVEAL_NODE_KEY)) {
-      throw new Error("Invariant violation: \"action.type === ActionTypes.REVEAL_NODE_KEY\"");
+  return actions.ofType(Actions().REVEAL_NODE_KEY).do(action => {
+    if (!(action.type === Actions().REVEAL_NODE_KEY)) {
+      throw new Error("Invariant violation: \"action.type === Actions.REVEAL_NODE_KEY\"");
     }
 
     const {
@@ -520,9 +509,9 @@ function revealNodeKeyEpic(actions, store) {
 }
 
 function revealFilePathEpic(actions, store) {
-  return actions.ofType(_FileTreeDispatcher().ActionTypes.REVEAL_FILE_PATH).switchMap(action => {
-    if (!(action.type === _FileTreeDispatcher().ActionTypes.REVEAL_FILE_PATH)) {
-      throw new Error("Invariant violation: \"action.type === ActionTypes.REVEAL_FILE_PATH\"");
+  return actions.ofType(Actions().REVEAL_FILE_PATH).switchMap(action => {
+    if (!(action.type === Actions().REVEAL_FILE_PATH)) {
+      throw new Error("Invariant violation: \"action.type === Actions.REVEAL_FILE_PATH\"");
     }
 
     const {
@@ -551,7 +540,7 @@ function revealFilePathEpic(actions, store) {
 }
 
 function openAndRevealFilePathEpic(actions) {
-  return actions.map(action => action.type === _FileTreeDispatcher().ActionTypes.OPEN_AND_REVEAL_FILE_PATH ? action : null).filter(Boolean).filter(action => action.filePath != null).do(({
+  return actions.map(action => action.type === Actions().OPEN_AND_REVEAL_FILE_PATH ? action : null).filter(Boolean).filter(action => action.filePath != null).do(({
     filePath
   }) => {
     if (!(filePath != null)) {
@@ -565,7 +554,7 @@ function openAndRevealFilePathEpic(actions) {
 }
 
 function openAndRevealFilePathsEpic(actions) {
-  return actions.map(action => action.type === _FileTreeDispatcher().ActionTypes.OPEN_AND_REVEAL_FILE_PATHS ? action : null).filter(Boolean).do(({
+  return actions.map(action => action.type === Actions().OPEN_AND_REVEAL_FILE_PATHS ? action : null).filter(Boolean).do(({
     filePaths
   }) => {
     filePaths.forEach(path => {
@@ -577,36 +566,35 @@ function openAndRevealFilePathsEpic(actions) {
 }
 
 function openAndRevealDirectoryPathEpic(actions) {
-  return actions.ofType(_FileTreeDispatcher().ActionTypes.OPEN_AND_REVEAL_DIRECTORY_PATH).map(action => {
-    if (!(action.type === _FileTreeDispatcher().ActionTypes.OPEN_AND_REVEAL_DIRECTORY_PATH)) {
-      throw new Error("Invariant violation: \"action.type === ActionTypes.OPEN_AND_REVEAL_DIRECTORY_PATH\"");
+  return actions.ofType(Actions().OPEN_AND_REVEAL_DIRECTORY_PATH).map(action => {
+    if (!(action.type === Actions().OPEN_AND_REVEAL_DIRECTORY_PATH)) {
+      throw new Error("Invariant violation: \"action.type === Actions.OPEN_AND_REVEAL_DIRECTORY_PATH\"");
     }
 
-    return action.path == null ? null : Actions().revealNodeKey(_FileTreeHelpers().default.dirPathToKey(action.path));
+    return action.path == null ? null : Actions().revealNodeKey(FileTreeHelpers().dirPathToKey(action.path));
   }).filter(Boolean);
 }
 
 function updateRootDirectoriesEpic(actions, store) {
-  return actions.ofType(_FileTreeDispatcher().ActionTypes.UPDATE_ROOT_DIRECTORIES).do(() => {
+  return actions.ofType(Actions().UPDATE_ROOT_DIRECTORIES).do(() => {
     // If the remote-projects package hasn't loaded yet remote directories will be instantiated as
     // local directories but with invalid paths. We need to exclude those.
-    const rootDirectories = atom.project.getDirectories().filter(directory => _FileTreeHelpers().default.isValidDirectory(directory));
-    const rootKeys = rootDirectories.map(directory => _FileTreeHelpers().default.dirPathToKey(directory.getPath()));
+    const rootDirectories = atom.project.getDirectories().filter(directory => FileTreeHelpers().isValidDirectory(directory));
+    const rootKeys = rootDirectories.map(directory => FileTreeHelpers().dirPathToKey(directory.getPath()));
     EpicHelpers().setRootKeys(store, rootKeys);
     store.dispatch(Actions().updateRepositories(rootDirectories));
   }).ignoreElements();
 }
 
 function setCwdToSelectionEpic(actions, store) {
-  return actions.ofType(_FileTreeDispatcher().ActionTypes.SET_CWD_TO_SELECTION).do(() => {
+  return actions.ofType(Actions().SET_CWD_TO_SELECTION).do(() => {
     const node = Selectors().getSingleSelectedNode(store.getState());
 
     if (node == null) {
       return;
     }
 
-    const path = _FileTreeHelpers().default.keyToPath(node.uri);
-
+    const path = FileTreeHelpers().keyToPath(node.uri);
     const cwdApi = Selectors().getCwdApi(store.getState());
 
     if (cwdApi != null) {
@@ -616,9 +604,9 @@ function setCwdToSelectionEpic(actions, store) {
 }
 
 function setCwdApiEpic(actions) {
-  return actions.ofType(_FileTreeDispatcher().ActionTypes.SET_CWD_API).switchMap(action => {
-    if (!(action.type === _FileTreeDispatcher().ActionTypes.SET_CWD_API)) {
-      throw new Error("Invariant violation: \"action.type === ActionTypes.SET_CWD_API\"");
+  return actions.ofType(Actions().SET_CWD_API).switchMap(action => {
+    if (!(action.type === Actions().SET_CWD_API)) {
+      throw new Error("Invariant violation: \"action.type === Actions.SET_CWD_API\"");
     }
 
     const {
@@ -627,16 +615,15 @@ function setCwdApiEpic(actions) {
     return cwdApi == null ? _RxMin.Observable.of(null) : (0, _event().observableFromSubscribeFunction)(cb => cwdApi.observeCwd(cb));
   }).map(directory => {
     // flowlint-next-line sketchy-null-string:off
-    const rootKey = directory && _FileTreeHelpers().default.dirPathToKey(directory);
-
+    const rootKey = directory && FileTreeHelpers().dirPathToKey(directory);
     return Actions().setCwd(rootKey);
   });
 }
 
 function setRemoteProjectsServiceEpic(actions) {
-  return actions.ofType(_FileTreeDispatcher().ActionTypes.SET_REMOTE_PROJECTS_SERVICE).switchMap(action => {
-    if (!(action.type === _FileTreeDispatcher().ActionTypes.SET_REMOTE_PROJECTS_SERVICE)) {
-      throw new Error("Invariant violation: \"action.type === ActionTypes.SET_REMOTE_PROJECTS_SERVICE\"");
+  return actions.ofType(Actions().SET_REMOTE_PROJECTS_SERVICE).switchMap(action => {
+    if (!(action.type === Actions().SET_REMOTE_PROJECTS_SERVICE)) {
+      throw new Error("Invariant violation: \"action.type === Actions.SET_REMOTE_PROJECTS_SERVICE\"");
     }
 
     const {
@@ -663,9 +650,9 @@ function setRemoteProjectsServiceEpic(actions) {
 
 
 function collapseSelectionEpic(actions, store) {
-  return actions.ofType(_FileTreeDispatcher().ActionTypes.COLLAPSE_SELECTION).switchMap(action => {
-    if (!(action.type === _FileTreeDispatcher().ActionTypes.COLLAPSE_SELECTION)) {
-      throw new Error("Invariant violation: \"action.type === ActionTypes.COLLAPSE_SELECTION\"");
+  return actions.ofType(Actions().COLLAPSE_SELECTION).switchMap(action => {
+    if (!(action.type === Actions().COLLAPSE_SELECTION)) {
+      throw new Error("Invariant violation: \"action.type === Actions.COLLAPSE_SELECTION\"");
     }
 
     const {
@@ -702,7 +689,7 @@ function collapseSelectionEpic(actions, store) {
 }
 
 function collapseAllEpic(actions, store) {
-  return actions.ofType(_FileTreeDispatcher().ActionTypes.COLLAPSE_ALL).switchMap(() => {
+  return actions.ofType(Actions().COLLAPSE_ALL).switchMap(() => {
     const roots = store.getState()._roots;
 
     return _RxMin.Observable.from([...roots.values()].map(root => Actions().collapseNodeDeep(root.uri, root.uri)));
@@ -710,7 +697,7 @@ function collapseAllEpic(actions, store) {
 }
 
 function deleteSelectionEpic(actions, store) {
-  return actions.ofType(_FileTreeDispatcher().ActionTypes.DELETE_SELECTION).do(() => {
+  return actions.ofType(Actions().DELETE_SELECTION).do(() => {
     const nodes = Selectors().getTargetNodes(store.getState());
 
     if (nodes.size === 0) {
@@ -721,7 +708,7 @@ function deleteSelectionEpic(actions, store) {
 
     if (rootPaths.size === 0) {
       const selectedPaths = nodes.map(node => {
-        const nodePath = _FileTreeHelpers().default.keyToPath(node.uri);
+        const nodePath = FileTreeHelpers().keyToPath(node.uri);
 
         const parentOfRoot = _nuclideUri().default.dirname(node.rootUri); // Fix Windows paths to avoid end of filename truncation
 
@@ -762,9 +749,9 @@ function deleteSelectionEpic(actions, store) {
 
 
 function expandSelectionEpic(actions, store) {
-  return actions.ofType(_FileTreeDispatcher().ActionTypes.EXPAND_SELECTION).switchMap(action => {
-    if (!(action.type === _FileTreeDispatcher().ActionTypes.EXPAND_SELECTION)) {
-      throw new Error("Invariant violation: \"action.type === ActionTypes.EXPAND_SELECTION\"");
+  return actions.ofType(Actions().EXPAND_SELECTION).switchMap(action => {
+    if (!(action.type === Actions().EXPAND_SELECTION)) {
+      throw new Error("Invariant violation: \"action.type === Actions.EXPAND_SELECTION\"");
     }
 
     const {
@@ -801,7 +788,7 @@ function expandSelectionEpic(actions, store) {
 }
 
 function openSelectedEntryEpic(actions, store) {
-  return actions.ofType(_FileTreeDispatcher().ActionTypes.OPEN_SELECTED_ENTRY).switchMap(() => {
+  return actions.ofType(Actions().OPEN_SELECTED_ENTRY).switchMap(() => {
     const resultActions = [Actions().clearFilter()];
     const singleSelectedNode = Selectors().getSingleSelectedNode(store.getState()); // Only perform the default action if a single node is selected.
 
@@ -814,9 +801,9 @@ function openSelectedEntryEpic(actions, store) {
 }
 
 function openSelectedEntrySplitEpic(actions, store) {
-  return actions.ofType(_FileTreeDispatcher().ActionTypes.OPEN_SELECTED_ENTRY_SPLIT).map(action => {
-    if (!(action.type === _FileTreeDispatcher().ActionTypes.OPEN_SELECTED_ENTRY_SPLIT)) {
-      throw new Error("Invariant violation: \"action.type === ActionTypes.OPEN_SELECTED_ENTRY_SPLIT\"");
+  return actions.ofType(Actions().OPEN_SELECTED_ENTRY_SPLIT).map(action => {
+    if (!(action.type === Actions().OPEN_SELECTED_ENTRY_SPLIT)) {
+      throw new Error("Invariant violation: \"action.type === Actions.OPEN_SELECTED_ENTRY_SPLIT\"");
     }
 
     const {
@@ -837,7 +824,7 @@ function openSelectedEntrySplitEpic(actions, store) {
 }
 
 function removeRootFolderSelection(actions, store) {
-  return actions.ofType(_FileTreeDispatcher().ActionTypes.REMOVE_ROOT_FOLDER_SELECTION).do(() => {
+  return actions.ofType(Actions().REMOVE_ROOT_FOLDER_SELECTION).do(() => {
     const rootNode = Selectors().getSingleSelectedNode(store.getState());
 
     if (rootNode != null && rootNode.isRoot) {
@@ -848,19 +835,19 @@ function removeRootFolderSelection(actions, store) {
 }
 
 function copyFilenamesWithDir(actions, store) {
-  return actions.ofType(_FileTreeDispatcher().ActionTypes.COPY_FILENAMES_WITH_DIR).do(() => {
+  return actions.ofType(Actions().COPY_FILENAMES_WITH_DIR).do(() => {
     const nodes = Selectors().getSelectedNodes(store.getState());
     const dirs = [];
     const files = [];
 
     for (const node of nodes) {
-      const file = _FileTreeHelpers().default.getFileByKey(node.uri);
+      const file = FileTreeHelpers().getFileByKey(node.uri);
 
       if (file != null) {
         files.push(file);
       }
 
-      const dir = _FileTreeHelpers().default.getDirectoryByKey(node.uri);
+      const dir = FileTreeHelpers().getDirectoryByKey(node.uri);
 
       if (dir != null) {
         dirs.push(dir);
@@ -884,7 +871,7 @@ function copyFilenamesWithDir(actions, store) {
 
     const copyNames = entries.map(e => encodeURIComponent(e.getBaseName())).join();
     atom.clipboard.write(copyNames, {
-      directory: _FileTreeHelpers().default.dirPathToKey(dirPath),
+      directory: FileTreeHelpers().dirPathToKey(dirPath),
       filenames: files.map(f => f.getBaseName()),
       dirnames: dirs.map(f => f.getBaseName())
     });
@@ -892,9 +879,9 @@ function copyFilenamesWithDir(actions, store) {
 }
 
 function openAddFolderDialogEpic(actions, store) {
-  return actions.ofType(_FileTreeDispatcher().ActionTypes.OPEN_ADD_FOLDER_DIALOG).do(action => {
-    if (!(action.type === _FileTreeDispatcher().ActionTypes.OPEN_ADD_FOLDER_DIALOG)) {
-      throw new Error("Invariant violation: \"action.type === ActionTypes.OPEN_ADD_FOLDER_DIALOG\"");
+  return actions.ofType(Actions().OPEN_ADD_FOLDER_DIALOG).do(action => {
+    if (!(action.type === Actions().OPEN_ADD_FOLDER_DIALOG)) {
+      throw new Error("Invariant violation: \"action.type === Actions.OPEN_ADD_FOLDER_DIALOG\"");
     }
 
     const {
@@ -913,7 +900,7 @@ function openAddFolderDialogEpic(actions, store) {
       } // TODO: check if filePath is in rootKey and if not, find the rootKey it belongs to.
 
 
-      const directory = _FileTreeHelpers().default.getDirectoryByKey(node.uri);
+      const directory = FileTreeHelpers().getDirectoryByKey(node.uri);
 
       if (directory == null) {
         return;
@@ -947,9 +934,9 @@ function openAddFolderDialogEpic(actions, store) {
 }
 
 function openAddFileDialogEpic(actions, store) {
-  return actions.ofType(_FileTreeDispatcher().ActionTypes.OPEN_ADD_FILE_DIALOG).do(action => {
-    if (!(action.type === _FileTreeDispatcher().ActionTypes.OPEN_ADD_FILE_DIALOG)) {
-      throw new Error("Invariant violation: \"action.type === ActionTypes.OPEN_ADD_FILE_DIALOG\"");
+  return actions.ofType(Actions().OPEN_ADD_FILE_DIALOG).do(action => {
+    if (!(action.type === Actions().OPEN_ADD_FILE_DIALOG)) {
+      throw new Error("Invariant violation: \"action.type === Actions.OPEN_ADD_FILE_DIALOG\"");
     }
 
     const {
@@ -966,9 +953,9 @@ function openAddFileDialogEpic(actions, store) {
 }
 
 function openAddFileDialogRelativeEpic(actions, store) {
-  return actions.ofType(_FileTreeDispatcher().ActionTypes.OPEN_ADD_FILE_DIALOG_RELATIVE).do(action => {
-    if (!(action.type === _FileTreeDispatcher().ActionTypes.OPEN_ADD_FILE_DIALOG_RELATIVE)) {
-      throw new Error("Invariant violation: \"action.type === ActionTypes.OPEN_ADD_FILE_DIALOG_RELATIVE\"");
+  return actions.ofType(Actions().OPEN_ADD_FILE_DIALOG_RELATIVE).do(action => {
+    if (!(action.type === Actions().OPEN_ADD_FILE_DIALOG_RELATIVE)) {
+      throw new Error("Invariant violation: \"action.type === Actions.OPEN_ADD_FILE_DIALOG_RELATIVE\"");
     }
 
     const {
@@ -981,19 +968,18 @@ function openAddFileDialogRelativeEpic(actions, store) {
       return;
     }
 
-    const dirPath = _FileTreeHelpers().default.getParentKey(filePath);
-
+    const dirPath = FileTreeHelpers().getParentKey(filePath);
     const rootNode = Selectors().getRootForPath(store.getState(), dirPath);
 
     if (rootNode) {
       const localPath = _nuclideUri().default.isRemote(dirPath) ? _nuclideUri().default.parse(dirPath).path : dirPath;
-      openAddFileDialogImpl(rootNode, _FileTreeHelpers().default.keyToPath(localPath), dirPath, onDidConfirm);
+      openAddFileDialogImpl(rootNode, FileTreeHelpers().keyToPath(localPath), dirPath, onDidConfirm);
     }
   }).ignoreElements();
 }
 
 function openRenameDialogEpic(actions, store) {
-  return actions.ofType(_FileTreeDispatcher().ActionTypes.OPEN_RENAME_DIALOG).do(() => {
+  return actions.ofType(Actions().OPEN_RENAME_DIALOG).do(() => {
     const targetNodes = Selectors().getTargetNodes(store.getState());
 
     if (targetNodes.size !== 1) {
@@ -1010,11 +996,11 @@ function openRenameDialogEpic(actions, store) {
     const nodePath = node.localPath;
     (0, _FileActionModal().openDialog)({
       iconClassName: 'icon-arrow-right',
-      initialValue: _nuclideUri().default.basename(nodePath),
+      initialValue: nodePath,
       message: node.isContainer ? React.createElement("span", null, "Enter the new path for the directory.") : React.createElement("span", null, "Enter the new path for the file."),
-      onConfirm: (newBasename, options) => {
-        renameNode(node, nodePath, newBasename).catch(error => {
-          atom.notifications.addError(`Rename to ${newBasename} failed: ${error.message}`);
+      onConfirm: (newPath, options) => {
+        renameNode(node, nodePath, newPath).catch(error => {
+          atom.notifications.addError(`Rename to ${newPath} failed: ${error.message}`);
         });
       },
       onClose: _FileActionModal().closeDialog,
@@ -1024,9 +1010,9 @@ function openRenameDialogEpic(actions, store) {
 }
 
 function openDuplicateDialogEpic(actions, store) {
-  return actions.ofType(_FileTreeDispatcher().ActionTypes.OPEN_DUPLICATE_DIALOG).map(action => {
-    if (!(action.type === _FileTreeDispatcher().ActionTypes.OPEN_DUPLICATE_DIALOG)) {
-      throw new Error("Invariant violation: \"action.type === ActionTypes.OPEN_DUPLICATE_DIALOG\"");
+  return actions.ofType(Actions().OPEN_DUPLICATE_DIALOG).map(action => {
+    if (!(action.type === Actions().OPEN_DUPLICATE_DIALOG)) {
+      throw new Error("Invariant violation: \"action.type === Actions.OPEN_DUPLICATE_DIALOG\"");
     }
 
     const {
@@ -1038,9 +1024,9 @@ function openDuplicateDialogEpic(actions, store) {
 }
 
 function openNextDuplicateDialogEpic(actions, store) {
-  return actions.ofType(_FileTreeDispatcher().ActionTypes.OPEN_NEXT_DUPLICATE_DIALOG).do(action => {
-    if (!(action.type === _FileTreeDispatcher().ActionTypes.OPEN_NEXT_DUPLICATE_DIALOG)) {
-      throw new Error("Invariant violation: \"action.type === ActionTypes.OPEN_NEXT_DUPLICATE_DIALOG\"");
+  return actions.ofType(Actions().OPEN_NEXT_DUPLICATE_DIALOG).do(action => {
+    if (!(action.type === Actions().OPEN_NEXT_DUPLICATE_DIALOG)) {
+      throw new Error("Invariant violation: \"action.type === Actions.OPEN_NEXT_DUPLICATE_DIALOG\"");
     }
 
     const {
@@ -1060,9 +1046,7 @@ function openNextDuplicateDialogEpic(actions, store) {
     const ext = _nuclideUri().default.extname(nodePath);
 
     initialValue = initialValue.substr(0, initialValue.length - ext.length) + '-copy' + ext;
-
-    const hgRepository = _FileTreeHgHelpers().default.getHgRepositoryForNode(node);
-
+    const hgRepository = FileTreeHgHelpers().getHgRepositoryForNode(node);
     const additionalOptions = {}; // eslint-disable-next-line eqeqeq
 
     if (hgRepository !== null) {
@@ -1074,7 +1058,7 @@ function openNextDuplicateDialogEpic(actions, store) {
       initialValue,
       message: React.createElement("span", null, "Enter the new path for the duplicate."),
       onConfirm: (newBasename, options) => {
-        const file = _FileTreeHelpers().default.getFileByKey(node.uri);
+        const file = FileTreeHelpers().getFileByKey(node.uri);
 
         if (file == null) {
           // TODO: Connection could have been lost for remote file.
@@ -1100,7 +1084,7 @@ function openNextDuplicateDialogEpic(actions, store) {
 }
 
 function openPasteDialogEpic(actions, store) {
-  return actions.ofType(_FileTreeDispatcher().ActionTypes.OPEN_PASTE_DIALOG).do(() => {
+  return actions.ofType(Actions().OPEN_PASTE_DIALOG).do(() => {
     const node = Selectors().getSingleSelectedNode(store.getState());
 
     if (node == null) {
@@ -1108,11 +1092,11 @@ function openPasteDialogEpic(actions, store) {
       return;
     }
 
-    let newPath = _FileTreeHelpers().default.getDirectoryByKey(node.uri);
+    let newPath = FileTreeHelpers().getDirectoryByKey(node.uri);
 
     if (newPath == null) {
       // maybe it's a file?
-      const file = _FileTreeHelpers().default.getFileByKey(node.uri);
+      const file = FileTreeHelpers().getFileByKey(node.uri);
 
       if (file == null) {
         // nope! do nothing if we can't find an entry
@@ -1124,7 +1108,7 @@ function openPasteDialogEpic(actions, store) {
 
     const additionalOptions = {}; // eslint-disable-next-line eqeqeq
 
-    if (_FileTreeHgHelpers().default.getHgRepositoryForNode(node) !== null) {
+    if (FileTreeHgHelpers().getHgRepositoryForNode(node) !== null) {
       additionalOptions.addToVCS = 'Add the new file(s) to version control.';
     }
 
@@ -1143,9 +1127,9 @@ function openPasteDialogEpic(actions, store) {
 }
 
 function updateWorkingSetEpic(actions, store) {
-  return actions.ofType(_FileTreeDispatcher().ActionTypes.WORKING_SET_CHANGE_REQUESTED).do(action => {
-    if (!(action.type === _FileTreeDispatcher().ActionTypes.WORKING_SET_CHANGE_REQUESTED)) {
-      throw new Error("Invariant violation: \"action.type === ActionTypes.WORKING_SET_CHANGE_REQUESTED\"");
+  return actions.ofType(Actions().WORKING_SET_CHANGE_REQUESTED).do(action => {
+    if (!(action.type === Actions().WORKING_SET_CHANGE_REQUESTED)) {
+      throw new Error("Invariant violation: \"action.type === Actions.WORKING_SET_CHANGE_REQUESTED\"");
     }
 
     const {
@@ -1165,8 +1149,7 @@ function updateWorkingSetEpic(actions, store) {
         Selectors().getRootKeys(store.getState()).forEach(rootUri => {
           const filePath = _nuclideUri().default.resolve(rootUri, uri);
 
-          const nodeKey = _FileTreeHelpers().default.dirPathToKey(filePath);
-
+          const nodeKey = FileTreeHelpers().dirPathToKey(filePath);
           store.dispatch(Actions().revealFilePath(nodeKey, false));
 
           if (nextUris.size === 1) {
@@ -1182,15 +1165,15 @@ function updateWorkingSetEpic(actions, store) {
 }
 
 function deleteSelectedNodesEpic(actions, store) {
-  return actions.ofType(_FileTreeDispatcher().ActionTypes.DELETE_SELECTED_NODES).mergeMap(async action => {
-    if (!(action.type === _FileTreeDispatcher().ActionTypes.DELETE_SELECTED_NODES)) {
-      throw new Error("Invariant violation: \"action.type === ActionTypes.DELETE_SELECTED_NODES\"");
+  return actions.ofType(Actions().DELETE_SELECTED_NODES).mergeMap(async action => {
+    if (!(action.type === Actions().DELETE_SELECTED_NODES)) {
+      throw new Error("Invariant violation: \"action.type === Actions.DELETE_SELECTED_NODES\"");
     }
 
     const selectedNodes = Selectors().getSelectedNodes(store.getState());
 
     try {
-      await _FileTreeHgHelpers().default.deleteNodes(selectedNodes.toArray());
+      await FileTreeHgHelpers().deleteNodes(selectedNodes.toArray());
       return Actions().clearSelectionRange();
     } catch (e) {
       atom.notifications.addError('Failed to delete entries: ' + e.message);
@@ -1201,9 +1184,9 @@ function deleteSelectedNodesEpic(actions, store) {
 }
 
 function moveToNodeEpic(actions, store) {
-  return actions.ofType(_FileTreeDispatcher().ActionTypes.MOVE_TO_NODE).mergeMap(action => {
-    if (!(action.type === _FileTreeDispatcher().ActionTypes.MOVE_TO_NODE)) {
-      throw new Error("Invariant violation: \"action.type === ActionTypes.MOVE_TO_NODE\"");
+  return actions.ofType(Actions().MOVE_TO_NODE).mergeMap(action => {
+    if (!(action.type === Actions().MOVE_TO_NODE)) {
+      throw new Error("Invariant violation: \"action.type === Actions.MOVE_TO_NODE\"");
     }
 
     const {
@@ -1218,16 +1201,64 @@ function moveToNodeEpic(actions, store) {
 
     const selectedNodes = Selectors().getSelectedNodes(store.getState()); // This is async but we don't care.
 
-    _FileTreeHgHelpers().default.moveNodes(selectedNodes.toArray(), targetNode.uri);
+    FileTreeHgHelpers().moveNodes(selectedNodes.toArray(), targetNode.uri);
+    return _RxMin.Observable.of(Actions().clearDragHover(), Actions().clearSelection());
+  });
+}
 
+function movePathToNodeEpic(actions, store) {
+  return actions.ofType(Actions().MOVE_PATH_TO_NODE).mergeMap(action => {
+    if (!(action.type === Actions().MOVE_PATH_TO_NODE)) {
+      throw new Error("Invariant violation: \"action.type === Actions.MOVE_PATH_TO_NODE\"");
+    }
+
+    const {
+      uri,
+      destination
+    } = action;
+    (0, _nuclideAnalytics().track)('file-tree-move-dropped-external-file:started', {
+      source: uri,
+      destination: destination.uri
+    });
+
+    if (!destination.isContainer) {
+      (0, _nuclideAnalytics().track)('file-tree-move-dropped-external-file:failed', {
+        reason: 'Destination is not a container'
+      });
+      return _RxMin.Observable.empty();
+    }
+
+    if (!FileTreeHgHelpers().isValidRename(uri, destination.uri)) {
+      const detail = `Unable to move \`${uri}\` to \`${destination.uri}\`.`;
+      (0, _nuclideAnalytics().track)('file-tree-move-dropped-external-file:failed', {
+        reason: detail
+      });
+      atom.notifications.addError('File move failed', {
+        detail
+      });
+      return _RxMin.Observable.empty();
+    }
+
+    const newPath = _nuclideUri().default.join(destination.uri, _nuclideUri().default.basename(uri));
+
+    FileTreeHgHelpers().movePaths([uri], destination.uri).then(() => {
+      // Note: While the move is "complete" FileTreeHgHelpers will silently skip
+      // files that it does not think it can move, and will noop if another move
+      // is already in progress.
+      (0, _nuclideAnalytics().track)('file-tree-move-dropped-external-file:completed', {
+        source: uri,
+        destination: destination.uri
+      });
+      EpicHelpers().ensureChildNode(store, newPath);
+    });
     return _RxMin.Observable.of(Actions().clearDragHover(), Actions().clearSelection());
   });
 }
 
 function expandNodeEpic(actions, store) {
-  return actions.ofType(_FileTreeDispatcher().ActionTypes.EXPAND_NODE).do(action => {
-    if (!(action.type === _FileTreeDispatcher().ActionTypes.EXPAND_NODE)) {
-      throw new Error("Invariant violation: \"action.type === ActionTypes.EXPAND_NODE\"");
+  return actions.ofType(Actions().EXPAND_NODE).do(action => {
+    if (!(action.type === Actions().EXPAND_NODE)) {
+      throw new Error("Invariant violation: \"action.type === Actions.EXPAND_NODE\"");
     }
 
     const {
@@ -1239,9 +1270,9 @@ function expandNodeEpic(actions, store) {
 }
 
 function expandNodeDeepEpic(actions, store) {
-  return actions.ofType(_FileTreeDispatcher().ActionTypes.EXPAND_NODE_DEEP).do(action => {
-    if (!(action.type === _FileTreeDispatcher().ActionTypes.EXPAND_NODE_DEEP)) {
-      throw new Error("Invariant violation: \"action.type === ActionTypes.EXPAND_NODE_DEEP\"");
+  return actions.ofType(Actions().EXPAND_NODE_DEEP).do(action => {
+    if (!(action.type === Actions().EXPAND_NODE_DEEP)) {
+      throw new Error("Invariant violation: \"action.type === Actions.EXPAND_NODE_DEEP\"");
     }
 
     const {
@@ -1253,9 +1284,9 @@ function expandNodeDeepEpic(actions, store) {
 }
 
 function reorderRootsEpic(actions, store) {
-  return actions.ofType(_FileTreeDispatcher().ActionTypes.REORDER_ROOTS).do(action => {
-    if (!(action.type === _FileTreeDispatcher().ActionTypes.REORDER_ROOTS)) {
-      throw new Error("Invariant violation: \"action.type === ActionTypes.REORDER_ROOTS\"");
+  return actions.ofType(Actions().REORDER_ROOTS).do(action => {
+    if (!(action.type === Actions().REORDER_ROOTS)) {
+      throw new Error("Invariant violation: \"action.type === Actions.REORDER_ROOTS\"");
     }
 
     const rootKeys = Selectors().getRootKeys(store.getState());
@@ -1282,9 +1313,9 @@ function reorderRootsEpic(actions, store) {
 
 
 function loadDataEpic(actions, store) {
-  return actions.ofType(_FileTreeDispatcher().ActionTypes.LOAD_DATA).map(action => {
-    if (!(action.type === _FileTreeDispatcher().ActionTypes.LOAD_DATA)) {
-      throw new Error("Invariant violation: \"action.type === ActionTypes.LOAD_DATA\"");
+  return actions.ofType(Actions().LOAD_DATA).map(action => {
+    if (!(action.type === Actions().LOAD_DATA)) {
+      throw new Error("Invariant violation: \"action.type === Actions.LOAD_DATA\"");
     }
 
     const {
@@ -1305,7 +1336,7 @@ function loadDataEpic(actions, store) {
         isLoading: true,
         children: Immutable().OrderedMap(),
         isCwd: false,
-        connectionTitle: _FileTreeHelpers().default.getDisplayTitle(rootUri) || ''
+        connectionTitle: FileTreeHelpers().getDisplayTitle(rootUri) || ''
       }, Selectors().getConf(store.getState()));
     };
 
@@ -1324,15 +1355,15 @@ function loadDataEpic(actions, store) {
 }
 
 function updateGeneratedStatusEpic(actions, store) {
-  return _RxMin.Observable.merge(actions.ofType(_FileTreeDispatcher().ActionTypes.SET_OPEN_FILES_WORKING_SET).map(action => {
-    if (!(action.type === _FileTreeDispatcher().ActionTypes.SET_OPEN_FILES_WORKING_SET)) {
-      throw new Error("Invariant violation: \"action.type === ActionTypes.SET_OPEN_FILES_WORKING_SET\"");
+  return _RxMin.Observable.merge(actions.ofType(Actions().SET_OPEN_FILES_WORKING_SET).map(action => {
+    if (!(action.type === Actions().SET_OPEN_FILES_WORKING_SET)) {
+      throw new Error("Invariant violation: \"action.type === Actions.SET_OPEN_FILES_WORKING_SET\"");
     }
 
     return action.openFilesWorkingSet.getAbsoluteUris();
-  }), actions.ofType(_FileTreeDispatcher().ActionTypes.SET_VCS_STATUSES).map(action => {
-    if (!(action.type === _FileTreeDispatcher().ActionTypes.SET_VCS_STATUSES)) {
-      throw new Error("Invariant violation: \"action.type === ActionTypes.SET_VCS_STATUSES\"");
+  }), actions.ofType(Actions().SET_VCS_STATUSES).map(action => {
+    if (!(action.type === Actions().SET_VCS_STATUSES)) {
+      throw new Error("Invariant violation: \"action.type === Actions.SET_VCS_STATUSES\"");
     }
 
     return [...action.vcsStatuses.keys()];
@@ -1348,6 +1379,35 @@ function updateGeneratedStatusEpic(actions, store) {
 
     const generatedFileTypes = await Promise.all(Array.from(generatedPromises.values()));
     return Actions().updateGeneratedStatuses(new Map(generatedFileTypes));
+  });
+}
+
+function uploadDroppedFilesEpic(actions, store) {
+  return actions.ofType(Actions().UPLOAD_DROPPED_FILES).mergeMap(action => {
+    if (!(action.type === 'UPLOAD_DROPPED_FILES')) {
+      throw new Error("Invariant violation: \"action.type === 'UPLOAD_DROPPED_FILES'\"");
+    }
+
+    const {
+      destination
+    } = action;
+    const {
+      remoteTransferService
+    } = store.getState();
+
+    if (remoteTransferService == null || !destination.isContainer) {
+      return _RxMin.Observable.empty();
+    } // > Electron has added a path attribute to the File interface which exposes
+    // > the file's real path on filesystem.
+    // -- https://electronjs.org/docs/api/file-object
+    // $FlowFixMe
+
+
+    const files = Array.from(action.files).map(file => file.path);
+    (0, _nuclideAnalytics().track)('file-tree-upload-dropped-files', {
+      count: files.length
+    });
+    return _RxMin.Observable.concat(_RxMin.Observable.of(Actions().clearDragHover(), Actions().clearSelection()), _RxMin.Observable.fromPromise(remoteTransferService.uploadFiles(files, destination.uri)).mapTo(Actions().expandNode(destination.rootUri, destination.uri)));
   });
 } //
 // Helper functions
@@ -1431,8 +1491,7 @@ function openAddDialog(entryType, path, onConfirm, additionalOptions = {}) {
 }
 
 function openAddFileDialogImpl(rootNode, localPath, filePath, onDidConfirm) {
-  const hgRepository = _FileTreeHgHelpers().default.getHgRepositoryForNode(rootNode);
-
+  const hgRepository = FileTreeHgHelpers().getHgRepositoryForNode(rootNode);
   const additionalOptions = {};
 
   if (hgRepository != null) {
@@ -1446,7 +1505,7 @@ function openAddFileDialogImpl(rootNode, localPath, filePath, onDidConfirm) {
     } // TODO: check if pathToCreate is in rootKey and if not, find the rootKey it belongs to.
 
 
-    const directory = _FileTreeHelpers().default.getDirectoryByKey(filePath);
+    const directory = FileTreeHelpers().getDirectoryByKey(filePath);
 
     if (directory == null) {
       return;
@@ -1483,20 +1542,19 @@ function openAddFileDialogImpl(rootNode, localPath, filePath, onDidConfirm) {
   }, additionalOptions);
 }
 
-async function renameNode(node, nodePath, newBasename) {
+async function renameNode(node, nodePath, destPath) {
   /*
    * Use `resolve` to strip trailing slashes because renaming a file to a name with a
    * trailing slash is an error.
    */
-  let newPath = _nuclideUri().default.resolve( // Trim leading and trailing whitespace to prevent bad filenames.
-  _nuclideUri().default.join(_nuclideUri().default.dirname(nodePath), newBasename.trim())); // Create a remote nuclide uri when the node being moved is remote.
+  let newPath = _nuclideUri().default.resolve(destPath.trim()); // Create a remote nuclide uri when the node being moved is remote.
 
 
   if (_nuclideUri().default.isRemote(node.uri)) {
     newPath = _nuclideUri().default.createRemoteUri(_nuclideUri().default.getHostname(node.uri), newPath);
   }
 
-  await _FileTreeHgHelpers().default.renameNode(node, newPath);
+  await FileTreeHgHelpers().renameNode(node, newPath);
 }
 
 async function duplicate(file, newBasename, addToVCS, onDidConfirm) {
@@ -1531,7 +1589,7 @@ async function copy(copyPaths, addToVCS, onDidConfirm) {
   onDidConfirm(successfulPaths);
 
   if (successfulPaths.length !== 0) {
-    const hgRepository = getHgRepositoryForPath(successfulPaths[0]);
+    const hgRepository = FileTreeHgHelpers().getHgRepositoryForPath(successfulPaths[0]);
 
     if (hgRepository != null && addToVCS) {
       try {
@@ -1547,16 +1605,6 @@ async function copy(copyPaths, addToVCS, onDidConfirm) {
   }
 }
 
-function getHgRepositoryForPath(filePath) {
-  const repository = (0, _nuclideVcsBase().repositoryForPath)(filePath);
-
-  if (repository != null && repository.getType() === 'hg') {
-    return repository;
-  }
-
-  return null;
-}
-
 async function paste(newPath, addToVCS, onDidConfirm = () => {}) {
   const copyPaths = [];
   const cb = atom.clipboard.readWithMetadata();
@@ -1568,10 +1616,8 @@ async function paste(newPath, addToVCS, onDidConfirm = () => {}) {
   }
 
   const filenames = cb.text.split(',');
-
-  const newFile = _FileTreeHelpers().default.getFileByKey(newPath);
-
-  const newDir = _FileTreeHelpers().default.getDirectoryByKey(newPath);
+  const newFile = FileTreeHelpers().getFileByKey(newPath);
+  const newDir = FileTreeHelpers().getDirectoryByKey(newPath);
 
   if (newFile == null && newDir == null) {
     // newPath doesn't resolve to a file or path
@@ -1623,7 +1669,7 @@ function getDirectoryFromMetadata(cbMeta) {
     return null;
   }
 
-  return _FileTreeHelpers().default.getDirectoryByKey(cbMeta.directory);
+  return FileTreeHelpers().getDirectoryByKey(cbMeta.directory);
 } // provide appropriate UI feedback depending on whether user
 // has single or multiple files in the clipboard
 
@@ -1639,7 +1685,7 @@ function getPasteDialogProps(path) {
     };
   } else {
     return {
-      initialValue: _FileTreeHelpers().default.dirPathToKey(path.getPath()),
+      initialValue: FileTreeHelpers().dirPathToKey(path.getPath()),
       message: React.createElement("span", null, "Paste files from clipboard into the following folder")
     };
   }

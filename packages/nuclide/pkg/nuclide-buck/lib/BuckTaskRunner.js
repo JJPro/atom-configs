@@ -7,6 +7,16 @@ exports.isDebugTask = isDebugTask;
 exports.getBuckSubcommandForTaskType = getBuckSubcommandForTaskType;
 exports.BuckTaskRunner = exports.CONSOLE_VIEW_URI = exports.TASKS = void 0;
 
+function _epicHelpers() {
+  const data = require("../../../modules/nuclide-commons/epicHelpers");
+
+  _epicHelpers = function () {
+    return data;
+  };
+
+  return data;
+}
+
 function _DeploymentTarget() {
   const data = require("./DeploymentTarget");
 
@@ -89,20 +99,20 @@ function _reduxObservable() {
   return data;
 }
 
-function _bindObservableAsProps() {
-  const data = require("../../../modules/nuclide-commons-ui/bindObservableAsProps");
+function _observableFromReduxStore() {
+  const data = _interopRequireDefault(require("../../../modules/nuclide-commons/observableFromReduxStore"));
 
-  _bindObservableAsProps = function () {
+  _observableFromReduxStore = function () {
     return data;
   };
 
   return data;
 }
 
-function _log4js() {
-  const data = require("log4js");
+function _bindObservableAsProps() {
+  const data = require("../../../modules/nuclide-commons-ui/bindObservableAsProps");
 
-  _log4js = function () {
+  _bindObservableAsProps = function () {
     return data;
   };
 
@@ -282,8 +292,7 @@ class BuckTaskRunner {
         setDeploymentTarget: deploymentTarget => store.dispatch(Actions().setDeploymentTarget(deploymentTarget)),
         setTaskSettings: settings => store.dispatch(Actions().setTaskSettings(settings))
       };
-      this._extraUi = (0, _bindObservableAsProps().bindObservableAsProps)( // $FlowFixMe: type symbol-observable
-      _RxMin.Observable.from(store).map(appState => Object.assign({
+      this._extraUi = (0, _bindObservableAsProps().bindObservableAsProps)((0, _observableFromReduxStore().default)(store).map(appState => Object.assign({
         appState
       }, boundActions)).filter(props => props.appState.buckRoot != null), _BuckToolbar().default);
     }
@@ -329,9 +338,7 @@ class BuckTaskRunner {
   }
 
   setProjectRoot(projectRoot, callback) {
-    // $FlowFixMe: type symbol-observable
-    const storeReady = _RxMin.Observable.from(this._getStore()).distinctUntilChanged().filter(state => !state.isLoadingBuckProject && state.projectRoot === projectRoot).share();
-
+    const storeReady = (0, _observableFromReduxStore().default)(this._getStore()).distinctUntilChanged().filter(state => !state.isLoadingBuckProject && state.projectRoot === projectRoot).share();
     const enabledObservable = storeReady.map(state => state.buckRoot != null).distinctUntilChanged();
     const tasksObservable = storeReady.map(state => {
       const {
@@ -397,14 +404,7 @@ class BuckTaskRunner {
         lastSessionDeviceGroupName: this._serializedState.selectedDeviceGroupName,
         lastSessionDeviceName: this._serializedState.selectedDeviceName
       };
-      const epics = Object.keys(Epics()).map(k => Epics()[k]).filter(epic => typeof epic === 'function');
-
-      const rootEpic = (actions, store) => (0, _reduxObservable().combineEpics)(...epics)(actions, store) // Log errors and continue.
-      .catch((err, stream) => {
-        (0, _log4js().getLogger)('nuclide-buck').error(err);
-        return stream;
-      });
-
+      const rootEpic = (0, _epicHelpers().combineEpicsFromImports)(Epics(), 'nuclide-buck');
       this._store = (0, _reduxMin().createStore)(_Reducers().default, initialState, (0, _reduxMin().applyMiddleware)((0, _reduxObservable().createEpicMiddleware)(rootEpic)));
     }
 
@@ -413,12 +413,14 @@ class BuckTaskRunner {
 
   getCompilationDatabaseParamsForCurrentContext() {
     const {
-      selectedDeploymentTarget
+      selectedDeploymentTarget,
+      taskSettings
     } = this._getStore().getState();
 
+    const args = taskSettings.compileDbArguments || [];
     const empty = {
       flavorsForTarget: [],
-      args: [],
+      args,
       useDefaultPlatform: true
     };
 

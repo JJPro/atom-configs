@@ -127,6 +127,15 @@ function getNodeConfig() {
     required: false,
     visible: false
   };
+  const consoleEnum = {
+    name: 'console',
+    type: 'enum',
+    enums: ['internalConsole', 'integratedTerminal'],
+    description: 'Integrated Terminal means that it will run in a terminal that can interact with standard input and output.',
+    defaultValue: 'internalConsole',
+    required: true,
+    visible: true
+  };
   const port = {
     name: 'port',
     type: 'number',
@@ -138,8 +147,7 @@ function getNodeConfig() {
     launch: {
       launch: true,
       vsAdapterType: _nuclideDebuggerCommon().VsAdapterTypes.NODE,
-      threads: false,
-      properties: [program, cwd, stopOnEntry, args, runtimeExecutable, env, outFiles, protocol],
+      properties: [program, cwd, stopOnEntry, args, runtimeExecutable, env, outFiles, protocol, consoleEnum],
       scriptPropertyName: 'program',
       cwdPropertyName: 'cwd',
       scriptExtension: '.js',
@@ -160,7 +168,6 @@ function getNodeConfig() {
     attach: {
       launch: false,
       vsAdapterType: _nuclideDebuggerCommon().VsAdapterTypes.NODE,
-      threads: false,
       properties: [port],
       scriptExtension: '.js',
       header: React.createElement("p", null, "Attach to a running node.js process"),

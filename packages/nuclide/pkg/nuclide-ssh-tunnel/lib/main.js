@@ -20,6 +20,16 @@ function _destroyItemWhere() {
   return data;
 }
 
+function _epicHelpers() {
+  const data = require("../../../modules/nuclide-commons/epicHelpers");
+
+  _epicHelpers = function () {
+    return data;
+  };
+
+  return data;
+}
+
 function _UniversalDisposable() {
   const data = _interopRequireDefault(require("../../../modules/nuclide-commons/UniversalDisposable"));
 
@@ -126,8 +136,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  */
 class Activation {
   constructor(rawState) {
-    const epics = Object.keys(Epics()).map(k => Epics()[k]).filter(epic => typeof epic === 'function');
-    this._store = (0, _reduxMin().createStore)((0, _reduxMin().combineReducers)(Reducers()), (0, _reduxMin().applyMiddleware)((0, _reduxObservable().createEpicMiddleware)((0, _reduxObservable().combineEpics)(...epics))));
+    this._store = (0, _reduxMin().createStore)((0, _reduxMin().combineReducers)(Reducers()), (0, _reduxMin().applyMiddleware)((0, _reduxObservable().createEpicMiddleware)((0, _epicHelpers().combineEpicsFromImports)(Epics(), 'nuclide-ssh-tunnel'))));
     this._disposables = new (_UniversalDisposable().default)(this._closeAllTunnels.bind(this), this._registerCommandAndOpener());
   }
 
@@ -169,11 +178,19 @@ class Activation {
     }));
   }
 
-  consumeOutputService(api) {
-    this._disposables.add(api.registerOutputProvider({
+  consumeConsole(consoleService) {
+    let consoleApi = consoleService({
       id: 'Nuclide tunnels',
-      messages: this._store.getState().consoleOutput
-    }));
+      name: 'Nuclide tunnels'
+    });
+    const disposable = new (_UniversalDisposable().default)(() => {
+      consoleApi != null && consoleApi.dispose();
+      consoleApi = null;
+    }, this._store.getState().consoleOutput.subscribe(message => consoleApi != null && consoleApi.append(message)));
+
+    this._disposables.add(disposable);
+
+    return disposable;
   }
 
 }

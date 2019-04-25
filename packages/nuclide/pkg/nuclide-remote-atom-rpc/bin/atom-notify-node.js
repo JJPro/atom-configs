@@ -63,6 +63,8 @@ async function main(argv) {
     /* rejectIfZeroConnections */
     true);
   } catch (error) {
+    await (0, _errors().trackError)('notify', argv, error);
+
     if (error instanceof _errors().FailedConnectionError) {
       // Note this does not throw: reportConnectionErrorAndExit()
       // does not return. However, we use throw to convince Flow
@@ -101,6 +103,7 @@ async function main(argv) {
     dismissable: argv.sticky
   };
   await commands.addNotification(notification);
+  await (0, _errors().trackSuccess)('notify', argv);
   return _errors().EXIT_CODE_SUCCESS;
 }
 

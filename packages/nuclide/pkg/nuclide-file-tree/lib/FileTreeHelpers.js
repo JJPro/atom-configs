@@ -3,7 +3,25 @@
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-exports.default = void 0;
+exports.dirPathToKey = dirPathToKey;
+exports.isDirOrArchiveKey = isDirOrArchiveKey;
+exports.keyToName = keyToName;
+exports.keyToPath = keyToPath;
+exports.getParentKey = getParentKey;
+exports.fetchChildren = fetchChildren;
+exports.getDirectoryByKey = getDirectoryByKey;
+exports.getFileByKey = getFileByKey;
+exports.getEntryByKey = getEntryByKey;
+exports.getDisplayTitle = getDisplayTitle;
+exports.isValidDirectory = isValidDirectory;
+exports.isContextClick = isContextClick;
+exports.buildHashKey = buildHashKey;
+exports.observeUncommittedChangesKindConfigKey = observeUncommittedChangesKindConfigKey;
+exports.updatePathInOpenedEditors = updatePathInOpenedEditors;
+exports.getSelectionMode = getSelectionMode;
+exports.replaceNode = replaceNode;
+exports.updateNodeAtRoot = updateNodeAtRoot;
+exports.updateNodeAtAllRoots = updateNodeAtAllRoots;
 
 function _Constants() {
   const data = require("./Constants");
@@ -329,27 +347,3 @@ function updateNodeAtAllRoots(roots, nodeKey, transform) {
     return replaceNode(node, transform(node));
   });
 }
-
-var _default = {
-  dirPathToKey,
-  isDirOrArchiveKey,
-  keyToName,
-  keyToPath,
-  getParentKey,
-  fetchChildren,
-  getDirectoryByKey,
-  getEntryByKey,
-  getFileByKey,
-  getDisplayTitle,
-  isValidDirectory,
-  isLocalEntry,
-  isContextClick,
-  buildHashKey,
-  observeUncommittedChangesKindConfigKey,
-  updatePathInOpenedEditors,
-  getSelectionMode,
-  replaceNode,
-  updateNodeAtRoot,
-  updateNodeAtAllRoots
-};
-exports.default = _default;

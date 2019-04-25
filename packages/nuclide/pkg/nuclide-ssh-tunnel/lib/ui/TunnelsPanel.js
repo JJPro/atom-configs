@@ -15,16 +15,6 @@ function _bindObservableAsProps() {
   return data;
 }
 
-function _nuclideUri() {
-  const data = _interopRequireDefault(require("../../../../modules/nuclide-commons/nuclideUri"));
-
-  _nuclideUri = function () {
-    return data;
-  };
-
-  return data;
-}
-
 function _CreateObservables() {
   const data = require("../CreateObservables");
 
@@ -67,11 +57,21 @@ function _renderReactRoot() {
   return data;
 }
 
+function _observableFromReduxStore() {
+  const data = _interopRequireDefault(require("../../../../modules/nuclide-commons/observableFromReduxStore"));
+
+  _observableFromReduxStore = function () {
+    return data;
+  };
+
+  return data;
+}
+
 var React = _interopRequireWildcard(require("react"));
 
-function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) { var desc = Object.defineProperty && Object.getOwnPropertyDescriptor ? Object.getOwnPropertyDescriptor(obj, key) : {}; if (desc.get || desc.set) { Object.defineProperty(newObj, key, desc); } else { newObj[key] = obj[key]; } } } } newObj.default = obj; return newObj; } }
-
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) { var desc = Object.defineProperty && Object.getOwnPropertyDescriptor ? Object.getOwnPropertyDescriptor(obj, key) : {}; if (desc.get || desc.set) { Object.defineProperty(newObj, key, desc); } else { newObj[key] = obj[key]; } } } } newObj.default = obj; return newObj; } }
 
 /**
  * Copyright (c) 2015-present, Facebook, Inc.
@@ -112,28 +112,13 @@ class TunnelsPanel {
   }
 
   getElement() {
-    // $FlowFixMe: We need to teach Flow about Symbol.observable
-    const states = _RxMin.Observable.from(this._store);
-
+    const states = (0, _observableFromReduxStore().default)(this._store);
     const props = states.map(state => {
-      let workingDirectoryHost;
-
-      if (state.currentWorkingDirectory == null) {
-        workingDirectoryHost = null;
-      } else {
-        const path = state.currentWorkingDirectory;
-
-        if (_nuclideUri().default.isLocal(path)) {
-          workingDirectoryHost = 'localhost';
-        } else {
-          workingDirectoryHost = _nuclideUri().default.getHostname(path);
-        }
-      }
-
       return {
         tunnels: state.tunnels.toList(),
         openTunnel: tunnel => {
-          let noMoreNotifications = false;
+          let noMoreNotifications = false; // eslint-disable-next-line nuclide-internal/unused-subscription
+
           (0, _CreateObservables().createObservableForTunnel)(tunnel, this._store).do(() => noMoreNotifications = true).subscribe({
             error: e => {
               if (!noMoreNotifications) {
@@ -146,7 +131,7 @@ class TunnelsPanel {
           });
         },
         closeTunnel: tunnel => this._store.dispatch(Actions().closeTunnel(tunnel, new Error('Closed from panel'))),
-        workingDirectoryHost
+        workingDirectory: state.currentWorkingDirectory
       };
     });
     const BoundPanelContents = (0, _bindObservableAsProps().bindObservableAsProps)(props, _TunnelsPanelContents().TunnelsPanelContents);

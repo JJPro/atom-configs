@@ -1,15 +1,5 @@
 "use strict";
 
-function _server() {
-  const data = _interopRequireDefault(require("../../../modules/big-dig-vscode-server/server"));
-
-  _server = function () {
-    return data;
-  };
-
-  return data;
-}
-
 function _nuclideLogging() {
   const data = require("../../nuclide-logging");
 
@@ -72,6 +62,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  *  strict-local
  * @format
  */
+// @fb-only: import vscodeLaunch from 'fb-big-dig-vscode-server/server';
 (0, _nuclideLogging().initializeLogging)();
 
 function launch(server) {
@@ -100,8 +91,9 @@ function launch(server) {
     }
 
   }); // Enable VSCode to connect to Nuclide servers by default.
+  // @fb-only: return vscodeLaunch(server);
 
-  return (0, _server().default)(server);
+  return Promise.resolve(); // @oss-only
 } // eslint-disable-next-line nuclide-internal/no-commonjs
 
 

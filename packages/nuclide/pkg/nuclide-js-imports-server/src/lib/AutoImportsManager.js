@@ -136,8 +136,7 @@ const MAX_CRASHES = 3;
 
 class AutoImportsManager {
   constructor(globals, initializationSettings = {
-    componentModulePathFilter: null,
-    uiComponentToolsIndexingGkEnabled: null
+    componentModulePathFilter: null
   }) {
     this.initializationSettings = initializationSettings;
     this.definitionManager = new (_definitionManager().default)();

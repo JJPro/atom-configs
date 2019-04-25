@@ -1,5 +1,15 @@
 "use strict";
 
+function _passesGK() {
+  const data = _interopRequireDefault(require("../../../modules/nuclide-commons/passesGK"));
+
+  _passesGK = function () {
+    return data;
+  };
+
+  return data;
+}
+
 function _constants() {
   const data = require("./constants");
 
@@ -187,22 +197,32 @@ function resetServices() {
 }
 
 class Activation {
-  constructor(rawState) {
-    this._pythonLanguageService = new (_nuclideLanguageService().AtomLanguageService)(connectionToPythonService, getAtomConfig());
-
-    this._pythonLanguageService.activate();
-
+  constructor() {
+    this._subscriptions = new (_UniversalDisposable().default)();
     this._linkTreeLinter = new (_LinkTreeLinter().default)();
-    this._subscriptions = new (_UniversalDisposable().default)(this._pythonLanguageService, atom.commands.add('atom-workspace', 'nuclide-python:reset-language-services', resetServices));
+
+    this._initLanguageServer();
   }
 
-  provideLint() {
-    return {
+  async _initLanguageServer() {
+    if (await (0, _passesGK().default)('nuclide_fb_pyls_vscode_ext')) {
+      return;
+    }
+
+    const pythonLanguageService = new (_nuclideLanguageService().AtomLanguageService)(connectionToPythonService, getAtomConfig());
+    pythonLanguageService.activate();
+
+    this._subscriptions.add(this._provideLint(), pythonLanguageService, atom.commands.add('atom-workspace', 'nuclide-python:reset-language-services', resetServices));
+  }
+
+  _provideLint() {
+    const lintProvier = {
       grammarScopes: Array.from(_constants().GRAMMAR_SET),
       scope: 'file',
       name: 'flake8',
       lint: editor => _LintHelpers().default.lint(editor)
     };
+    return atom.packages.serviceHub.provide('linter', '1.0.0', lintProvier);
   }
 
   consumeLinterIndie(register) {

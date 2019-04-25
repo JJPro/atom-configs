@@ -1,0 +1,64 @@
+{
+  "_from": "https://www.atom.io/api/packages/output-panel/versions/0.3.4/tarball",
+  "_id": "output-panel@0.3.4",
+  "_inBundle": false,
+  "_integrity": "sha512-EaSTMWnVy+oBJHTldtJy43hWgNYwlEyjn85SmjqNDDoqksQZS1AEPFNVnRCozf2+VI9IoY3n4CRy89hR/1BLOw==",
+  "_location": "/output-panel",
+  "_phantomChildren": {},
+  "_requested": {
+    "type": "remote",
+    "raw": "https://www.atom.io/api/packages/output-panel/versions/0.3.4/tarball",
+    "rawSpec": "https://www.atom.io/api/packages/output-panel/versions/0.3.4/tarball",
+    "saveSpec": "https://www.atom.io/api/packages/output-panel/versions/0.3.4/tarball",
+    "fetchSpec": "https://www.atom.io/api/packages/output-panel/versions/0.3.4/tarball"
+  },
+  "_requiredBy": [
+    "#USER",
+    "/"
+  ],
+  "_resolved": "https://www.atom.io/api/packages/output-panel/versions/0.3.4/tarball",
+  "_shasum": "3034fcb260f4efdd27631e947aa12a0f01eeaeb4",
+  "_spec": "https://www.atom.io/api/packages/output-panel/versions/0.3.4/tarball",
+  "_where": "/private/var/folders/v6/2396r3r94fq_jdzvfqzs9zx40000gn/T/apm-install-dir-118829-29085-1ksno80.81kih",
+  "bugs": {
+    "url": "https://github.com/31i73/atom-output-panel/issues"
+  },
+  "bundleDependencies": false,
+  "dependencies": {
+    "cross-spawn": "^4.0.0",
+    "node-pty": "^0.6.0",
+    "xterm": "^2.5.0"
+  },
+  "deprecated": false,
+  "description": "A bottom output panel for running processes and displaying output",
+  "engines": {
+    "atom": ">=1.17.0 <2.0.0"
+  },
+  "homepage": "https://github.com/31i73/atom-output-panel#readme",
+  "keywords": [
+    "output",
+    "bottom",
+    "panel",
+    "process",
+    "terminal"
+  ],
+  "license": "MIT",
+  "main": "./lib/main",
+  "name": "output-panel",
+  "optionalDependencies": {
+    "node-pty": "^0.6.0"
+  },
+  "providedServices": {
+    "output-panel": {
+      "description": "Allows control of an output panel",
+      "versions": {
+        "1.0.0": "provideOutputPanel"
+      }
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/31i73/atom-output-panel.git"
+  },
+  "version": "0.3.4"
+}

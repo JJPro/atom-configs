@@ -5,20 +5,20 @@ Object.defineProperty(exports, "__esModule", {
 });
 exports.default = createStore;
 
-function _reduxMin() {
-  const data = require("redux/dist/redux.min.js");
+function _epicHelpers() {
+  const data = require("../../../../modules/nuclide-commons/epicHelpers");
 
-  _reduxMin = function () {
+  _epicHelpers = function () {
     return data;
   };
 
   return data;
 }
 
-function _log4js() {
-  const data = require("log4js");
+function _reduxMin() {
+  const data = require("redux/dist/redux.min.js");
 
-  _log4js = function () {
+  _reduxMin = function () {
     return data;
   };
 
@@ -70,12 +70,7 @@ function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj;
  * @format
  */
 function createStore() {
-  const epics = Object.keys(Epics()).map(k => Epics()[k]).filter(epic => typeof epic === 'function');
-
-  const rootEpic = (actions, store) => (0, _reduxObservable().combineEpics)(...epics)(actions, store).catch((err, stream) => {
-    (0, _log4js().getLogger)('nuclide-file-tree').error(err);
-    return stream;
-  });
+  const rootEpic = (actions, store) => (0, _epicHelpers().combineEpicsFromImports)(Epics(), 'nuclide-file-tree')(actions, store);
 
   return (0, _reduxMin().createStore)(_Reducers().default, null, (0, _reduxMin().applyMiddleware)((0, _reduxObservable().createEpicMiddleware)(rootEpic)));
 }

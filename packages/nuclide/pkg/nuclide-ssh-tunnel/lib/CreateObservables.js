@@ -65,39 +65,38 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 function createObservableForTunnels(tunnels, store) {
   const observables = tunnels.map(t => createObservableForTunnel(t, store));
 
-  const highOrder = _RxMin.Observable.from(observables); // $FlowFixMe combineAll
+  const highOrder = _RxMin.Observable.from(observables);
 
-
-  return highOrder.combineAll().mapTo('ready');
+  return highOrder.combineAll();
 }
 
 function createObservableForTunnel(tunnel, store) {
-  const resolved = (0, _Normalization().resolveTunnel)(tunnel);
+  return _RxMin.Observable.defer(() => (0, _Normalization().resolveTunnel)(tunnel)).concatMap(resolved => {
+    if ((0, _shallowequal().default)(resolved.from, resolved.to)) {
+      // Identical source/destination tunnels are always immediately ready, never close.
+      // Makes it easy for users to call this function without branching on whether they need to.
+      return _RxMin.Observable.of(resolved).concat(_RxMin.Observable.never());
+    }
 
-  if ((0, _shallowequal().default)(resolved.from, resolved.to)) {
-    // Identical source/destination tunnels are always immediately ready, never close.
-    // Makes it easy for users to call this function without branching on whether they need to.
-    return _RxMin.Observable.of('ready').concat(_RxMin.Observable.never());
-  }
-
-  return _RxMin.Observable.create(observer => {
-    const subscription = {
-      description: tunnel.description,
-      onTunnelClose: error => {
+    return _RxMin.Observable.create(observer => {
+      const subscription = {
+        description: tunnel.description,
+        onTunnelClose: error => {
+          if (error == null) {
+            observer.complete();
+          } else {
+            observer.error(error);
+          }
+        }
+      };
+      store.dispatch(Actions().subscribeToTunnel(subscription, resolved, error => {
         if (error == null) {
-          observer.complete();
+          observer.next(resolved);
         } else {
           observer.error(error);
         }
-      }
-    };
-    store.dispatch(Actions().subscribeToTunnel(subscription, resolved, error => {
-      if (error == null) {
-        observer.next('ready');
-      } else {
-        observer.error(error);
-      }
-    }));
-    return new (_UniversalDisposable().default)(() => store.dispatch(Actions().unsubscribeFromTunnel(subscription, resolved)));
+      }));
+      return new (_UniversalDisposable().default)(() => store.dispatch(Actions().unsubscribeFromTunnel(subscription, resolved)));
+    });
   });
 }

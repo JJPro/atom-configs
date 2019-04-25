@@ -55,10 +55,10 @@ function _FileTreeConstants() {
   return data;
 }
 
-function _FileTreeHelpers() {
-  const data = _interopRequireDefault(require("../../nuclide-file-tree/lib/FileTreeHelpers"));
+function FileTreeHelpers() {
+  const data = _interopRequireWildcard(require("../../nuclide-file-tree/lib/FileTreeHelpers"));
 
-  _FileTreeHelpers = function () {
+  FileTreeHelpers = function () {
     return data;
   };
 
@@ -160,7 +160,7 @@ const SHOW_IN_MENU_PRIORITY = 7000;
  *       callback() {
  *         Array.from(contextMenu.getSelectedNodes())
  *           .filter(node => !node.isContainer)
- *           .forEach((node: FileTreeNode) => {
+ *           .forEach((node: FileTreeContextMenuNode) => {
  *             const uri = node.uri;
  *             // DO WHAT YOU LIKE WITH THE URI!
  *           });
@@ -195,7 +195,7 @@ class FileTreeContextMenu {
     this._disposables.add(this._contextMenu);
 
     const shouldDisplaySetToCurrentWorkingRootOption = () => {
-      const node = Selectors().getSingleSelectedNode(this._store.getState());
+      const node = this.getSingleSelectedNode();
       return node != null && node.isContainer && Selectors().hasCwd(this._store.getState()) && !node.isCwd;
     };
 
@@ -260,7 +260,7 @@ class FileTreeContextMenu {
       label: 'Source Control',
       parent: this._contextMenu,
       shouldDisplay: e => {
-        return !this._sourceControlMenu.isEmpty() && !Selectors().getSelectedNodes(this._store.getState()).isEmpty();
+        return !this._sourceControlMenu.isEmpty() && !this.getSelectedNodes().isEmpty();
       }
     });
 
@@ -284,7 +284,7 @@ class FileTreeContextMenu {
       label: 'Rename',
       command: 'tree-view:rename-selection',
       shouldDisplay: () => {
-        const node = Selectors().getSingleSelectedNode(this._store.getState()); // For now, rename does not apply to root nodes.
+        const node = this.getSingleSelectedNode(); // For now, rename does not apply to root nodes.
 
         return node != null && !node.isRoot;
       }
@@ -305,9 +305,8 @@ class FileTreeContextMenu {
           return false;
         }
 
-        const dirKey = _FileTreeHelpers().default.getParentKey((0, _nullthrows().default)(nodes.first()).uri);
-
-        return nodes.every(n => _FileTreeHelpers().default.getParentKey(n.uri) === dirKey);
+        const dirKey = FileTreeHelpers().getParentKey((0, _nullthrows().default)(nodes.first()).uri);
+        return nodes.every(n => FileTreeHelpers().getParentKey(n.uri) === dirKey);
       }
     }, {
       label: 'Paste',
@@ -486,11 +485,15 @@ class FileTreeContextMenu {
   }
 
   getSelectedNodes() {
-    return Selectors().getTargetNodes(this._store.getState());
+    const state = this._store.getState();
+
+    return Selectors().getTargetNodes(state).map(node => (0, _nullthrows().default)(Selectors().getFileTreeContextMenuNode(state)(node)));
   }
 
   getSingleSelectedNode() {
-    return Selectors().getSingleTargetNode(this._store.getState());
+    const state = this._store.getState();
+
+    return Selectors().getFileTreeContextMenuNode(state)(Selectors().getSingleTargetNode(state));
   }
 
   dispose() {

@@ -173,7 +173,6 @@ function getReactNativeConfig() {
     launch: {
       launch: true,
       vsAdapterType: _nuclideDebuggerCommon().VsAdapterTypes.REACT_NATIVE,
-      threads: false,
       properties: launchProperties,
       scriptPropertyName: null,
       cwdPropertyName: 'workspace',
@@ -188,7 +187,6 @@ function getReactNativeConfig() {
     attach: {
       launch: false,
       vsAdapterType: _nuclideDebuggerCommon().VsAdapterTypes.REACT_NATIVE,
-      threads: false,
       properties: attachProperties,
       cwdPropertyName: 'workspace',
       scriptExtension: '.js',

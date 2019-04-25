@@ -12,8 +12,19 @@ exports.trackSampled = trackSampled;
 exports.startTracking = startTracking;
 exports.trackTiming = trackTiming;
 exports.trackTimingSampled = trackTimingSampled;
+exports.decorateTrackTimingSampled = decorateTrackTimingSampled;
 exports.setRawAnalyticsService = setRawAnalyticsService;
 exports.default = exports.TimingTracker = void 0;
+
+function _nullthrows() {
+  const data = _interopRequireDefault(require("nullthrows"));
+
+  _nullthrows = function () {
+    return data;
+  };
+
+  return data;
+}
 
 function _UniversalDisposable() {
   const data = _interopRequireDefault(require("./UniversalDisposable"));
@@ -61,7 +72,8 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 let rawAnalyticsService = {
   track() {},
 
-  isTrackSupported: () => false
+  isTrackSupported: () => false,
+  setApplicationSessionObservable: ob => {}
 };
 
 /**
@@ -137,13 +149,19 @@ class TimingTracker {
     this._trackTimingEvent(error);
   }
 
+  onCancel() {
+    this._trackTimingEvent(
+    /* error */
+    null, true);
+  }
+
   onSuccess() {
     this._trackTimingEvent(
     /* error */
     null);
   }
 
-  _trackTimingEvent(exception) {
+  _trackTimingEvent(exception, canceled = false) {
     if (canMeasure) {
       /* eslint-disable no-undef */
       // call measure to add this information to the devtools timeline in the
@@ -160,7 +178,8 @@ class TimingTracker {
       duration: Math.round((0, _performanceNow().default)() - this._startTime).toString(),
       eventName: this._eventName,
       error: exception ? '1' : '0',
-      exception: exception ? exception.toString() : ''
+      exception: exception ? exception.toString() : '',
+      canceled
     }));
   }
 
@@ -224,7 +243,20 @@ function trackTimingSampled(eventName, operation, sampleRate, values = {}) {
   return operation();
 }
 
-function setRawAnalyticsService(analyticsService) {
+function decorateTrackTimingSampled(fn, sampleRate, values = {}) {
+  const name = (0, _nullthrows().default)(fn.displayName || fn.name);
+
+  function decoratedTrackTimingSampled(...args) {
+    // $FlowFixMe
+    return trackTimingSampled(name, fn.bind(this, ...args), sampleRate, values);
+  }
+
+  decoratedTrackTimingSampled.displayName = `trackTimingSampled(${name})`;
+  return decoratedTrackTimingSampled;
+}
+
+function setRawAnalyticsService(analyticsService, ob) {
+  analyticsService.setApplicationSessionObservable(ob);
   rawAnalyticsService = analyticsService;
 }
 

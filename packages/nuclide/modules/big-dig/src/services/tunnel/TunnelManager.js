@@ -57,6 +57,16 @@ function _log4js() {
   return data;
 }
 
+function _TunnelConfigUtils() {
+  const data = require("./TunnelConfigUtils");
+
+  _TunnelConfigUtils = function () {
+    return data;
+  };
+
+  return data;
+}
+
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 /**
@@ -102,44 +112,47 @@ class TunnelManager extends _events.default {
     }).subscribe(msg => this._handleMessage(msg));
   }
 
-  async createTunnel(localPort, remotePort, useIPv4) {
+  async createTunnel(tunnelConfig) {
     if (!!this._isClosed) {
       throw new Error('trying to create a tunnel with a closed tunnel manager');
     }
 
-    this._logger.info(`creating tunnel ${localPort}->${remotePort}`);
+    this._logger.info(`creating tunnel ${(0, _TunnelConfigUtils().getDescriptor)(tunnelConfig, false)}`);
 
-    return this._createTunnel(localPort, remotePort, useIPv4 != null ? useIPv4 : false, false);
+    return this._createTunnel(tunnelConfig, false);
   }
 
-  async createReverseTunnel(localPort, remotePort, useIPv4) {
+  async createReverseTunnel(tunnelConfig) {
     if (!!this._isClosed) {
       throw new Error('trying to create a reverse tunnel with a closed tunnel manager');
     }
 
-    this._logger.info(`creating reverse tunnel ${localPort}<-${remotePort}`);
+    this._logger.info(`creating reverse tunnel ${(0, _TunnelConfigUtils().getDescriptor)(tunnelConfig, true)}`);
 
     return new Promise(async (resolve, reject) => {
-      const tunnel = await this._createTunnel(localPort, remotePort, useIPv4 != null ? useIPv4 : false, true); // now wait until we get the 'proxyCreated' or 'proxyError' message
+      const tunnel = await this._createTunnel(tunnelConfig, true); // now wait until we get the 'proxyCreated' or 'proxyError' message
 
       this.once(`proxyMessage:${tunnel.getId()}`, msg => {
         if (msg.event === 'proxyCreated') {
           resolve(tunnel);
+        } else if (msg.event === 'proxyError') {
+          tunnel.close();
+          reject(msg.error);
         } else {
-          reject(JSON.parse(msg.error));
+          reject(new Error('unexpected response to createProxy'));
         }
       });
     });
   }
 
-  async _createTunnel(localPort, remotePort, useIPv4, isReverse) {
-    let tunnel = this._checkForExistingTunnel(localPort, remotePort, useIPv4, isReverse);
+  async _createTunnel(tunnelConfig, isReverse) {
+    let tunnel = this._checkForExistingTunnel(tunnelConfig, isReverse);
 
     if (tunnel == null) {
       if (isReverse) {
-        tunnel = await _Tunnel().Tunnel.createReverseTunnel(localPort, remotePort, useIPv4, this._transport);
+        tunnel = await _Tunnel().Tunnel.createReverseTunnel(tunnelConfig, this._transport);
       } else {
-        tunnel = await _Tunnel().Tunnel.createTunnel(localPort, remotePort, useIPv4, this._transport);
+        tunnel = await _Tunnel().Tunnel.createTunnel(tunnelConfig, this._transport);
       }
 
       this._idToTunnel.set(tunnel.getId(), tunnel);
@@ -178,21 +191,21 @@ class TunnelManager extends _events.default {
     return Array.from(this._idToTunnel.values());
   }
 
-  _checkForExistingTunnel(localPort, remotePort, useIPv4, isReverse) {
+  _checkForExistingTunnel(tunnelConfig, isReverse) {
     for (const tunnel of this._idToTunnel.values()) {
-      if (tunnel instanceof _Tunnel().Tunnel) {
-        if (localPort === tunnel.getLocalPort() && remotePort === tunnel.getRemotePort() && useIPv4 === tunnel.getUseIPv4()) {
-          if (isReverse && tunnel instanceof _Tunnel().ReverseTunnel || !isReverse && !(tunnel instanceof _Tunnel().ReverseTunnel)) {
-            return tunnel;
-          } else {
-            throw new Error("there is already a tunnel with those ports, but it's in the wrong direction");
-          }
-        } else if (localPort === tunnel.getLocalPort()) {
-          throw new Error(`there already exists a tunnel connecting to localPort ${localPort}`);
-        } else if (remotePort === tunnel.getRemotePort()) {
-          throw new Error(`there already exists a tunnel connecting to remotePort ${remotePort}`);
+      if (!(tunnel instanceof _Tunnel().Tunnel)) {
+        continue;
+      }
+
+      if (tunnel.isTunnelConfigEqual(tunnelConfig)) {
+        if (isReverse === tunnel.isReverse()) {
+          return tunnel;
+        } else {
+          throw new Error("there is already a tunnel with those ports, but it's in the wrong direction");
         }
       }
+
+      tunnel.assertNoOverlap(tunnelConfig);
     }
   }
 
@@ -203,7 +216,7 @@ class TunnelManager extends _events.default {
 
     if (msg.event === 'proxyCreated') {
       if (tunnelComponent == null) {
-        const socketManager = new (_SocketManager().SocketManager)(msg.tunnelId, msg.remotePort, msg.useIPv4, this._transport);
+        const socketManager = new (_SocketManager().SocketManager)(msg.tunnelId, msg.proxyConfig, this._transport);
 
         this._idToTunnel.set(msg.tunnelId, socketManager);
       }
@@ -226,21 +239,26 @@ class TunnelManager extends _events.default {
         this._idToTunnel.delete(tunnelComponent.getId());
       }
     } else if (msg.event === 'createProxy') {
-      const proxy = await _Proxy().Proxy.createProxy(msg.tunnelId, msg.localPort, msg.remotePort, msg.useIPv4, this._transport);
+      try {
+        const proxy = await _Proxy().Proxy.createProxy(msg.tunnelId, msg.tunnelConfig, this._transport);
 
-      this._idToTunnel.set(msg.tunnelId, proxy);
+        this._idToTunnel.set(msg.tunnelId, proxy);
+      } catch (e) {// We already responded with proxyError, nothing else to do
+      }
     } else if (msg.event === 'closeProxy') {
-      if (!tunnelComponent) {
-        throw new Error("Invariant violation: \"tunnelComponent\"");
+      if (tunnelComponent == null) {
+        // TODO T33725076: Shouldn't have message to closed tunnels
+        this._logger.error('Receiving a closeProxy message to a closed tunnel', msg);
+      } else {
+        tunnelComponent.close();
       }
-
-      tunnelComponent.close();
     } else {
-      if (!tunnelComponent) {
-        throw new Error("Invariant violation: \"tunnelComponent\"");
+      if (tunnelComponent == null) {
+        // TODO T33725076: Shouldn't have message to closed tunnels
+        this._logger.error('Receiving a message to a closed tunnel', msg);
+      } else {
+        tunnelComponent.receive(msg);
       }
-
-      tunnelComponent.receive(msg);
     }
   }
 

@@ -52,6 +52,16 @@ function _range() {
   return data;
 }
 
+function _collection() {
+  const data = require("../../../../nuclide-commons/collection");
+
+  _collection = function () {
+    return data;
+  };
+
+  return data;
+}
+
 function _nuclideUri() {
   const data = _interopRequireDefault(require("../../../../nuclide-commons/nuclideUri"));
 
@@ -239,15 +249,17 @@ class Activation {
       return `${definition.name} (${filePath})`;
     }
 
-    if (definitions.length === 1) {
+    const distictDefinitions = (0, _collection().distinct)(definitions, def => `path:${def.path}\nrow:${def.position.row}`);
+
+    if (distictDefinitions.length === 1) {
       return {
         range: queryRange,
-        callback: createCallback(definitions[0])
+        callback: createCallback(distictDefinitions[0])
       };
     } else {
       return {
         range: queryRange,
-        callback: definitions.map(definition => {
+        callback: distictDefinitions.map(definition => {
           return {
             title: createTitle(definition),
             callback: createCallback(definition)

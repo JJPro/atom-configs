@@ -3,6 +3,7 @@
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
+exports.updateSearchSet = updateSearchSet;
 exports.OutlineView = void 0;
 
 function _Atomicon() {
@@ -77,6 +78,16 @@ function _nullthrows() {
   return data;
 }
 
+function _fuzzaldrinPlus() {
+  const data = _interopRequireDefault(require("fuzzaldrin-plus"));
+
+  _fuzzaldrinPlus = function () {
+    return data;
+  };
+
+  return data;
+}
+
 function _matchIndexesToRanges() {
   const data = _interopRequireDefault(require("../../../../nuclide-commons/matchIndexesToRanges"));
 
@@ -137,6 +148,16 @@ function _SelectableTree() {
   return data;
 }
 
+function _FilterReminder() {
+  const data = _interopRequireDefault(require("../../../../nuclide-commons-ui/FilterReminder"));
+
+  _FilterReminder = function () {
+    return data;
+  };
+
+  return data;
+}
+
 function _OutlineViewSearch() {
   const data = require("./OutlineViewSearch");
 
@@ -162,6 +183,7 @@ function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj;
  * 
  * @format
  */
+const SCORE_THRESHOLD = 0.1;
 const TOKEN_KIND_TO_CLASS_NAME_MAP = {
   keyword: 'syntax--keyword',
   'class-name': 'syntax--entity syntax--name syntax--class',
@@ -277,6 +299,7 @@ class OutlineViewComponent extends React.PureComponent {
 
       default:
         outline;
+        return null;
     }
   }
 
@@ -291,7 +314,7 @@ class OutlineViewCore extends React.PureComponent {
 
     return _temp2 = super(...args), this.state = {
       collapsedPaths: [],
-      searchResults: new Map()
+      query: ''
     }, this._setScrollerNode = node => {
       this._scrollerNode = node;
     }, this._setSearchRef = element => {
@@ -371,8 +394,16 @@ class OutlineViewCore extends React.PureComponent {
     }, this._getNodes = (0, _memoizeUntilChanged().default)(outlineTrees => outlineTrees.map(this._outlineTreeToNode), // searchResults is passed here as a cache key for the memoization.
     // Since tree nodes contain `hidden` within them, we need to rerender
     // whenever searchResults changes to reflect that.
-    outlineTrees => [outlineTrees, this.state.searchResults]), this._outlineTreeToNode = outlineTree => {
-      const searchResult = this.state.searchResults.get(outlineTree);
+    outlineTrees => [outlineTrees, this._getSearchResults()]), this._prevSearchResults = new Map(), this._prevQuery = '', this._getSearchResults = (0, _memoizeUntilChanged().default)(() => {
+      const searchResults = new Map();
+      const outlineTrees = this.props.outline.kind === 'outline' ? this.props.outline.outlineTrees : [];
+      outlineTrees.forEach(root => updateSearchSet(this.state.query, root, searchResults, this._prevSearchResults, this._prevQuery));
+      this._prevQuery = this.state.query;
+      this._prevSearchResults = searchResults;
+      return searchResults;
+    }, // Update whenever the outline or query changes.
+    () => [this.props.outline, this.state.query]), this._outlineTreeToNode = outlineTree => {
+      const searchResult = this._getSearchResults().get(outlineTree);
 
       if (outlineTree.children.length === 0) {
         return {
@@ -388,6 +419,14 @@ class OutlineViewCore extends React.PureComponent {
         children: outlineTree.children.map(this._outlineTreeToNode),
         hidden: searchResult && !searchResult.visible
       };
+    }, this._handleResetFilter = () => {
+      this.setState({
+        query: ''
+      });
+    }, this._handleQueryChange = query => {
+      this.setState({
+        query
+      });
     }, _temp2;
   }
 
@@ -405,6 +444,18 @@ class OutlineViewCore extends React.PureComponent {
     }
   }
 
+  _getFilteredCount() {
+    const {
+      outline
+    } = this.props;
+
+    if (outline.kind !== 'outline') {
+      return 0;
+    }
+
+    return countHiddenNodes(this._getNodes(outline.outlineTrees));
+  }
+
   render() {
     const {
       outline
@@ -419,12 +470,13 @@ class OutlineViewCore extends React.PureComponent {
     }, React.createElement(_OutlineViewSearch().OutlineViewSearchComponent, {
       outlineTrees: outline.outlineTrees,
       editor: outline.editor,
-      updateSearchResults: searchResults => {
-        this.setState({
-          searchResults
-        });
-      },
+      query: this.state.query,
+      onQueryChange: this._handleQueryChange,
+      searchResults: this._getSearchResults(),
       ref: this._setSearchRef
+    }), React.createElement(_FilterReminder().default, {
+      filteredRecordCount: this._getFilteredCount(),
+      onReset: this._handleResetFilter
     }), React.createElement("div", {
       className: "outline-view-trees-scroller",
       ref: this._setScrollerNode
@@ -514,4 +566,54 @@ function selectNodeFromPath(outline, path) {
   }
 
   return node;
+}
+
+function countHiddenNodes(roots) {
+  let hiddenNodes = 0;
+
+  for (const root of roots) {
+    if (root.hidden) {
+      hiddenNodes++;
+    }
+
+    if (root.children != null) {
+      hiddenNodes += countHiddenNodes(root.children);
+    }
+  }
+
+  return hiddenNodes;
+}
+/* Exported for testing */
+
+
+function updateSearchSet(query, root, map, prevMap, prevQuery) {
+  root.children.forEach(child => updateSearchSet(query, child, map, prevMap, prevQuery)); // Optimization using results from previous query.
+  // flowlint-next-line sketchy-null-string:off
+
+  if (prevQuery) {
+    const previousResult = prevMap.get(root);
+
+    if (previousResult && (query === prevQuery || query.startsWith(prevQuery) && !previousResult.visible)) {
+      map.set(root, previousResult);
+      return;
+    }
+  }
+
+  const text = root.tokenizedText ? root.tokenizedText.map(e => e.value).join('') : root.plainText || '';
+  const matches = query === '' || _fuzzaldrinPlus().default.score(text, query) / _fuzzaldrinPlus().default.score(query, query) > SCORE_THRESHOLD;
+  const visible = matches || Boolean(root.children.find(child => {
+    const childResult = map.get(child);
+    return !childResult || childResult.visible;
+  }));
+  let matchingCharacters;
+
+  if (matches) {
+    matchingCharacters = _fuzzaldrinPlus().default.match(text, query);
+  }
+
+  map.set(root, {
+    matches,
+    visible,
+    matchingCharacters
+  });
 }

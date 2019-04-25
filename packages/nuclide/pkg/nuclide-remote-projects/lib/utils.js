@@ -37,7 +37,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  *  strict-local
  * @format
  */
-function* getOpenFileEditorForRemoteProject(connectionConfig) {
+function* getOpenFileEditorForRemoteProject() {
   for (const pane of atom.workspace.getPanes()) {
     const paneItems = pane.getItems();
 
@@ -49,23 +49,15 @@ function* getOpenFileEditorForRemoteProject(connectionConfig) {
       const uri = paneItem.getPath();
 
       const {
-        hostname: fileHostname,
         path: filePath
       } = _nuclideUri().default.parse(uri);
 
-      if (fileHostname === connectionConfig.host) {
-        // flowlint-next-line sketchy-null-string:off
-        if (!fileHostname) {
-          throw new Error("Invariant violation: \"fileHostname\"");
-        }
-
-        yield {
-          pane,
-          editor: paneItem,
-          uri,
-          filePath
-        };
-      }
+      yield {
+        pane,
+        editor: paneItem,
+        uri,
+        filePath
+      };
     }
   }
 }

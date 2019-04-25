@@ -7,14 +7,11 @@
  * of patent rights can be found in the PATENTS file in the same directory.
  *
  * @noflow
+ * @format
  */
 'use strict';
 
-/* eslint
-  comma-dangle: [1, always-multiline],
-  prefer-object-spread/prefer-object-spread: 0,
-  nuclide-internal/no-commonjs: 0,
-  */
+/* eslint nuclide-internal/no-commonjs: 0 */
 
 module.exports = {
   rules: {
@@ -37,6 +34,7 @@ module.exports = {
     'react-virtualized-import': require('./react-virtualized-import'),
     'require-universal-disposable': require('./require-universal-disposable'),
     'use-nuclide-ui-components': require('./use-nuclide-ui-components'),
+    'unused-subscription': require('./unused-subscription'),
   },
   rulesConfig: {
     'api-spelling': 0,
@@ -57,5 +55,6 @@ module.exports = {
     'react-virtualized-import': 0,
     'require-universal-disposable': 0,
     'use-nuclide-ui-components': 0,
+    'unused-subscription': 0,
   },
 };

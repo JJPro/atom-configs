@@ -40,7 +40,7 @@ function _UniversalDisposable() {
 }
 
 function _once() {
-  const data = _interopRequireDefault(require("../commons-node/once"));
+  const data = _interopRequireDefault(require("../../modules/nuclide-commons/once"));
 
   _once = function () {
     return data;

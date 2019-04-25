@@ -17,18 +17,6 @@ function _DebuggerInterface() {
 
 var _RxMin = require("rxjs/bundles/Rx.min.js");
 
-function _nullthrows() {
-  const data = _interopRequireDefault(require("nullthrows"));
-
-  _nullthrows = function () {
-    return data;
-  };
-
-  return data;
-}
-
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
 /**
  * Copyright (c) 2017-present, Facebook, Inc.
  * All rights reserved.
@@ -61,7 +49,7 @@ class EnterCode {
 
     this._pendingText = '';
 
-    this._console.stopInput();
+    this._console.stopInput(true);
 
     this._console.setPrompt('... ');
 
@@ -97,7 +85,10 @@ class EnterCode {
   }
 
   _closeNestedInput() {
-    (0, _nullthrows().default)(this._subscription).unsubscribe();
+    if (this._subscription != null) {
+      this._subscription.unsubscribe();
+    }
+
     this._subscription = null;
 
     this._console.setPrompt();
@@ -111,7 +102,7 @@ class EnterCode {
         body: {
           result
         }
-      } = await this._debugger.evaluateExpression(this._pendingText);
+      } = await this._debugger.evaluateExpression(this._pendingText, true);
 
       this._console.outputLine(result);
     } catch (err) {

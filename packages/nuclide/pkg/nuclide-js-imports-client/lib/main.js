@@ -10,6 +10,16 @@ function _createPackage() {
   return data;
 }
 
+function _nuclideUri() {
+  const data = _interopRequireDefault(require("../../../modules/nuclide-commons/nuclideUri"));
+
+  _nuclideUri = function () {
+    return data;
+  };
+
+  return data;
+}
+
 function _UniversalDisposable() {
   const data = _interopRequireDefault(require("../../../modules/nuclide-commons/UniversalDisposable"));
 
@@ -30,18 +40,8 @@ function _textEdit() {
   return data;
 }
 
-function _passesGK() {
-  const data = _interopRequireDefault(require("../../commons-node/passesGK"));
-
-  _passesGK = function () {
-    return data;
-  };
-
-  return data;
-}
-
 function _nuclideAnalytics() {
-  const data = require("../../nuclide-analytics");
+  const data = require("../../../modules/nuclide-analytics");
 
   _nuclideAnalytics = function () {
     return data;
@@ -50,10 +50,10 @@ function _nuclideAnalytics() {
   return data;
 }
 
-function _constantsForClient() {
-  const data = require("../../nuclide-js-imports-server/src/utils/constantsForClient");
+function convert() {
+  const data = _interopRequireWildcard(require("../../nuclide-vscode-language-service-rpc/lib/convert"));
 
-  _constantsForClient = function () {
+  convert = function () {
     return data;
   };
 
@@ -110,16 +110,6 @@ function _featureConfig() {
   return data;
 }
 
-function _nuclideUiComponentToolsCommon() {
-  const data = require("../../nuclide-ui-component-tools-common");
-
-  _nuclideUiComponentToolsCommon = function () {
-    return data;
-  };
-
-  return data;
-}
-
 function _QuickOpenProvider() {
   const data = _interopRequireDefault(require("./QuickOpenProvider"));
 
@@ -150,6 +140,8 @@ function _DashProjectSymbolProvider() {
   return data;
 }
 
+function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) { var desc = Object.defineProperty && Object.getOwnPropertyDescriptor ? Object.getOwnPropertyDescriptor(obj, key) : {}; if (desc.get || desc.set) { Object.defineProperty(newObj, key, desc); } else { newObj[key] = obj[key]; } } } } newObj.default = obj; return newObj; } }
+
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 /**
@@ -173,7 +165,7 @@ async function connectToJSImportsService(connection) {
     logLevel: _featureConfig().default.get('nuclide-js-imports-client.logLevel'),
     projectFileNames: ['.flowconfig'],
     fileExtensions: ['.js', '.jsx'],
-    initializationOptions: await getAutoImportSettings(),
+    initializationOptions: getAutoImportSettings(),
     fork: true
   });
   return lspService || new (_nuclideLanguageServiceRpc().NullLanguageService)();
@@ -204,7 +196,7 @@ function createLanguageService() {
   };
   const atomConfig = {
     name: 'JSAutoImports',
-    grammars: ['source.js.jsx', 'source.js'],
+    grammars: ['source.js.jsx', 'source.js', 'source.flow'],
     diagnostics: diagnosticsConfig,
     autocomplete: autocompleteConfig,
     codeAction: codeActionConfig,
@@ -244,7 +236,7 @@ function onDidInsertSuggestion({
   });
 }
 
-async function getAutoImportSettings() {
+function getAutoImportSettings() {
   // Currently, we will get the settings when the package is initialized. This
   // means that the user would need to restart Nuclide for a change in their
   // settings to take effect. In the future, we would most likely want to observe
@@ -253,8 +245,7 @@ async function getAutoImportSettings() {
   return {
     componentModulePathFilter: _featureConfig().default.get('nuclide-js-imports-client.componentModulePathFilter'),
     diagnosticsWhitelist: _featureConfig().default.get('nuclide-js-imports-client.diagnosticsWhitelist'),
-    requiresWhitelist: _featureConfig().default.get('nuclide-js-imports-client.requiresWhitelist'),
-    uiComponentToolsIndexingGkEnabled: await (0, _passesGK().default)(_nuclideUiComponentToolsCommon().UI_COMPONENT_TOOLS_INDEXING_GK)
+    requiresWhitelist: _featureConfig().default.get('nuclide-js-imports-client.requiresWhitelist')
   };
 }
 
@@ -294,41 +285,39 @@ class Activation {
         return;
       }
 
+      const editorPath = editor.getPath();
       const fileVersion = await (0, _nuclideOpenFiles().getFileVersionOfEditor)(editor);
 
-      if (fileVersion == null) {
+      if (fileVersion == null || editorPath == null) {
         return;
       }
 
       const buffer = editor.getBuffer();
-      const range = buffer.getRange();
-      const languageService = await this._languageService.getLanguageServiceForUri(editor.getPath());
+      const languageService = await this._languageService.getLanguageServiceForUri(editorPath);
 
       if (languageService == null) {
         return;
       }
 
-      const triggerOptions = {
-        // secret code
-        tabSize: _constantsForClient().TAB_SIZE_SIGNIFYING_FIX_ALL_IMPORTS_FORMATTING,
-        // just for typechecking to pass
-        insertSpaces: true
-      };
-      const result = await languageService.formatSource(fileVersion, range, triggerOptions);
-      const beforeEditsCheckpoint = buffer.createCheckpoint(); // First add all new imports naively
+      const beforeEditsCheckpoint = buffer.createCheckpoint();
+      const {
+        edits,
+        addedRequires,
+        missingExports
+      } = await languageService.sendLspRequest(editorPath, 'workspace/executeCommand', {
+        command: 'getAllImports',
+        arguments: [_nuclideUri().default.getPath(editorPath)]
+      });
 
-      if (result != null) {
-        if (!(0, _textEdit().applyTextEditsToBuffer)(buffer, result)) {
-          // TODO(T24077432): Show the error to the user
-          throw new Error('Could not apply edits to text buffer.');
-        }
+      if (!(0, _textEdit().applyTextEditsToBuffer)(buffer, convert().lspTextEdits_atomTextEdits(edits || []))) {
+        // TODO(T24077432): Show the error to the user
+        throw new Error('Could not apply edits to text buffer.');
       } // Then use nuclide-format-js to properly format the imports
 
 
-      const successfulEdits = (result || []).filter(edit => edit.newText !== '');
       organizeRequires({
-        addedRequires: successfulEdits.length > 0,
-        missingExports: successfulEdits.length !== (result || []).length
+        addedRequires,
+        missingExports
       });
       buffer.groupChangesSinceCheckpoint(beforeEditsCheckpoint);
     }));

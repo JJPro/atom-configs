@@ -5,22 +5,22 @@ Object.defineProperty(exports, "__esModule", {
 });
 exports.Selectors = void 0;
 
-function _nuclideUri() {
-  const data = _interopRequireDefault(require("../../../../modules/nuclide-commons/nuclideUri"));
-
-  _nuclideUri = function () {
-    return data;
-  };
-
-  return data;
-}
-
 var React = _interopRequireWildcard(require("react"));
 
 function Immutable() {
   const data = _interopRequireWildcard(require("immutable"));
 
   Immutable = function () {
+    return data;
+  };
+
+  return data;
+}
+
+function _nuclideUri() {
+  const data = _interopRequireDefault(require("../../../../modules/nuclide-commons/nuclideUri"));
+
+  _nuclideUri = function () {
     return data;
   };
 
@@ -57,9 +57,9 @@ function _ButtonGroup() {
   return data;
 }
 
-function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) { var desc = Object.defineProperty && Object.getOwnPropertyDescriptor ? Object.getOwnPropertyDescriptor(obj, key) : {}; if (desc.get || desc.set) { Object.defineProperty(newObj, key, desc); } else { newObj[key] = obj[key]; } } } } newObj.default = obj; return newObj; } }
-
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) { var desc = Object.defineProperty && Object.getOwnPropertyDescriptor ? Object.getOwnPropertyDescriptor(obj, key) : {}; if (desc.get || desc.set) { Object.defineProperty(newObj, key, desc); } else { newObj[key] = obj[key]; } } } } newObj.default = obj; return newObj; } }
 
 /**
  * Copyright (c) 2015-present, Facebook, Inc.
@@ -71,8 +71,6 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  * 
  * @format
  */
-const FB_HOST_SUFFIX = '.facebook.com';
-
 class Selectors extends React.Component {
   constructor(...args) {
     var _temp;
@@ -94,13 +92,7 @@ class Selectors extends React.Component {
   }
 
   _getLabelForHost(host) {
-    if (host === '') {
-      return 'local';
-    }
-
-    const hostName = _nuclideUri().default.getHostname(host);
-
-    return hostName.endsWith(FB_HOST_SUFFIX) ? hostName.substring(0, hostName.length - FB_HOST_SUFFIX.length) : hostName;
+    return host === '' ? 'localhost' : _nuclideUri().default.nuclideUriToDisplayHostname(host);
   }
 
   _getHostOptions() {

@@ -10,6 +10,16 @@ function _createPackage() {
   return data;
 }
 
+function _textEditor() {
+  const data = require("../../../../nuclide-commons-atom/text-editor");
+
+  _textEditor = function () {
+    return data;
+  };
+
+  return data;
+}
+
 function _UniversalDisposable() {
   const data = _interopRequireDefault(require("../../../../nuclide-commons/UniversalDisposable"));
 
@@ -29,6 +39,8 @@ function _event() {
 
   return data;
 }
+
+var _RxMin = require("rxjs/bundles/Rx.min.js");
 
 function _MessageRangeTracker() {
   const data = _interopRequireDefault(require("./MessageRangeTracker"));
@@ -107,14 +119,15 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  */
 class Activation {
   constructor() {
+    this._gatekeeperServices = new _RxMin.BehaviorSubject();
     this._allLinterAdapters = new Set();
-    this._messageRangeTracker = new (_MessageRangeTracker().default)();
-    this._store = (0, _createStore().default)(this._messageRangeTracker);
-    this._disposables = new (_UniversalDisposable().default)(this._messageRangeTracker, () => {
+    const messageRangeTracker = new (_MessageRangeTracker().default)();
+    this._store = (0, _createStore().default)(messageRangeTracker);
+    this._disposables = new (_UniversalDisposable().default)(messageRangeTracker, () => {
       this._allLinterAdapters.forEach(adapter => adapter.dispose());
 
       this._allLinterAdapters.clear();
-    });
+    }, this._observeActivePaneItemAndMarkMessagesStale());
   }
 
   dispose() {
@@ -126,7 +139,7 @@ class Activation {
 
 
   provideDiagnosticUpdates() {
-    return new (_DiagnosticUpdater().default)(this._store, this._messageRangeTracker);
+    return new (_DiagnosticUpdater().default)(this._store);
   }
 
   provideIndie() {
@@ -148,6 +161,22 @@ class Activation {
     this._busySignalService = service;
     return new (_UniversalDisposable().default)(() => {
       this._busySignalService = null;
+    });
+  }
+
+  _observeActivePaneItemAndMarkMessagesStale() {
+    return this._gatekeeperServices.switchMap(gatekeeperService => {
+      if (gatekeeperService == null) {
+        return _RxMin.Observable.of(null);
+      }
+
+      return gatekeeperService.passesGK('nuclide_diagnostics_stale');
+    }).filter(Boolean).switchMap(() => {
+      return (0, _event().observableFromSubscribeFunction)(atom.workspace.observeActivePaneItem.bind(atom.workspace)).map(editor => (0, _textEditor().isValidTextEditor)(editor) ? editor : null).filter(Boolean).switchMap(editor => {
+        return (0, _event().observableFromSubscribeFunction)(editor.getBuffer().onDidChange.bind(editor.getBuffer())).map(() => editor.getPath());
+      });
+    }).subscribe(filePath => {
+      this._store.dispatch(Actions().markMessagesStale(filePath));
     });
   }
 
@@ -213,6 +242,16 @@ class Activation {
 
     return new (_UniversalDisposable().default)(() => {
       this._store.dispatch(Actions().removeProvider(provider));
+    });
+  }
+
+  consumeGatekeeperService(service) {
+    this._gatekeeperServices.next(service);
+
+    return new (_UniversalDisposable().default)(() => {
+      if (this._gatekeeperServices.getValue() === service) {
+        this._gatekeeperServices.next(null);
+      }
     });
   }
 

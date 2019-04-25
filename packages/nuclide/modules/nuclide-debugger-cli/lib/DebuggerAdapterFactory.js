@@ -132,8 +132,8 @@ class DebuggerAdapterFactory {
     return optionsParser.commandLineHelp(adapter.type, action, adapter.excludedOptions, adapter.customArguments);
   }
 
-  _parseAttachArguments(args) {
-    const adapter = this._adapterFromCommandLine(args);
+  async _parseAttachArguments(args) {
+    const adapter = await this._adapterFromCommandLine(args);
 
     if (adapter == null) {
       throw new Error('Debugger type not specified; please use "--type" to specify it.');
@@ -149,7 +149,7 @@ class DebuggerAdapterFactory {
     };
   }
 
-  _parseLaunchArguments(args) {
+  async _parseLaunchArguments(args) {
     const launchArgs = args._;
     const program = launchArgs[0];
 
@@ -157,7 +157,7 @@ class DebuggerAdapterFactory {
       throw new Error('--attach not specified and no program to debug specified on the command line.');
     }
 
-    const adapter = this._adapterFromCommandLine(args) || this._adapterFromProgramName(program);
+    const adapter = this._adapterFromCommandLine(args) || (await this._adapterFromProgramName(program));
 
     if (adapter == null) {
       throw new Error('Could not determine the type of program being debugged. Please specifiy with the "--type" option.');
@@ -191,12 +191,13 @@ class DebuggerAdapterFactory {
     return null;
   }
 
-  _adapterFromProgramName(program) {
+  async _adapterFromProgramName(program) {
     const programUri = _nuclideUri().default.parsePath(program);
 
     const ext = programUri.ext;
+    const canDebug = await Promise.all(this._debugAdapters.map(a => a.canDebugFile(program)));
 
-    const adapters = this._debugAdapters.filter(a => a.extensions.has(ext));
+    const adapters = this._debugAdapters.filter((a, idx) => a.extensions.has(ext) || canDebug[idx]);
 
     if (adapters.length > 1) {
       throw new Error(`Multiple debuggers can debug programs with extension ${ext}. Please explicitly specify one with '--type'`);

@@ -45,11 +45,14 @@ class UnstyledButton extends _react.default.Component {
   render() {
     const _this$props = this.props,
           {
+      block,
       className
     } = _this$props,
-          props = _objectWithoutProperties(_this$props, ["className"]);
+          props = _objectWithoutProperties(_this$props, ["block", "className"]);
 
-    const classes = (0, _classnames().default)('nuclide-ui-unstyled-button', className); // eslint-disable-next-line nuclide-internal/use-nuclide-ui-components
+    const classes = (0, _classnames().default)('btn', 'nuclide-ui-unstyled-button', className, {
+      'btn-block': block
+    }); // eslint-disable-next-line nuclide-internal/use-nuclide-ui-components
 
     return _react.default.createElement("button", Object.assign({
       className: classes,

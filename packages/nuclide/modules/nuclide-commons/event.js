@@ -45,10 +45,5 @@ function attachEvent(emitter, eventName, callback) {
 }
 
 function observableFromSubscribeFunction(fn) {
-  return _RxMin.Observable.create(observer => {
-    const disposable = fn(observer.next.bind(observer));
-    return () => {
-      disposable.dispose();
-    };
-  });
+  return _RxMin.Observable.create(observer => new (_UniversalDisposable().default)(fn(observer.next.bind(observer))));
 }

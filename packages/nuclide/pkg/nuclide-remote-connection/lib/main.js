@@ -32,6 +32,7 @@ exports.getSocketServiceByNuclideUri = getSocketServiceByNuclideUri;
 exports.getSourceControlServiceByNuclideUri = getSourceControlServiceByNuclideUri;
 exports.getVSCodeLanguageServiceByConnection = getVSCodeLanguageServiceByConnection;
 exports.getVSCodeLanguageServiceByNuclideUri = getVSCodeLanguageServiceByNuclideUri;
+exports.getRsyncServiceByNuclideUri = getRsyncServiceByNuclideUri;
 Object.defineProperty(exports, "RemoteConnection", {
   enumerable: true,
   get: function () {
@@ -355,4 +356,8 @@ function getVSCodeLanguageServiceByConnection(connection) {
 
 function getVSCodeLanguageServiceByNuclideUri(uri) {
   return (0, _nullthrows().default)((0, _serviceManager().getServiceByNuclideUri)('VSCodeLanguageService', uri));
+}
+
+function getRsyncServiceByNuclideUri(uri) {
+  return (0, _nullthrows().default)((0, _serviceManager().getServiceByNuclideUri)('RsyncService', uri));
 }

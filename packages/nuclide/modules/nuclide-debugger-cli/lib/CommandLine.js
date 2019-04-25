@@ -53,8 +53,9 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 const PROMPT = '\x1b[32;1mfbdbg>\x1b[0m ';
 
 class CommandLine {
-  constructor(dispatcher, plain) {
+  constructor(dispatcher, plain, logger) {
     this._inputStopped = false;
+    this._keepPromptWhenStopped = false;
     this._shouldPrompt = false;
     this._lastLine = '';
     this._overridePrompt = null;
@@ -71,7 +72,7 @@ class CommandLine {
       });
     }
 
-    this._cli = new (_LineEditor().default)(lineEditorArgs);
+    this._cli = new (_LineEditor().default)(lineEditorArgs, logger);
     this.setPrompt();
     this._interrupts = new _RxMin.Subject();
 
@@ -105,6 +106,8 @@ class CommandLine {
 
     this._subscriptions.push(_RxMin.Observable.fromEvent(this._cli, 'key').takeUntil(_RxMin.Observable.fromEvent(this._cli, 'close')).subscribe(this._keys));
 
+    this._subscriptions.push(_RxMin.Observable.fromEvent(this._cli, 'close').subscribe(() => process.exit(1)));
+
     this._shouldPrompt = true;
   }
 
@@ -135,7 +138,7 @@ class CommandLine {
   }
 
   _updatePrompt() {
-    if (this._inputStopped) {
+    if (this._inputStopped && !this._keepPromptWhenStopped) {
       this._cli.setPrompt('');
     } else {
       this._cli.setPrompt(this._overridePrompt != null ? this._overridePrompt : PROMPT);
@@ -158,18 +161,17 @@ class CommandLine {
     this._cli.write(data);
   }
 
-  more(text) {
+  async more(text) {
     if (!(this._more == null)) {
       throw new Error("Invariant violation: \"this._more == null\"");
     }
 
-    const cursorControl = this._cli.borrowTTY();
-
-    if (cursorControl == null) {
+    if (!this._cli.isTTY()) {
       this.output(text);
       return;
     }
 
+    const cursorControl = await this._cli.borrowTTY();
     const more = new (_More().default)(text, this, cursorControl, () => {
       this._cli.returnTTY();
 
@@ -184,7 +186,8 @@ class CommandLine {
     this._cli.prompt();
   }
 
-  stopInput() {
+  stopInput(keepPromptWhenStopped) {
+    this._keepPromptWhenStopped = keepPromptWhenStopped === true;
     this._inputStopped = true;
     this._shouldPrompt = true;
 

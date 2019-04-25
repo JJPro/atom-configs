@@ -19,16 +19,6 @@ function _Normalization() {
   return data;
 }
 
-function _Whitelist() {
-  const data = require("../Whitelist");
-
-  _Whitelist = function () {
-    return data;
-  };
-
-  return data;
-}
-
 function Actions() {
   const data = _interopRequireWildcard(require("./Actions"));
 
@@ -72,7 +62,7 @@ function _nuclideRemoteConnection() {
 }
 
 function _passesGK() {
-  const data = _interopRequireDefault(require("../../../commons-node/passesGK"));
+  const data = _interopRequireDefault(require("../../../../modules/nuclide-commons/passesGK"));
 
   _passesGK = function () {
     return data;
@@ -201,13 +191,7 @@ function requestTunnelEpic(actions, store) {
       from,
       to
     } = tunnel;
-    const [useBigDigTunnel, isValidated] = await Promise.all([(0, _passesGK().default)('nuclide_big_dig_tunnel'), (0, _Whitelist().validateTunnel)(tunnel)]);
-
-    if (!isValidated) {
-      onOpen(new Error(`Trying to open a tunnel on a non-whitelisted port: ${to.port}\n\n` + 'Contact the Nuclide team if you would like this port to be available.'));
-      return null;
-    }
-
+    const useBigDigTunnel = await (0, _passesGK().default)('nuclide_big_dig_tunnel');
     const remoteTunnelHost = from.host === 'localhost' ? to : from;
     const localTunnelHost = from.host === 'localhost' ? from : to;
     const isReverse = from.host !== 'localhost';
@@ -276,6 +260,7 @@ function requestTunnelEpic(actions, store) {
             logger.error('error from tunnel: ', error);
             store.dispatch(Actions().closeTunnel(tunnel, error));
           });
+          newTunnel.on('close', () => store.dispatch(Actions().closeTunnel(tunnel, null)));
           store.dispatch(Actions().setTunnelState(tunnel, 'ready'));
           onOpen();
           const friendlyString = `${(0, _Tunnel().tunnelDescription)(tunnel)}`;

@@ -145,7 +145,7 @@ class OCamlDebugSession extends _vscodeDebugadapter().LoggingDebugSession {
 
   threadsRequest(response) {
     response.body = {
-      threads: [new (_vscodeDebugadapter().Thread)(THREAD_ID, 'Please, this is OCaml')]
+      threads: [new (_vscodeDebugadapter().Thread)(THREAD_ID, '')]
     };
     this.sendResponse(response);
   }

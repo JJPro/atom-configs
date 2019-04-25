@@ -80,7 +80,7 @@ function _process() {
 }
 
 function _nuclideAnalytics() {
-  const data = require("../../../nuclide-analytics");
+  const data = require("../../../../modules/nuclide-analytics");
 
   _nuclideAnalytics = function () {
     return data;
@@ -134,7 +134,8 @@ class AvdComponentProvider {
 
       if (!(this._emulator != null)) {
         throw new Error("Invariant violation: \"this._emulator != null\"");
-      }
+      } // eslint-disable-next-line nuclide-internal/unused-subscription
+
 
       (0, _process().runCommand)(this._emulator, ['@' + avd.name]).subscribe(stdout => {}, err => {
         atom.notifications.addError(`Failed to start up emulator ${avd.name}.`, {

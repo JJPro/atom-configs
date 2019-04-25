@@ -47,25 +47,31 @@ function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj;
  * @emails oncall+nuclide
  */
 describe('Epics', () => {
-  describe('registerOutputProviderEpic', () => {
+  describe('provideConsole (registerSourceEpic)', () => {
     it('observes the status', () => {
       const mockStore = {
+        subscribe: () => () => {},
         dispatch: () => {},
         getState: () => ({})
       };
-      let setStatus;
+      const id = 'test';
       const provider = {
-        id: 'test',
+        id,
+        name: id,
         messages: _RxMin.Observable.never(),
-        observeStatus: cb => {
-          setStatus = cb;
-        },
         start: () => {},
         stop: () => {}
       };
-      const actions = new (_reduxObservable().ActionsObservable)(_RxMin.Observable.of(Actions().registerOutputProvider(provider)));
+      const actions = new (_reduxObservable().ActionsObservable)(_RxMin.Observable.of(Actions().registerSource(provider)));
       let results = [];
       Epics().registerRecordProviderEpic(actions, mockStore).subscribe(results.push.bind(results));
+      const statusSubject = new _RxMin.Subject();
+
+      const setStatus = status => {
+        statusSubject.next(Actions().updateStatus(id, status));
+      };
+
+      statusSubject.subscribe(results.push.bind(results));
 
       if (!(setStatus != null)) {
         throw new Error("Invariant violation: \"setStatus != null\"");

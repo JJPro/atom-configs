@@ -30,14 +30,15 @@ const ERROR_MESSAGE_LIMIT = 1000; // TODO: This should be a custom marshaller re
 
 function decodeError(message, encodedError) {
   if (encodedError != null && typeof encodedError === 'object') {
-    const resultError = new Error();
     let messageStr = JSON.stringify(message);
 
     if (messageStr.length > ERROR_MESSAGE_LIMIT) {
       messageStr = messageStr.substr(0, ERROR_MESSAGE_LIMIT) + `<${messageStr.length - ERROR_MESSAGE_LIMIT} bytes>`;
     }
 
-    resultError.message = `Remote Error: ${encodedError.message} processing message ${messageStr}\n` + JSON.stringify(encodedError.stack); // $FlowIssue - some Errors (notably file operations) have a code.
+    const resultError = new Error(encodedError.message); // $FlowIssue - attach RPC message onto the created error
+
+    resultError.rpcMessage = messageStr; // $FlowIssue - some Errors (notably file operations) have a code.
 
     resultError.code = encodedError.code;
     resultError.stack = encodedError.stack;

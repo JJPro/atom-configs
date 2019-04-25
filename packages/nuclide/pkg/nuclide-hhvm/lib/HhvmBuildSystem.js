@@ -5,6 +5,16 @@ Object.defineProperty(exports, "__esModule", {
 });
 exports.default = void 0;
 
+function _nuclideDebuggerCommon() {
+  const data = require("../../../modules/nuclide-debugger-common");
+
+  _nuclideDebuggerCommon = function () {
+    return data;
+  };
+
+  return data;
+}
+
 var _RxMin = require("rxjs/bundles/Rx.min.js");
 
 function _UniversalDisposable() {
@@ -57,10 +67,20 @@ function _Icon() {
   return data;
 }
 
-function _HhvmDebug() {
-  const data = require("./HhvmDebug");
+function _debugger() {
+  const data = require("../../../modules/nuclide-commons-atom/debugger");
 
-  _HhvmDebug = function () {
+  _debugger = function () {
+    return data;
+  };
+
+  return data;
+}
+
+function _HhvmLaunchAttachProvider() {
+  const data = require("../../nuclide-debugger-vsp/lib/HhvmLaunchAttachProvider");
+
+  _HhvmLaunchAttachProvider = function () {
     return data;
   };
 
@@ -103,11 +123,29 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  * 
  * @format
  */
+// eslint-disable-next-line nuclide-internal/no-cross-atom-imports
+const WEB_SERVER_OPTION = {
+  label: 'Attach to WebServer',
+  value: 'webserver'
+};
+const SCRIPT_OPTION = {
+  label: 'Launch Script',
+  value: 'script'
+};
+const DEBUG_OPTIONS = [WEB_SERVER_OPTION, SCRIPT_OPTION];
+
 class HhvmBuildSystem {
   constructor() {
     this.id = 'hhvm';
     this.name = 'HHVM';
     this._projectStore = new (_ProjectStore().default)();
+
+    try {
+      // $FlowFB
+      const helpers = require("./fb-hhvm.js");
+
+      DEBUG_OPTIONS.push(...helpers.getAdditionalLaunchOptions());
+    } catch (e) {}
   }
 
   dispose() {
@@ -119,7 +157,8 @@ class HhvmBuildSystem {
       const projectStore = this._projectStore;
       const subscription = (0, _event().observableFromSubscribeFunction)(projectStore.onChange.bind(projectStore));
       this._extraUi = (0, _bindObservableAsProps().bindObservableAsProps)(subscription.startWith(null).mapTo({
-        projectStore
+        projectStore,
+        debugOptions: DEBUG_OPTIONS
       }), _HhvmToolbar().default);
     }
 
@@ -138,20 +177,87 @@ class HhvmBuildSystem {
   }
 
   runTask(taskName) {
-    return (0, _tasks().taskFromObservable)(_RxMin.Observable.fromPromise((0, _HhvmDebug().debug)(this._projectStore.getDebugMode(), this._projectStore.getProjectRoot(), this._projectStore.getDebugTarget(), this._projectStore.getUseTerminal(), this._projectStore.getScriptArguments())).ignoreElements());
+    return (0, _tasks().taskFromObservable)(_RxMin.Observable.fromPromise((async () => {
+      this._projectStore.updateLastUsed();
+
+      this._projectStore.saveSettings();
+
+      return this._debug(this._projectStore.getDebugMode(), this._projectStore.getProjectRoot(), this._projectStore.getDebugTarget(), this._projectStore.getUseTerminal(), this._projectStore.getScriptArguments());
+    })()).ignoreElements());
+  }
+
+  async _debug(debugMode, activeProjectRoot, target, useTerminal, scriptArguments) {
+    let processConfig = null;
+
+    if (!(activeProjectRoot != null)) {
+      throw new Error('Active project is null');
+    } // See if this is a custom debug mode type.
+
+
+    try {
+      // $FlowFB
+      const helper = require("./fb-hhvm");
+
+      processConfig = await helper.getCustomLaunchInfo(debugMode, activeProjectRoot, target, scriptArguments);
+    } catch (e) {}
+
+    if (processConfig == null) {
+      if (debugMode === 'script') {
+        processConfig = (0, _HhvmLaunchAttachProvider().getLaunchProcessConfig)(activeProjectRoot, target, scriptArguments, null
+        /* script wrapper */
+        , useTerminal, ''
+        /* cwdPath */
+        );
+      } else {
+        await (0, _HhvmLaunchAttachProvider().startAttachProcessConfig)(activeProjectRoot, null
+        /* attachPort */
+        , true
+        /* serverAttach */
+        );
+        return;
+      }
+    }
+
+    if (!(processConfig != null)) {
+      throw new Error("Invariant violation: \"processConfig != null\"");
+    }
+
+    const debuggerService = await (0, _debugger().getDebuggerService)();
+    await debuggerService.startVspDebugging(processConfig);
   }
 
   setProjectRoot(projectRoot, callback) {
     const enabledObservable = (0, _event().observableFromSubscribeFunction)(this._projectStore.onChange.bind(this._projectStore)).map(() => this._projectStore).filter(store => store.getProjectRoot() === projectRoot && // eslint-disable-next-line eqeqeq
     store.isHHVMProject() !== null).map(store => store.isHHVMProject() === true).distinctUntilChanged();
 
-    const tasksObservable = _RxMin.Observable.of([{
+    const getTask = disabledMsg => [{
       type: 'debug',
       label: 'Debug',
-      description: 'Debug an HHVM project',
+      description: disabledMsg != null ? disabledMsg : this._projectStore.getDebugMode() === 'webserver' ? 'Attach HHVM debugger to webserver' : 'Debug Hack/PHP Script',
       icon: 'nuclicon-debugger',
-      cancelable: false
-    }]);
+      cancelable: false,
+      disabled: disabledMsg != null
+    }];
+
+    const tasksObservable = _RxMin.Observable.concat(_RxMin.Observable.of(null), _RxMin.Observable.fromPromise((0, _debugger().getDebuggerService)())).switchMap(debugService => {
+      if (debugService == null) {
+        return _RxMin.Observable.of(getTask(null));
+      }
+
+      return _RxMin.Observable.concat(_RxMin.Observable.of(getTask(null)), _RxMin.Observable.merge((0, _event().observableFromSubscribeFunction)(debugService.onDidChangeDebuggerSessions.bind(debugService)), (0, _event().observableFromSubscribeFunction)(this._projectStore.onChange.bind(this._projectStore))).switchMap(() => {
+        let disabledMsg = null;
+
+        if (!this._projectStore.isCurrentSettingDebuggable()) {
+          disabledMsg = this._projectStore.getDebugMode() === 'webserver' ? 'Cannot debug this project: Your current working root is not a Hack root!' : 'Cannot debug this project: The current file is not a Hack/PHP file!';
+        }
+
+        if (this._projectStore.getDebugMode() === 'webserver' && debugService.getDebugSessions().some(c => c.adapterType === _nuclideDebuggerCommon().VsAdapterTypes.HHVM && c.targetUri === projectRoot)) {
+          disabledMsg = 'The HHVM debugger is already attached to this server';
+        }
+
+        return _RxMin.Observable.of(getTask(disabledMsg));
+      }));
+    });
 
     const subscription = _RxMin.Observable.combineLatest(enabledObservable, tasksObservable).subscribe(([enabled, tasks]) => callback(enabled, tasks));
 

@@ -10,10 +10,10 @@ function _ReliableSocket() {
   return data;
 }
 
-function _createRfsClientAdapter() {
-  const data = require("../createRfsClientAdapter");
+function _ThriftRfsClientAdapter() {
+  const data = require("../ThriftRfsClientAdapter");
 
-  _createRfsClientAdapter = function () {
+  _ThriftRfsClientAdapter = function () {
     return data;
   };
 
@@ -80,24 +80,24 @@ describe('createRfsClientAdapter', () => {
     jest.resetAllMocks();
   });
   it('get the same cached adapter for the same input', async () => {
-    const adapter1 = await (0, _createRfsClientAdapter().getOrCreateRfsClientAdapter)(bigDigClient);
-    const adapter2 = await (0, _createRfsClientAdapter().getOrCreateRfsClientAdapter)(bigDigClient);
+    const adapter1 = await (0, _ThriftRfsClientAdapter().getOrCreateRfsClientAdapter)(bigDigClient);
+    const adapter2 = await (0, _ThriftRfsClientAdapter().getOrCreateRfsClientAdapter)(bigDigClient);
     expect(adapter1).toBe(adapter2);
   });
   it('get the different adapters when input changes', async () => {
     const bigDigClient2 = new (_BigDigClient().BigDigClient)(new (_ReliableSocket().ReliableSocket)('serverUri', 'heartbeatChannel'));
-    const adapter1 = await (0, _createRfsClientAdapter().getOrCreateRfsClientAdapter)(bigDigClient);
-    const adapter2 = await (0, _createRfsClientAdapter().getOrCreateRfsClientAdapter)(bigDigClient2);
-    const adapter3 = await (0, _createRfsClientAdapter().getOrCreateRfsClientAdapter)(bigDigClient);
+    const adapter1 = await (0, _ThriftRfsClientAdapter().getOrCreateRfsClientAdapter)(bigDigClient);
+    const adapter2 = await (0, _ThriftRfsClientAdapter().getOrCreateRfsClientAdapter)(bigDigClient2);
+    const adapter3 = await (0, _ThriftRfsClientAdapter().getOrCreateRfsClientAdapter)(bigDigClient);
     expect(adapter1).not.toBe(adapter2);
     expect(adapter1).toBe(adapter3);
   });
   it('clear cache for an input, expect a different adapter', async () => {
-    const adapter1 = await (0, _createRfsClientAdapter().getOrCreateRfsClientAdapter)(bigDigClient);
-    const adapter2 = await (0, _createRfsClientAdapter().getOrCreateRfsClientAdapter)(bigDigClient);
+    const adapter1 = await (0, _ThriftRfsClientAdapter().getOrCreateRfsClientAdapter)(bigDigClient);
+    const adapter2 = await (0, _ThriftRfsClientAdapter().getOrCreateRfsClientAdapter)(bigDigClient);
     expect(adapter1).toBe(adapter2);
     mockEventEmitter.emit('close');
-    const adapter3 = await (0, _createRfsClientAdapter().getOrCreateRfsClientAdapter)(bigDigClient);
+    const adapter3 = await (0, _ThriftRfsClientAdapter().getOrCreateRfsClientAdapter)(bigDigClient);
     expect(adapter1).not.toBe(adapter3);
     expect(adapter2).not.toBe(adapter3);
   });

@@ -76,17 +76,24 @@ function getEditorLineNumber(editor, target) {
   }
 }
 
+async function getEditorOrNull(path) {
+  try {
+    // eslint-disable-next-line nuclide-internal/atom-apis
+    return await atom.workspace.open(path, {
+      searchAllPanes: true,
+      pending: true
+    });
+  } catch (error) {
+    return null;
+  }
+}
+
 async function openSourceLocation(path, line) {
-  // eslint-disable-next-line nuclide-internal/atom-apis
-  const editor = await atom.workspace.open(path, {
-    searchAllPanes: true,
-    pending: true
-  });
+  const editor = await getEditorOrNull(path);
 
   if (editor == null) {
-    // Failed to open file. Return an empty text editor.
-    // eslint-disable-next-line nuclide-internal/atom-apis
-    return atom.workspace.open();
+    // Failed to open file.
+    return null;
   }
 
   editor.scrollToBufferPosition([line, 0]);

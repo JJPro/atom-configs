@@ -3,12 +3,32 @@
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-exports.collectDebugState = exports.collectSelectionDebugState = exports.serialize = exports.getNodeIsFocused = exports.getNodeIsSelected = exports.getLoading = exports.getNodeByIndex = exports.getFilterFound = exports.isEditedWorkingSetEmpty = exports.getRootForPath = exports.getNode = exports.getNearbySelectedNode = exports.getSingleTargetNode = exports.getSingleSelectedNode = exports.getTargetNodes = exports.getFocusedNodes = exports.getNodeInRoots = exports.getSelectedNodes = exports.isEmpty = exports.getRootKeys = exports.getTrackedNode = exports.getOpenFilesWorkingSet = exports.getEditedWorkingSet = exports.isEditingWorkingSet = exports.getWorkingSet = exports.hasCwd = exports.getCwdApi = exports.usePrefixNav = exports.getIsCalculatingChanges = exports.getGeneratedOpenChangedFiles = exports.getFileChanges = exports.getCwdKey = exports.getRepositories = exports.getWorkingSetsStore = exports.getExtraProjectSelectionContent = exports.getFilter = exports.getVersion = exports.getRoots = exports.getOpenFilesExpanded = exports.getUncommittedChangesExpanded = exports.getFoldersExpanded = exports.getConf = exports.getAutoExpandSingleChild = void 0;
+exports.collectDebugState = exports.getCanTransferFiles = exports.collectSelectionDebugState = exports.serialize = exports.getFileTreeContextMenuNode = exports.getVcsStatus = exports.getSidebarPath = exports.getFocusEditorOnFileSelection = exports.getUsePreviewTabs = exports.getSidebarTitle = exports.getNodeIsFocused = exports.getNodeIsSelected = exports.getLoading = exports.getNodeByIndex = exports.getFilterFound = exports.isEditedWorkingSetEmpty = exports.getNodeForPath = exports.getRootForPath = exports.getNode = exports.getNearbySelectedNode = exports.getSingleTargetNode = exports.getSingleSelectedNode = exports.getTargetNodes = exports.getFocusedNodes = exports.getNodeInRoots = exports.getSelectedNodes = exports.isEmpty = exports.getRootKeys = exports.getTrackedNode = exports.getOpenFilesWorkingSet = exports.getEditedWorkingSet = exports.isEditingWorkingSet = exports.getWorkingSet = exports.hasCwd = exports.getCwdApi = exports.usePrefixNav = exports.getIsCalculatingChanges = exports.getGeneratedOpenChangedFiles = exports.getFileChanges = exports.getCwdKey = exports.getRepositories = exports.getWorkingSetsStore = exports.getExtraProjectSelectionContent = exports.getFilter = exports.getVersion = exports.getRoots = exports.getOpenFilesExpanded = exports.getUncommittedChangesExpanded = exports.getFoldersExpanded = exports.getConf = exports.getAutoExpandSingleChild = void 0;
 
 function _memoize2() {
   const data = _interopRequireDefault(require("lodash/memoize"));
 
   _memoize2 = function () {
+    return data;
+  };
+
+  return data;
+}
+
+function _nuclideUri() {
+  const data = _interopRequireDefault(require("../../../../modules/nuclide-commons/nuclideUri"));
+
+  _nuclideUri = function () {
+    return data;
+  };
+
+  return data;
+}
+
+function _hgConstants() {
+  const data = require("../../../nuclide-hg-rpc/lib/hg-constants");
+
+  _hgConstants = function () {
     return data;
   };
 
@@ -153,11 +173,14 @@ exports.hasCwd = hasCwd;
 const getWorkingSet = (0, _reselect().createSelector)([getConf], conf => conf.workingSet);
 exports.getWorkingSet = getWorkingSet;
 const isEditingWorkingSet = (0, _reselect().createSelector)([getConf], conf => conf.isEditingWorkingSet);
+exports.isEditingWorkingSet = isEditingWorkingSet;
+
+const getVcsStatuses = state => state.vcsStatuses;
 /**
  * Builds the edited working set from the partially-child-derived .checkedStatus property
  */
 
-exports.isEditingWorkingSet = isEditingWorkingSet;
+
 const getEditedWorkingSet = (0, _reselect().createSelector)([getConf], conf => conf.editedWorkingSet);
 exports.getEditedWorkingSet = getEditedWorkingSet;
 const getOpenFilesWorkingSet = (0, _reselect().createSelector)([getConf], conf => conf.openFilesWorkingSet); //
@@ -346,6 +369,13 @@ const getRootForPath = (state, nodeKey) => {
 };
 
 exports.getRootForPath = getRootForPath;
+
+const getNodeForPath = (state, uri) => {
+  const rootNode = getRootForPath(state, uri);
+  return rootNode && rootNode.find(uri);
+};
+
+exports.getNodeForPath = getNodeForPath;
 const isEditedWorkingSetEmpty = (0, _reselect().createSelector)([getRoots], roots => roots.every(root => root.checkedStatus === 'clear'));
 exports.isEditedWorkingSetEmpty = isEditedWorkingSetEmpty;
 const getFilterFound = (0, _reselect().createSelector)([getRoots], roots => roots.some(root => root.containsFilterMatches));
@@ -353,7 +383,7 @@ exports.getFilterFound = getFilterFound;
 const getNodeByIndex = (0, _reselect().createSelector)(getRoots, roots => {
   return (0, _memoize2().default)(index => {
     const firstRoot = roots.find(r => r.shouldBeShown);
-    return firstRoot == null ? null : firstRoot.findByIndex(index);
+    return firstRoot == null ? null : findNodeAtOffset(firstRoot, index - 1);
   });
 });
 exports.getNodeByIndex = getNodeByIndex;
@@ -366,14 +396,127 @@ const getNodeIsSelected = (state, node) => getSelectedUris(state).get(node.rootU
 
 exports.getNodeIsSelected = getNodeIsSelected;
 
-const getNodeIsFocused = (state, node) => getFocusedUris(state).get(node.rootUri, Immutable().Set()).has(node.uri); //
+const getNodeIsFocused = (state, node) => getFocusedUris(state).get(node.rootUri, Immutable().Set()).has(node.uri);
+
+exports.getNodeIsFocused = getNodeIsFocused;
+const getSidebarTitle = (0, _reselect().createSelector)([getCwdKey], cwdKey => {
+  return cwdKey == null ? 'File Tree' : _nuclideUri().default.basename(cwdKey);
+});
+exports.getSidebarTitle = getSidebarTitle;
+
+const getUsePreviewTabs = state => {
+  return state.usePreviewTabs;
+};
+
+exports.getUsePreviewTabs = getUsePreviewTabs;
+
+const getFocusEditorOnFileSelection = state => {
+  return state.focusEditorOnFileSelection;
+};
+
+exports.getFocusEditorOnFileSelection = getFocusEditorOnFileSelection;
+const getSidebarPath = (0, _reselect().createSelector)([getCwdKey], cwdKey => {
+  if (cwdKey == null) {
+    return 'No Current Working Directory';
+  }
+
+  const trimmed = _nuclideUri().default.trimTrailingSeparator(cwdKey);
+
+  const directory = _nuclideUri().default.getPath(trimmed);
+
+  const host = _nuclideUri().default.getHostnameOpt(trimmed);
+
+  if (host == null) {
+    return `Current Working Directory: ${directory}`;
+  }
+
+  return `Current Working Directory: '${directory}' on '${host}'`;
+});
+exports.getSidebarPath = getSidebarPath;
+const getVcsStatus = (0, _reselect().createSelector)([getVcsStatuses], vcsStatuses => {
+  return node => {
+    var _statusMap$get;
+
+    const statusMap = vcsStatuses.get(node.rootUri);
+    return statusMap == null ? _hgConstants().StatusCodeNumber.CLEAN : (_statusMap$get = statusMap.get(node.uri)) !== null && _statusMap$get !== void 0 ? _statusMap$get : _hgConstants().StatusCodeNumber.CLEAN;
+  };
+}); // In previous versions, we exposed the FileTreeNodes directly. This was bad as it's really just an
+// implementation detail. So, when we wanted to move `vcsStatus` off of the node, we had an issue.
+// We now expose a limited API instead to avoid this.
+
+exports.getVcsStatus = getVcsStatus;
+const getFileTreeContextMenuNode = (0, _reselect().createSelector)([getVcsStatus], getVcsStatusFromNode => {
+  return node => {
+    var _node$parent;
+
+    if (node == null) {
+      return null;
+    }
+
+    return {
+      uri: node.uri,
+      isContainer: node.isContainer,
+      isRoot: node.isRoot,
+      isCwd: node.isCwd,
+      vcsStatusCode: getVcsStatusFromNode(node),
+      repo: node.repo,
+      // We don't want to expose the entire tree or allow traversal since then we'd have to
+      // materialize every node. This is for supporting a legacy use case.
+      parentUri: (_node$parent = node.parent) === null || _node$parent === void 0 ? void 0 : _node$parent.uri
+    };
+  };
+});
+/**
+ * Find the node that occurs `offset` after the provided one in the flattened list. `offset` must
+ * be a non-negative integer.
+ *
+ * This function is intentionally implemented with a loop instead of recursion. Previously it was
+ * implemented using recursion, which caused the stack size to grow with the number of siblings we
+ * had to traverse. That meant we exceeded the max stack size with enough sibling files.
+ *
+ * TODO: Increasingly we are going to want to move state which affects a node's
+ * visibility into the state, so eventually this function will need access to
+ * state, which is why we've moved it into the Selectors file.
+ */
+
+exports.getFileTreeContextMenuNode = getFileTreeContextMenuNode;
+
+function findNodeAtOffset(node_, offset_) {
+  let offset = offset_;
+  let node = node_;
+
+  while (offset > 0) {
+    if (offset < node.shownChildrenCount // `shownChildrenCount` includes the node itself.
+    ) {
+        // It's a descendant of this node!
+        const firstVisibleChild = node.children.find(c => c.shouldBeShown);
+
+        if (firstVisibleChild == null) {
+          return null;
+        }
+
+        offset--;
+        node = firstVisibleChild;
+      } else {
+      const nextShownSibling = node.findNextShownSibling();
+
+      if (nextShownSibling == null) {
+        return null;
+      }
+
+      offset -= node.shownChildrenCount;
+      node = nextShownSibling;
+    }
+  }
+
+  return node;
+} //
 //
 // Serialization and debugging
 //
 //
 
 
-exports.getNodeIsFocused = getNodeIsFocused;
 const serialize = (0, _reselect().createSelector)([getRootKeys, getVersion, getOpenFilesExpanded, getUncommittedChangesExpanded, getFoldersExpanded], (rootKeys, version, openFilesExpanded, uncommittedChangesExpanded, foldersExpanded) => {
   return {
     version,
@@ -394,34 +537,46 @@ const collectSelectionDebugState = (0, _reselect().createSelector)([getSelectedN
   };
 });
 exports.collectSelectionDebugState = collectSelectionDebugState;
-const collectDebugState = (0, _reselect().createSelector)([getCwdKey, getOpenFilesExpanded, getUncommittedChangesExpanded, getFoldersExpanded, getReorderPreviewStatus, getFilter, getSelectionRange, getTargetNodeKeys, getTrackedRootKey, getTrackedNodeKey, getIsCalculatingChanges, getRoots, getConf, collectSelectionDebugState], (currentWorkingRoot, openFilesExpanded, uncommittedChangesExpanded, foldersExpanded, reorderPreviewStatus, _filter, _selectionRange, _targetNodeKeys, _trackedRootKey, _trackedNodeKey, _isCalculatingChanges, roots, conf, selectionManager) => {
+
+const getCanTransferFiles = state => Boolean(state.remoteTransferService); // Note: The Flow types for reselect's `createSelector` only support up to 16
+// sub-selectors. Since this selector only gets called when the user reports a
+// bug, it does not need to be optimized for multiple consecutive calls on
+// similar states. Therefore, we've opted to not use createSelector for this
+// selector.
+
+
+exports.getCanTransferFiles = getCanTransferFiles;
+
+const collectDebugState = state => {
+  const conf = getConf(state);
   return {
-    currentWorkingRoot,
-    openFilesExpanded,
-    uncommittedChangesExpanded,
-    foldersExpanded,
-    reorderPreviewStatus,
-    _filter,
-    _selectionRange,
-    _targetNodeKeys,
-    _trackedRootKey,
-    _trackedNodeKey,
-    _isCalculatingChanges,
-    roots: Array.from(roots.values()).map(root => root.collectDebugState()),
+    currentWorkingRoot: getCwdKey(state),
+    openFilesExpanded: getOpenFilesExpanded(state),
+    uncommittedChangesExpanded: getUncommittedChangesExpanded(state),
+    foldersExpanded: getFoldersExpanded(state),
+    reorderPreviewStatus: getReorderPreviewStatus(state),
+    _filter: getFilter(state),
+    _selectionRange: getSelectionRange(state),
+    _targetNodeKeys: getTargetNodeKeys(state),
+    _trackedRootKey: getTrackedRootKey(state),
+    _trackedNodeKey: getTrackedNodeKey(state),
+    _isCalculatingChanges: getIsCalculatingChanges(state),
+    usePreviewTabs: getUsePreviewTabs(state),
+    focusEditorOnFileSelection: getFocusEditorOnFileSelection(state),
+    roots: Array.from(getRoots(state).values()).map(root => root.collectDebugState()),
     _conf: {
       hideIgnoredNames: conf.hideIgnoredNames,
       excludeVcsIgnoredPaths: conf.excludeVcsIgnoredPaths,
       hideVcsIgnoredPaths: conf.hideVcsIgnoredPaths,
-      usePreviewTabs: conf.usePreviewTabs,
-      focusEditorOnFileSelection: conf.focusEditorOnFileSelection,
       isEditingWorkingSet: conf.isEditingWorkingSet,
-      vcsStatuses: conf.vcsStatuses.toObject(),
+      vcsStatuses: getVcsStatuses(state).toObject(),
       workingSet: conf.workingSet.getUris(),
       ignoredPatterns: conf.ignoredPatterns.toArray().map(ignored => ignored.pattern),
       openFilesWorkingSet: conf.openFilesWorkingSet.getUris(),
       editedWorkingSet: conf.editedWorkingSet.getUris()
     },
-    selectionManager
+    selectionManager: collectSelectionDebugState(state)
   };
-});
+};
+
 exports.collectDebugState = collectDebugState;

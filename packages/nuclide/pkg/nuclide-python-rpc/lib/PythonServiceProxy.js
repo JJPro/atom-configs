@@ -1041,7 +1041,7 @@ module.exports = _client => {
       });
     }
 
-    sendLspNotification(arg0, arg1, arg2) {
+    sendLspNotification(arg0, arg1) {
       return _client.callRemoteMethod(_client.marshal(this, {
         kind: "named",
         location: {
@@ -1051,12 +1051,6 @@ module.exports = _client => {
         },
         name: "LanguageService"
       }), "sendLspNotification", "promise", _client.marshalArguments(Array.from(arguments), [{
-        name: "filePath",
-        type: {
-          kind: "named",
-          name: "NuclideUri"
-        }
-      }, {
         name: "method",
         type: {
           kind: "string"
@@ -1226,7 +1220,7 @@ Object.defineProperty(module.exports, "defs", {
       location: {
         type: "source",
         fileName: "PythonService.js",
-        line: 56
+        line: 60
       },
       name: "PythonCompletion",
       definition: {
@@ -1269,7 +1263,7 @@ Object.defineProperty(module.exports, "defs", {
       location: {
         type: "source",
         fileName: "PythonService.js",
-        line: 63
+        line: 67
       },
       name: "PythonDefinition",
       definition: {
@@ -1313,7 +1307,7 @@ Object.defineProperty(module.exports, "defs", {
       location: {
         type: "source",
         fileName: "PythonService.js",
-        line: 71
+        line: 75
       },
       name: "PythonReference",
       definition: {
@@ -1363,7 +1357,7 @@ Object.defineProperty(module.exports, "defs", {
       location: {
         type: "source",
         fileName: "PythonService.js",
-        line: 80
+        line: 84
       },
       name: "Position",
       definition: {
@@ -1388,7 +1382,7 @@ Object.defineProperty(module.exports, "defs", {
       location: {
         type: "source",
         fileName: "PythonService.js",
-        line: 95
+        line: 99
       },
       name: "PythonClassItem",
       definition: {
@@ -1453,7 +1447,7 @@ Object.defineProperty(module.exports, "defs", {
       location: {
         type: "source",
         fileName: "PythonService.js",
-        line: 106
+        line: 110
       },
       name: "PythonStatementItem",
       definition: {
@@ -1499,7 +1493,7 @@ Object.defineProperty(module.exports, "defs", {
       location: {
         type: "source",
         fileName: "PythonService.js",
-        line: 114
+        line: 118
       },
       name: "PythonOutlineItem",
       definition: {
@@ -1659,7 +1653,7 @@ Object.defineProperty(module.exports, "defs", {
       location: {
         type: "source",
         fileName: "PythonService.js",
-        line: 85
+        line: 89
       },
       name: "PythonFunctionItem",
       definition: {
@@ -1749,7 +1743,7 @@ Object.defineProperty(module.exports, "defs", {
       location: {
         type: "source",
         fileName: "PythonService.js",
-        line: 119
+        line: 123
       },
       name: "PythonDiagnostic",
       definition: {
@@ -1800,7 +1794,7 @@ Object.defineProperty(module.exports, "defs", {
       location: {
         type: "source",
         fileName: "PythonService.js",
-        line: 128
+        line: 132
       },
       name: "PythonServiceConfig",
       definition: {
@@ -3346,7 +3340,7 @@ Object.defineProperty(module.exports, "defs", {
       location: {
         type: "source",
         fileName: "types.js",
-        line: 49
+        line: 48
       },
       name: "OutlineTreeKind",
       definition: {
@@ -3495,7 +3489,7 @@ Object.defineProperty(module.exports, "defs", {
       location: {
         type: "source",
         fileName: "types.js",
-        line: 27
+        line: 26
       },
       name: "OutlineTree",
       definition: {
@@ -3571,7 +3565,7 @@ Object.defineProperty(module.exports, "defs", {
       location: {
         type: "source",
         fileName: "types.js",
-        line: 44
+        line: 43
       },
       name: "Outline",
       definition: {
@@ -3902,7 +3896,14 @@ Object.defineProperty(module.exports, "defs", {
           type: {
             kind: "string"
           },
-          optional: false
+          optional: true
+        }, {
+          name: "dataBuffer",
+          type: {
+            kind: "named",
+            name: "Buffer"
+          },
+          optional: true
         }]
       }
     },
@@ -4913,12 +4914,6 @@ Object.defineProperty(module.exports, "defs", {
           },
           kind: "function",
           argumentTypes: [{
-            name: "filePath",
-            type: {
-              kind: "named",
-              name: "NuclideUri"
-            }
-          }, {
             name: "method",
             type: {
               kind: "string"
@@ -4940,7 +4935,7 @@ Object.defineProperty(module.exports, "defs", {
           location: {
             type: "source",
             fileName: "LanguageService.js",
-            line: 296
+            line: 292
           },
           kind: "function",
           argumentTypes: [{
@@ -4960,7 +4955,7 @@ Object.defineProperty(module.exports, "defs", {
           location: {
             type: "source",
             fileName: "LanguageService.js",
-            line: 300
+            line: 296
           },
           kind: "function",
           argumentTypes: [],
@@ -4976,13 +4971,13 @@ Object.defineProperty(module.exports, "defs", {
       location: {
         type: "source",
         fileName: "PythonService.js",
-        line: 136
+        line: 140
       },
       type: {
         location: {
           type: "source",
           fileName: "PythonService.js",
-          line: 136
+          line: 140
         },
         kind: "function",
         argumentTypes: [{
@@ -5013,13 +5008,13 @@ Object.defineProperty(module.exports, "defs", {
       location: {
         type: "source",
         fileName: "PythonService.js",
-        line: 467
+        line: 472
       },
       type: {
         location: {
           type: "source",
           fileName: "PythonService.js",
-          line: 467
+          line: 472
         },
         kind: "function",
         argumentTypes: [{
@@ -5047,13 +5042,13 @@ Object.defineProperty(module.exports, "defs", {
       location: {
         type: "source",
         fileName: "PythonService.js",
-        line: 529
+        line: 535
       },
       type: {
         location: {
           type: "source",
           fileName: "PythonService.js",
-          line: 529
+          line: 535
         },
         kind: "function",
         argumentTypes: [{
@@ -5080,13 +5075,13 @@ Object.defineProperty(module.exports, "defs", {
       location: {
         type: "source",
         fileName: "PythonService.js",
-        line: 549
+        line: 555
       },
       type: {
         location: {
           type: "source",
           fileName: "PythonService.js",
-          line: 549
+          line: 555
         },
         kind: "function",
         argumentTypes: [],

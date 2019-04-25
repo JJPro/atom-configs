@@ -61,7 +61,7 @@ function disableLinter() {
 }
 
 function disableDiagnostics() {
-  _featureConfig().default.set('use.atom-ide-diagnostics-ui', false);
+  _featureConfig().default.set('use.atom-ide-diagnostics-ui', 'never');
 }
 
 function showAtomLinterWarning() {

@@ -83,7 +83,7 @@ function _stream() {
 var _RxMin = require("rxjs/bundles/Rx.min.js");
 
 function _systemInfo() {
-  const data = require("../../../commons-node/system-info");
+  const data = require("../../../../modules/nuclide-commons/system-info");
 
   _systemInfo = function () {
     return data;

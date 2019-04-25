@@ -202,7 +202,10 @@ function createResult(result) {
 function createStatus(status) {
   return _RxMin.Observable.of({
     type: 'status',
-    status
+    status: {
+      type: 'string',
+      status
+    }
   });
 }
 
@@ -212,6 +215,9 @@ function createStep(stepName, action) {
     progress: null
   }), Boolean(stepName) ? _RxMin.Observable.of({
     type: 'status',
-    status: stepName
+    status: {
+      type: 'string',
+      status: stepName
+    }
   }) : _RxMin.Observable.empty(), _RxMin.Observable.defer(action));
 }

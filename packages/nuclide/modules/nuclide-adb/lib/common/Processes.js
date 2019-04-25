@@ -138,7 +138,7 @@ class Processes {
     let pidLines;
 
     try {
-      pidLines = await this._adb.runShortCommand('shell', 'ps', '|', 'grep', '-i', packageName).toPromise();
+      pidLines = await this._adb.runPsCommand('|', 'grep', '-i', packageName).toPromise();
     } catch (e) {
       pidLines = '';
     }

@@ -243,7 +243,7 @@ try {
 const domPurify = (0, _dompurify().default)(); // The minimum version of Atom required to run Nuclide. Anything less than this and users will get
 // a redbox and Nuclide will not activate.
 
-const MINIMUM_SUPPORTED_ATOM_VERSION = '1.25.0'; // Install the error reporting even before Nuclide is activated.
+const MINIMUM_SUPPORTED_ATOM_VERSION = '1.28.0'; // Install the error reporting even before Nuclide is activated.
 
 let errorReporterDisposable = (0, _installErrorReporter().default)(); // Install the logger config before Nuclide is activated.
 
@@ -379,7 +379,7 @@ function _activate() {
     _log4js().default.configure((0, _nuclideLogging().getDefaultConfig)());
   }
 
-  if (atom.inDevMode() && process.env.SANDCASTLE == null) {
+  if (process.env.SANDCASTLE == null) {
     (0, _installDevTools().default)();
   } // TODO(T31782876): Remove once fixed upstream in Atom
   // https://github.com/atom/atom/pull/17702
@@ -474,7 +474,9 @@ function patchNotificationManager() {
 
   atom.notifications.addNotification = notification => {
     // $FlowIgnore - internal property
-    notification.message = domPurify.sanitize(notification.message);
+    notification.message = domPurify.sanitize(notification.message, {
+      FORBID_TAGS: ['style']
+    });
     return addNotification.bind(atom.notifications)(notification);
   };
 }

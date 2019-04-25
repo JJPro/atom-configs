@@ -1,7 +1,7 @@
 "use strict";
 
 function _systemInfo() {
-  const data = require("../system-info");
+  const data = require("../../../modules/nuclide-commons/system-info");
 
   _systemInfo = function () {
     return data;

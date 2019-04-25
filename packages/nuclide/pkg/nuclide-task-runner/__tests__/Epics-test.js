@@ -364,9 +364,7 @@ describe('Epics', () => {
             initialPackagesActivated: true,
             taskRunners: Immutable().List([])
           };
-          const output = await runActions([Actions().registerTaskRunner(mockTaskRunner)], state).take(2).toArray().toPromise();
-          const setStateAction = output[0];
-          const addConsoleAction = output[1];
+          const [addConsoleAction, setStateAction] = await runActions([Actions().registerTaskRunner(mockTaskRunner)], state).take(2).toArray().toPromise();
 
           if (!(addConsoleAction.type === Actions().ADD_CONSOLE_FOR_TASK_RUNNER)) {
             throw new Error("Invariant violation: \"addConsoleAction.type === Actions.ADD_CONSOLE_FOR_TASK_RUNNER\"");
@@ -473,6 +471,7 @@ describe('Epics', () => {
             metadata: taskMeta,
             task,
             progress: 1,
+            status: null,
             startDate: new Date()
           },
           taskRunner

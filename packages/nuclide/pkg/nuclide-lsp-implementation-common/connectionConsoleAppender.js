@@ -67,7 +67,7 @@ function appender(config) {
     // $FlowFixMe: type log4js.layouts
     const message = _log4js().default.layouts.basicLayout(loggingEvent);
 
-    if (loggingEvent.level.level >= _log4js().default.levels.INFO.level) {
+    if (loggingEvent.level.level >= _log4js().default.levels.WARN.level) {
       connection.console.log(message);
     }
 

@@ -6,7 +6,7 @@ Object.defineProperty(exports, "__esModule", {
 exports.default = void 0;
 
 function _passesGK() {
-  const data = _interopRequireDefault(require("../commons-node/passesGK"));
+  const data = _interopRequireDefault(require("../../modules/nuclide-commons/passesGK"));
 
   _passesGK = function () {
     return data;

@@ -87,10 +87,10 @@ function _RemoteDirectory() {
   return data;
 }
 
-function _nuclideMarshalersAtom() {
-  const data = require("../../nuclide-marshalers-atom");
+function _nuclideMarshalersClient() {
+  const data = require("../../nuclide-marshalers-client");
 
-  _nuclideMarshalersAtom = function () {
+  _nuclideMarshalersClient = function () {
     return data;
   };
 
@@ -98,7 +98,7 @@ function _nuclideMarshalersAtom() {
 }
 
 function _nuclideAnalytics() {
-  const data = require("../../nuclide-analytics");
+  const data = require("../../../modules/nuclide-analytics");
 
   _nuclideAnalytics = function () {
     return data;
@@ -218,7 +218,7 @@ function _createBigDigRpcClient() {
 }
 
 function _passesGK() {
-  const data = require("../../commons-node/passesGK");
+  const data = require("../../../modules/nuclide-commons/passesGK");
 
   _passesGK = function () {
     return data;
@@ -227,20 +227,10 @@ function _passesGK() {
   return data;
 }
 
-function _createRfsClientAdapter() {
-  const data = require("./thrift-service-adapters/createRfsClientAdapter");
+function _ThriftRfsClientAdapter() {
+  const data = require("./thrift-service-adapters/ThriftRfsClientAdapter");
 
-  _createRfsClientAdapter = function () {
-    return data;
-  };
-
-  return data;
-}
-
-function _util() {
-  const data = require("./thrift-service-adapters/util");
-
-  _util = function () {
+  _ThriftRfsClientAdapter = function () {
     return data;
   };
 
@@ -262,6 +252,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  * @format
  */
 const logger = (0, _log4js().getLogger)('nuclide-remote-connection');
+const thriftRfsLogger = (0, _log4js().getLogger)('thrift-rfs-server-connection');
 const remote = _electron.default.remote;
 const ipc = _electron.default.ipcRenderer;
 const THRIFT_RFS_GK = 'nuclide_thrift_rfs';
@@ -354,13 +345,13 @@ class ServerConnection {
         response = this._config;
       }
 
-      const window = remote.BrowserWindow.getAllWindows().filter(win => win.id === id)[0];
+      const theWindow = remote.BrowserWindow.getAllWindows().filter(win => win.id === id)[0];
 
-      if (!window) {
-        throw new Error("Invariant violation: \"window\"");
+      if (!theWindow) {
+        throw new Error("Invariant violation: \"theWindow\"");
       }
 
-      window.send(_RemoteConnectionConfigurationManager().SERVER_CONFIG_RESPONSE_EVENT, response);
+      theWindow.webContents.send(_RemoteConnectionConfigurationManager().SERVER_CONFIG_RESPONSE_EVENT, response);
     });
   }
 
@@ -572,7 +563,7 @@ class ServerConnection {
 
     const socket = new (_ReliableSocket().ReliableSocket)(uri, _NuclideServer().HEARTBEAT_CHANNEL, options, _utils().protocolLogger);
 
-    const client = _nuclideRpc().RpcConnection.createRemote(socket, (0, _nuclideMarshalersAtom().getAtomSideMarshalers)(this.getRemoteHostname()), _servicesConfig().default, // Track calls with a sampling rate of 1/10.
+    const client = _nuclideRpc().RpcConnection.createRemote(socket, (0, _nuclideMarshalersClient().getClientSideMarshalers)(this.getRemoteHostname()), _servicesConfig().default, // Track calls with a sampling rate of 1/10.
     {
       trackSampleRate: 10
     }, _config().SERVICE_FRAMEWORK3_PROTOCOL, socket.id, _utils().protocolLogger);
@@ -689,22 +680,25 @@ class ServerConnection {
   }
 
   getService(serviceName) {
+    const rpcService = this.getClient().getService(serviceName);
+
     if (serviceName === 'FileSystemService') {
       if ((0, _passesGK().isGkEnabled)(THRIFT_RFS_GK)) {
-        return this._getFileSystemProxy(serviceName);
+        return this._getThriftRfsServiceProxy(rpcService);
       }
 
-      return this._genRpcRfsProxy(serviceName);
+      return this._getLegacyRfsServiceProxy(rpcService);
     }
 
-    return this.getClient().getService(serviceName);
+    return rpcService;
   }
 
-  _genRpcRfsProxy(serviceName) {
-    const rpcService = this.getClient().getService(serviceName);
+  _getLegacyRfsServiceProxy(rpcService) {
     const handler = {
       get: (target, propKey, receiver) => {
-        if (_createRfsClientAdapter().SUPPORTED_THRIFT_RFS_FUNCTIONS.has(propKey)) {
+        // time function if it has a corresponding thrift call
+        // so the two can be compared
+        if (_ThriftRfsClientAdapter().SUPPORTED_THRIFT_RFS_FUNCTIONS.has(propKey)) {
           return (...args) => {
             return (0, _nuclideAnalytics().trackTimingSampled)(`file-system-service:${propKey}`, // eslint-disable-next-line prefer-spread
             () => target[propKey].apply(target, args), FILE_SYSTEM_PERFORMANCE_SAMPLE_RATE, {
@@ -719,13 +713,12 @@ class ServerConnection {
     return new Proxy(rpcService, handler);
   }
 
-  _getFileSystemProxy(serviceName) {
-    const rpcService = this.getClient().getService(serviceName);
+  _getThriftRfsServiceProxy(rpcService) {
     const handler = {
       get: (target, propKey, receiver) => {
-        if (_createRfsClientAdapter().SUPPORTED_THRIFT_RFS_FUNCTIONS.has(propKey)) {
+        if (_ThriftRfsClientAdapter().SUPPORTED_THRIFT_RFS_FUNCTIONS.has(propKey)) {
           return (...args) => {
-            return this._makeThriftRfsCall(rpcService, propKey, args);
+            return this._makeThriftRfsCall(propKey, args);
           };
         }
 
@@ -735,26 +728,20 @@ class ServerConnection {
     return new Proxy(rpcService, handler);
   }
 
-  async _makeThriftRfsCall(rpcService, fname, args) {
-    try {
-      return await (0, _nuclideAnalytics().trackTimingSampled)(`file-system-service:${fname}`, async () => {
-        const serviceAdapter = await (0, _createRfsClientAdapter().getOrCreateRfsClientAdapter)(this.getBigDigClient()); // $FlowFixMe: suppress 'indexer property is missing warning'
+  async _makeThriftRfsCall(fsOperation, args) {
+    return (0, _nuclideAnalytics().trackTimingSampled)(`file-system-service:${fsOperation}`, async () => {
+      try {
+        const thriftRfsClient = await (0, _ThriftRfsClientAdapter().getOrCreateRfsClientAdapter)(this.getBigDigClient()); // $FlowFixMe: suppress 'indexer property is missing warning'
 
-        const method = serviceAdapter[fname];
-        return method.apply(serviceAdapter, args);
-      }, FILE_SYSTEM_PERFORMANCE_SAMPLE_RATE, {
-        serviceProvider: 'thrift'
-      });
-    } catch (err) {
-      if (err instanceof _util().FallbackToRpcError) {
-        logger.error(`Thrift RFS method ${fname} exception, use RPC fallback`, err);
-        const func = rpcService[fname];
-        return func.apply(rpcService, args);
-      } // Otherwise throw legit file system errors
-
-
-      throw err;
-    }
+        const method = thriftRfsClient[fsOperation];
+        return await method.apply(thriftRfsClient, args);
+      } catch (e) {
+        thriftRfsLogger.error(`failed to run method ${fsOperation} from Thrift client`, e);
+        throw e;
+      }
+    }, FILE_SYSTEM_PERFORMANCE_SAMPLE_RATE, {
+      serviceProvider: 'thrift'
+    });
   }
 
   _getInfoService() {

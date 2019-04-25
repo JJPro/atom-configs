@@ -21,7 +21,7 @@ function _UniversalDisposable() {
 }
 
 function _FileEventHandlers() {
-  const data = require("../../nuclide-language-service/lib/FileEventHandlers");
+  const data = require("../../../modules/nuclide-commons-atom/FileEventHandlers");
 
   _FileEventHandlers = function () {
     return data;
@@ -42,8 +42,6 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  *  strict-local
  * @format
  */
-// A dummy Atom package necessary for calling observeTextEditors() since
-// nuclide-language-service is a Node package.
 class Activation {
   constructor() {
     this._disposables = new (_UniversalDisposable().default)((0, _FileEventHandlers().observeTextEditors)());

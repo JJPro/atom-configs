@@ -30,6 +30,16 @@ function _destroyItemWhere() {
   return data;
 }
 
+function _epicHelpers() {
+  const data = require("../../../../nuclide-commons/epicHelpers");
+
+  _epicHelpers = function () {
+    return data;
+  };
+
+  return data;
+}
+
 var _RxMin = require("rxjs/bundles/Rx.min.js");
 
 function _reduxObservable() {
@@ -132,6 +142,16 @@ function _nullthrows() {
   return data;
 }
 
+function _uuid() {
+  const data = _interopRequireDefault(require("uuid"));
+
+  _uuid = function () {
+    return data;
+  };
+
+  return data;
+}
+
 function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) { var desc = Object.defineProperty && Object.getOwnPropertyDescriptor ? Object.getOwnPropertyDescriptor(obj, key) : {}; if (desc.get || desc.set) { Object.defineProperty(newObj, key, desc); } else { newObj[key] = obj[key]; } } } } newObj.default = obj; return newObj; } }
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
@@ -166,8 +186,7 @@ class Activation {
   _getStore() {
     if (this._store == null) {
       const initialState = deserializeAppState(this._rawState);
-      const epics = Object.keys(Epics()).map(k => Epics()[k]).filter(epic => typeof epic === 'function');
-      const rootEpic = (0, _reduxObservable().combineEpics)(...epics);
+      const rootEpic = (0, _epicHelpers().combineEpicsFromImports)(Epics(), 'atom-ide-ui');
       this._store = (0, _reduxMin().createStore)(_Reducers().default, initialState, (0, _reduxMin().applyMiddleware)((0, _reduxObservable().createEpicMiddleware)(rootEpic)));
     }
 
@@ -208,7 +227,6 @@ class Activation {
     this._getStore().dispatch(Actions().setWatchEditor(watchEditor));
 
     return new (_UniversalDisposable().default)(() => {
-      // $FlowFixMe(>=0.68.0) Flow suppress (T27187857)
       if (this._getStore().getState().watchEditor === watchEditor) {
         this._getStore().dispatch(Actions().setWatchEditor(null));
       }
@@ -390,6 +408,7 @@ class Activation {
             tags: message.tags,
             scopeName: message.scopeName,
             sourceId: sourceInfo.id,
+            sourceName: sourceInfo.name,
             kind: message.kind || 'message',
             timestamp: new Date(),
             // TODO: Allow this to come with the message?
@@ -401,7 +420,7 @@ class Activation {
           if (incomplete) {
             // An ID is only required for incomplete messages, which need
             // to be looked up for mutations.
-            record.messageId = activation._nextMessageId++;
+            record.messageId = _uuid().default.v4();
             token = createToken(record.messageId);
           }
 
@@ -432,33 +451,6 @@ class Activation {
 
       };
       return console;
-    };
-  }
-
-  provideOutputService() {
-    // Create a local, nullable reference so that the service consumers don't keep the Activation
-    // instance in memory.
-    let activation = this;
-
-    this._disposables.add(() => {
-      activation = null;
-    });
-
-    return {
-      registerOutputProvider(outputProvider) {
-        if (!(activation != null)) {
-          throw new Error('Output service used after deactivation');
-        }
-
-        activation._getStore().dispatch(Actions().registerOutputProvider(outputProvider));
-
-        return new (_UniversalDisposable().default)(() => {
-          if (activation != null) {
-            activation._getStore().dispatch(Actions().unregisterOutputProvider(outputProvider));
-          }
-        });
-      }
-
     };
   }
 
@@ -529,7 +521,14 @@ function deserializeAppState(rawState) {
 
 function deserializeRecord(record) {
   return Object.assign({}, record, {
-    timestamp: parseDate(record.timestamp) || new Date(0)
+    timestamp: parseDate(record.timestamp) || new Date(0),
+    // At one point in the time the messageId was a number, so the user might
+    // have a number serialized.
+    messageId: record == null || record.messageId == null || // Sigh. We (I, -jeldredge) had a bug at one point where we accidentally
+    // converted serialized values of `undefined` to the string `"undefiend"`.
+    // Those could then have been serialized back to disk. So, for a little
+    // while at least, we should ensure we fix these bad values.
+    record.messageId === 'undefined' ? undefined : String(record.messageId)
   });
 }
 

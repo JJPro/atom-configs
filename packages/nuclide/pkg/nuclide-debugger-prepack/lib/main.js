@@ -133,7 +133,6 @@ function getPrepackAutoGenConfig() {
   const autoGenLaunchConfig = {
     launch: true,
     vsAdapterType: _nuclideDebuggerCommon().VsAdapterTypes.PREPACK,
-    threads: false,
     properties: [filesToPrepack, prepackRuntimePath, argumentsProperty],
     scriptPropertyName: 'filesToPrepack',
     scriptExtension: '.js',

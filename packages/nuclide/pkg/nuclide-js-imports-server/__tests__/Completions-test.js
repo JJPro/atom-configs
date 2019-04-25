@@ -221,6 +221,19 @@ describe('Completion Functions', () => {
 
       expect(completions.map(getCompletionText)).toEqual(["import {test} from './test3';", "import {test} from '../above';", "import {test} from 'module';", "import {test2} from './test2';", "import {testAbove} from '../above';"]);
     });
+    it('prefers .react over other suffixes', () => {
+      const manager = new (_AutoImportsManager().AutoImportsManager)([]);
+      manager.indexFile('/a/node_modules/short.js', 'export function test() {}');
+      manager.indexFile('/a/node_modules/module.react.js', 'export function test() {}');
+      manager.indexFile('/a/node_modules/module.rm.js', 'export function test() {}');
+      const importInformation = {
+        ids: ['test'],
+        importType: 'namedValue',
+        isComplete: false
+      };
+      const completions = (0, _Completions().provideFullImportCompletions)(importInformation, importsFormatter, manager, '/a/b/test.js', '', 0);
+      expect(completions.map(getCompletionText)).toEqual(["import {test} from 'short';", "import {test} from 'module.react';", "import {test} from 'module.rm';"]);
+    });
   });
   describe('provideImportFileCompletions', () => {
     it('provides exact matches', () => {

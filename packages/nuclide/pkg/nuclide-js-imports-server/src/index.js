@@ -150,16 +150,6 @@ function _nuclideUri() {
   return data;
 }
 
-function _constantsForClient() {
-  const data = require("./utils/constantsForClient");
-
-  _constantsForClient = function () {
-    return data;
-  };
-
-  return data;
-}
-
 function _WorkspaceSymbols() {
   const data = require("./WorkspaceSymbols");
 
@@ -205,8 +195,7 @@ connection.onInitialize(params => {
   shouldProvideFlags.diagnostics = shouldProvideDiagnostics(params, root);
   importFormatter = new (_ImportFormatter().ImportFormatter)(flowConfig.moduleDirs, shouldUseRequires(params, root));
   autoImportsManager = new (_AutoImportsManager().AutoImportsManager)(eslintGlobals, params.initializationOptions ? {
-    componentModulePathFilter: params.initializationOptions.componentModulePathFilter,
-    uiComponentToolsIndexingGkEnabled: params.initializationOptions.uiComponentToolsIndexingGkEnabled
+    componentModulePathFilter: params.initializationOptions.componentModulePathFilter
   } : undefined);
   autoImportsManager.indexAndWatchDirectory(root);
   completion = new (_Completions().Completions)(autoImportsManager.getDefinitionManager(), documents, autoImportsManager, importFormatter);
@@ -217,12 +206,13 @@ connection.onInitialize(params => {
     capabilities: {
       textDocumentSync: documents.syncKind,
       completionProvider: {
-        resolveProvider: true,
+        resolveProvider: false,
         triggerCharacters: getAllTriggerCharacters()
       },
       codeActionProvider: true,
-      documentFormattingProvider: true,
-      executeCommandProvider: Array.from(Object.keys(_CommandExecutor().CommandExecutor.COMMANDS)),
+      executeCommandProvider: {
+        commands: Array.from(Object.keys(_CommandExecutor().CommandExecutor.COMMANDS))
+      },
       workspaceSymbolProvider: true,
       hoverProvider: true
     }
@@ -295,15 +285,10 @@ connection.onExecuteCommand(params => {
     arguments: args
   } = params;
   logger.debug('Executing command', command, 'with args', args);
-  commandExecuter.executeCommand(command, args);
+  return commandExecuter.executeCommand(command, args);
 });
 connection.onWorkspaceSymbol(params => {
   return _WorkspaceSymbols().WorkspaceSymbols.getWorkspaceSymbols(autoImportsManager, params);
-});
-connection.onDocumentFormatting(params => {
-  const fileUri = _nuclideUri().default.uriToNuclideUri(params.textDocument.uri);
-
-  return Promise.resolve(params.options.tabSize !== _constantsForClient().TAB_SIZE_SIGNIFYING_FIX_ALL_IMPORTS_FORMATTING || fileUri == null ? [] : commandExecuter.getEditsForFixingAllImports(fileUri));
 });
 documents.listen(connection);
 connection.listen();

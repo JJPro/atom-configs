@@ -3,7 +3,7 @@
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-exports.Model = exports.ExceptionBreakpoint = exports.FunctionBreakpoint = exports.Breakpoint = exports.Process = exports.Thread = exports.StackFrame = exports.Scope = exports.Variable = exports.Expression = exports.Source = void 0;
+exports.Model = exports.ExceptionBreakpoint = exports.FunctionBreakpoint = exports.Breakpoint = exports.Process = exports.Thread = exports.StackFrame = exports.Scope = exports.Variable = exports.Expression = exports.ExpressionContainer = exports.Source = void 0;
 
 function DebugProtocol() {
   const data = _interopRequireWildcard(require("vscode-debugprotocol"));
@@ -321,6 +321,7 @@ class ExpressionContainer {
 
 }
 
+exports.ExpressionContainer = ExpressionContainer;
 ExpressionContainer.allValues = new Map();
 ExpressionContainer.BASE_CHUNK_SIZE = 100;
 
@@ -461,8 +462,8 @@ class StackFrame {
     return `stackframe:${this.thread.getId()}:${this.frameId}:${this.index}`;
   }
 
-  async getScopes() {
-    if (this.scopes == null) {
+  async getScopes(forceRefresh) {
+    if (this.scopes == null || forceRefresh) {
       this.scopes = this._getScopesImpl();
     }
 
@@ -485,7 +486,7 @@ class StackFrame {
   }
 
   async getMostSpecificScopes(range) {
-    const scopes = (await this.getScopes()).filter(s => !s.expensive);
+    const scopes = (await this.getScopes(false)).filter(s => !s.expensive);
     const haveRangeInfo = scopes.some(s => s.range != null);
 
     if (!haveRangeInfo) {
@@ -764,6 +765,8 @@ class Process {
     this._sources = new Map();
     this._pendingStart = true;
     this._pendingStop = false;
+    this.breakpoints = [];
+    this.exceptionBreakpoints = [];
   }
 
   get sources() {
@@ -931,21 +934,27 @@ class Process {
 exports.Process = Process;
 
 class Breakpoint {
-  constructor(uri, line, column, enabled, condition, hitCondition, adapterData) {
+  constructor(uiBreakpointId, uri, line, column, enabled, condition, adapterData) {
     this.uri = uri;
     this.line = line;
-    this.column = column == null ? 1 : column;
-    this.enabled = enabled == null ? true : enabled;
+    this.originalLine = line;
+    this.column = column;
+    this.enabled = enabled;
     this.condition = condition;
-    this.hitCondition = hitCondition;
     this.adapterData = adapterData;
     this.verified = false;
-    this.id = _uuid().default.v4();
-    this.endLine = null;
+    this.uiBreakpointId = uiBreakpointId;
+    this.hitCount = null;
+
+    if (condition != null && condition.trim() !== '') {
+      this.condition = condition;
+    } else {
+      this.condition = null;
+    }
   }
 
   getId() {
-    return this.id;
+    return this.uiBreakpointId;
   }
 
 }
@@ -992,13 +1001,19 @@ const CALLSTACK_CHANGED = 'CALLSTACK_CHANGED';
 const PROCESSES_CHANGED = 'PROCESSES_CHANGED';
 
 class Model {
-  constructor(breakpoints, breakpointsActivated, functionBreakpoints, exceptionBreakpoints, watchExpressions) {
+  // Exception breakpoint filters are different for each debugger back-end, so they
+  // are process-specific. However, when we're not debugging, ideally we'd want to still
+  // show filters so that a user can set break on exception before starting debugging, to
+  // enable breaking on early exceptions as the target starts. For this reason, we cache
+  // whatever options the most recently focused process offered, and offer those.
+  constructor(uiBreakpoints, breakpointsActivated, functionBreakpoints, exceptionBreakpoints, watchExpressions, getFocusedProcess) {
     this._processes = [];
-    this._breakpoints = breakpoints;
+    this._uiBreakpoints = uiBreakpoints;
     this._breakpointsActivated = breakpointsActivated;
     this._functionBreakpoints = functionBreakpoints;
-    this._exceptionBreakpoints = exceptionBreakpoints;
+    this._mostRecentExceptionBreakpoints = exceptionBreakpoints;
     this._watchExpressions = watchExpressions;
+    this._getFocusedProcess = getFocusedProcess;
     this._emitter = new _atom.Emitter();
     this._disposables = new (_UniversalDisposable().default)(this._emitter);
   }
@@ -1012,7 +1027,13 @@ class Model {
   }
 
   addProcess(configuration, session) {
-    const process = new Process(configuration, session);
+    const process = new Process(configuration, session); // Add breakpoints to process.
+
+    const processBreakpoints = process.breakpoints;
+
+    for (const uiBp of this._uiBreakpoints) {
+      processBreakpoints.push(new Breakpoint(uiBp.id, uiBp.uri, uiBp.line, uiBp.column, uiBp.enabled, uiBp.condition));
+    }
 
     this._processes.push(process);
 
@@ -1033,6 +1054,10 @@ class Model {
     });
 
     this._emitter.emit(PROCESSES_CHANGED);
+
+    if (removedProcesses.length > 0) {
+      this._mostRecentExceptionBreakpoints = removedProcesses[0].exceptionBreakpoints;
+    }
 
     return removedProcesses;
   }
@@ -1095,24 +1120,45 @@ class Model {
     this._emitter.emit(CALLSTACK_CHANGED);
   }
 
+  getUIBreakpoints() {
+    return this._uiBreakpoints;
+  }
+
   getBreakpoints() {
-    return this._breakpoints;
+    // If we're currently debugging, return the breakpoints as the current
+    // debug adapter sees them.
+    const focusedProcess = this._getFocusedProcess();
+
+    if (focusedProcess != null) {
+      const currentProcess = this._processes.find(p => p.getId() === focusedProcess.getId());
+
+      if (currentProcess != null) {
+        return currentProcess.breakpoints;
+      }
+    } // Otherwise, return the UI breakpoints. Since there is no debug process,
+    // the breakpoints have their original line location and no notion of
+    // verified vs not.
+
+
+    return this._uiBreakpoints.map(uiBp => {
+      const bp = new Breakpoint(uiBp.id, uiBp.uri, uiBp.line, uiBp.column, uiBp.enabled, uiBp.condition);
+      bp.verified = true;
+      return bp;
+    });
   }
 
   getBreakpointAtLine(uri, line) {
-    // Since we show calibrated breakpoints at their end line, prefer an end line
-    // match. If there is no such breakpoint, try a start line match.
-    let breakpoint = this._breakpoints.find(bp => bp.uri === uri && bp.endLine === line);
+    let breakpoint = this.getBreakpoints().find(bp => bp.uri === uri && bp.line === line);
 
     if (breakpoint == null) {
-      breakpoint = this._breakpoints.find(bp => bp.uri === uri && bp.line === line);
+      breakpoint = this.getBreakpoints().find(bp => bp.uri === uri && bp.originalLine === line);
     }
 
     return breakpoint;
   }
 
   getBreakpointById(id) {
-    return this._breakpoints.find(bp => bp.getId() === id);
+    return this.getBreakpoints().find(bp => bp.getId() === id);
   }
 
   getFunctionBreakpoints() {
@@ -1120,13 +1166,18 @@ class Model {
   }
 
   getExceptionBreakpoints() {
-    return this._exceptionBreakpoints;
+    const focusedProcess = this._getFocusedProcess();
+
+    if (focusedProcess != null) {
+      return focusedProcess.exceptionBreakpoints;
+    }
+
+    return this._mostRecentExceptionBreakpoints;
   }
 
-  setExceptionBreakpoints(data) {
-    this._exceptionBreakpoints = data.map(d => {
-      const ebp = this._exceptionBreakpoints.filter(bp => bp.filter === d.filter).pop();
-
+  setExceptionBreakpoints(process, data) {
+    process.exceptionBreakpoints = data.map(d => {
+      const ebp = process.exceptionBreakpoints.filter(bp => bp.filter === d.filter).pop();
       return new ExceptionBreakpoint(d.filter, d.label, ebp ? ebp.enabled : d.default);
     });
 
@@ -1143,58 +1194,59 @@ class Model {
     this._emitter.emit(BREAKPOINTS_CHANGED);
   }
 
-  addBreakpoints(uri, rawData, fireEvent = true) {
-    const newBreakpoints = rawData.map(rawBp => new Breakpoint(uri, rawBp.line, rawBp.column, rawBp.enabled, rawBp.condition, rawBp.hitCondition));
-    this._breakpoints = this._breakpoints.concat(newBreakpoints);
+  addUIBreakpoints(uiBreakpoints, fireEvent = true) {
+    this._uiBreakpoints = this._uiBreakpoints.concat(uiBreakpoints);
     this._breakpointsActivated = true;
 
-    this._sortAndDeDup();
-
-    if (fireEvent) {
-      this._emitter.emit(BREAKPOINTS_CHANGED, {
-        added: newBreakpoints
-      });
-    }
-
-    return newBreakpoints;
+    this._sortSyncAndDeDup({
+      fireEvent
+    });
   }
 
   removeBreakpoints(toRemove) {
-    this._breakpoints = this._breakpoints.filter(bp => !toRemove.some(r => r.getId() === bp.getId()));
+    this._uiBreakpoints = this._uiBreakpoints.filter(bp => !toRemove.some(r => r.getId() === bp.id));
 
-    this._emitter.emit(BREAKPOINTS_CHANGED, {
-      removed: toRemove
-    });
+    this._sortSyncAndDeDup();
   }
 
-  updateBreakpoints(data) {
-    const updated = [];
+  updateBreakpoints(newBps) {
+    this._uiBreakpoints = this._uiBreakpoints.filter(bp => !newBps.some(n => n.id === bp.id)).concat(newBps);
 
-    this._breakpoints.forEach(bp => {
+    this._sortSyncAndDeDup();
+  } // This is called when a breakpoint is updated by the debug adapter.
+  // It affects only breakpoints for a particular session.
+
+
+  updateProcessBreakpoints(process, data) {
+    const proc = this._processes.find(p => p.getId() === process.getId());
+
+    if (proc == null) {
+      return;
+    }
+
+    const breakpoints = proc.breakpoints;
+    breakpoints.forEach(bp => {
       const bpData = data[bp.getId()];
 
       if (bpData != null) {
-        bp.line = bpData.line != null ? bpData.line : bp.line;
-        bp.endLine = bpData.endLine != null ? bpData.endLine : bp.endLine;
+        // The breakpoint's calibrated location can be different from its
+        // initial location. Since we don't display ranges in the UX, a bp
+        // has only one line location. We prefer the endLine if the bp instruction
+        // matches a range of lines. Otherwise fall back to the (start) line.
+        bp.line = bpData.endLine != null ? bpData.endLine : bpData.line != null ? bpData.line : bp.line;
         bp.column = bpData.column != null ? bpData.column : bp.column;
-        bp.endColumn = bpData.endColumn;
         bp.verified = bpData.verified != null ? bpData.verified : bp.verified;
         bp.idFromAdapter = bpData.id;
-        bp.message = bpData.message;
         bp.adapterData = bpData.source ? bpData.source.adapterData : bp.adapterData;
-        updated.push(bp);
+        bp.hitCount = bpData.nuclide_hitCount;
       }
     });
 
-    this._sortAndDeDup();
-
-    this._emitter.emit(BREAKPOINTS_CHANGED, {
-      changed: updated
-    });
+    this._sortSyncAndDeDup();
   }
 
-  _sortAndDeDup() {
-    this._breakpoints = this._breakpoints.sort((first, second) => {
+  _sortSyncAndDeDup(options) {
+    const comparer = (first, second) => {
       if (first.uri !== second.uri) {
         return first.uri.localeCompare(second.uri);
       }
@@ -1204,54 +1256,68 @@ class Model {
       }
 
       return first.line - second.line;
-    });
-    this._breakpoints = (0, _collection().distinct)(this._breakpoints, bp => `${bp.uri}:${bp.endLine != null ? bp.endLine : bp.line}:${bp.column}`);
+    };
+
+    this._uiBreakpoints = (0, _collection().distinct)(this._uiBreakpoints.sort(comparer), bp => `${bp.uri}:${bp.line}:${bp.column}`); // Sync with all active processes.
+
+    const bpIds = new Set();
+
+    for (const bp of this._uiBreakpoints) {
+      bpIds.add(bp.id);
+    }
+
+    for (const process of this._processes) {
+      // Remove any breakpoints from the process that no longer exist in the UI.
+      process.breakpoints = process.breakpoints.filter(bp => bpIds.has(bp.getId())); // Sync any to the process that are missing.
+
+      const processBps = new Map();
+
+      for (const processBreakpoint of process.breakpoints) {
+        processBps.set(processBreakpoint.getId(), processBreakpoint);
+      }
+
+      for (const uiBp of this._uiBreakpoints) {
+        const processBp = processBps.get(uiBp.id);
+
+        if (processBp == null) {
+          process.breakpoints.push(new Breakpoint(uiBp.id, uiBp.uri, uiBp.line, uiBp.column, uiBp.enabled, uiBp.condition));
+        } else {
+          processBp.enabled = uiBp.enabled;
+          processBp.condition = uiBp.condition;
+        }
+      } // Sort.
+
+
+      process.breakpoints = process.breakpoints.sort(comparer);
+    }
+
+    if (options == null || options.fireEvent) {
+      this._emitter.emit(BREAKPOINTS_CHANGED);
+    }
   }
 
   setEnablement(element, enable) {
-    const changed = [];
-
-    if (element.enabled !== enable && (element instanceof Breakpoint || element instanceof FunctionBreakpoint)) {
-      changed.push(element);
-    }
-
     element.enabled = enable;
 
-    if (element instanceof Breakpoint && !element.enabled) {
-      element.verified = false;
+    const uiBp = this._uiBreakpoints.find(bp => bp.id === element.getId());
+
+    if (uiBp != null) {
+      uiBp.enabled = enable;
     }
 
-    this._emitter.emit(BREAKPOINTS_CHANGED, {
-      changed
-    });
+    this._sortSyncAndDeDup();
   }
 
   enableOrDisableAllBreakpoints(enable) {
-    const changed = [];
-
-    this._breakpoints.forEach(bp => {
-      if (bp.enabled !== enable) {
-        changed.push(bp);
-      }
-
+    this._uiBreakpoints.forEach(bp => {
       bp.enabled = enable;
-
-      if (!enable) {
-        bp.verified = false;
-      }
     });
 
     this._functionBreakpoints.forEach(fbp => {
-      if (fbp.enabled !== enable) {
-        changed.push(fbp);
-      }
-
       fbp.enabled = enable;
     });
 
-    this._emitter.emit(BREAKPOINTS_CHANGED, {
-      changed
-    });
+    this._sortSyncAndDeDup();
   }
 
   addFunctionBreakpoint(functionName) {
@@ -1259,16 +1325,12 @@ class Model {
 
     this._functionBreakpoints.push(newFunctionBreakpoint);
 
-    this._emitter.emit(BREAKPOINTS_CHANGED, {
-      added: [newFunctionBreakpoint]
-    });
+    this._emitter.emit(BREAKPOINTS_CHANGED);
 
     return newFunctionBreakpoint;
   }
 
   updateFunctionBreakpoints(data) {
-    const changed = [];
-
     this._functionBreakpoints.forEach(fbp => {
       const fbpData = data[fbp.getId()];
 
@@ -1277,13 +1339,10 @@ class Model {
         fbp.verified = fbpData.verified || fbp.verified;
         fbp.idFromAdapter = fbpData.id;
         fbp.hitCondition = fbpData.hitCondition;
-        changed.push(fbp);
       }
     });
 
-    this._emitter.emit(BREAKPOINTS_CHANGED, {
-      changed
-    });
+    this._emitter.emit(BREAKPOINTS_CHANGED);
   }
 
   removeFunctionBreakpoints(id) {

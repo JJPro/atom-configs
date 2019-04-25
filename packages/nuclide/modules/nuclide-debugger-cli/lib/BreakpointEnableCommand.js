@@ -15,6 +15,18 @@ function _BreakpointCommandUtils() {
   return data;
 }
 
+function _TokenizedLine() {
+  const data = _interopRequireDefault(require("./TokenizedLine"));
+
+  _TokenizedLine = function () {
+    return data;
+  };
+
+  return data;
+}
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
 /**
  * Copyright (c) 2017-present, Facebook, Inc.
  * All rights reserved.
@@ -33,8 +45,8 @@ class BreakpointEnableCommand {
     this._debugger = debug;
   }
 
-  async execute(args) {
-    const bpt = (0, _BreakpointCommandUtils().breakpointFromArgList)(this._debugger, args, this.name);
+  async execute(line) {
+    const bpt = (0, _BreakpointCommandUtils().breakpointFromArgList)(this._debugger, line.stringTokens().slice(1), this.name);
 
     if (bpt == null) {
       await this._debugger.setAllBreakpointsEnabled(true);

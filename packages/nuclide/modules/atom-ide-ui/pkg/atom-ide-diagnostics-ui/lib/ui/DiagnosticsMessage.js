@@ -17,16 +17,6 @@ function _Button() {
   return data;
 }
 
-function _ButtonGroup() {
-  const data = require("../../../../../nuclide-commons-ui/ButtonGroup");
-
-  _ButtonGroup = function () {
-    return data;
-  };
-
-  return data;
-}
-
 function _DiagnosticsMessageText() {
   const data = require("./DiagnosticsMessageText");
 
@@ -100,9 +90,12 @@ function diagnosticHeader(props) {
     message.fix.title || 'Fix');
   }
 
+  const staleBox = Boolean(message.stale) ? React.createElement("span", {
+    className: "diagnostics-popup-header-stale-box highlight"
+  }, 'Stale') : null;
   return React.createElement("div", {
     className: "diagnostics-popup-header"
-  }, React.createElement(_ButtonGroup().ButtonGroup, null, fixButton), React.createElement("span", {
+  }, React.createElement("span", null, staleBox, fixButton), React.createElement("span", {
     className: providerClassName
   }, message.providerName));
 }

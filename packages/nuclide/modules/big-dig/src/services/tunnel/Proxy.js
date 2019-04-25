@@ -29,6 +29,16 @@ function _log4js() {
 
 var _events = _interopRequireDefault(require("events"));
 
+function _ProxyConfigUtils() {
+  const data = require("./ProxyConfigUtils");
+
+  _ProxyConfigUtils = function () {
+    return data;
+  };
+
+  return data;
+}
+
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 /**
@@ -45,19 +55,17 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 const logger = (0, _log4js().getLogger)('tunnel-proxy');
 
 class Proxy extends _events.default {
-  constructor(tunnelId, localPort, remotePort, useIPv4, transport) {
+  constructor(tunnelId, tunnelConfig, transport) {
     super();
     this._tunnelId = tunnelId;
-    this._localPort = localPort;
-    this._remotePort = remotePort;
+    this._tunnelConfig = tunnelConfig;
     this._transport = transport;
-    this._useIPv4 = useIPv4;
     this._server = null;
     this._socketByClientId = new Map();
   }
 
-  static async createProxy(tunnelId, localPort, remotePort, useIPv4, transport) {
-    const proxy = new Proxy(tunnelId, localPort, remotePort, useIPv4, transport);
+  static async createProxy(tunnelId, tunnelConfig, transport) {
+    const proxy = new Proxy(tunnelId, tunnelConfig, transport);
     await proxy.startListening();
     return proxy;
   }
@@ -67,36 +75,72 @@ class Proxy extends _events.default {
       this._server = _net.default.createServer(socket => {
         const clientId = socket.remotePort;
 
-        this._socketByClientId.set(clientId, socket);
-
         this._sendMessage({
           event: 'connection',
-          clientId
+          clientId,
+          tunnelId: this._tunnelId
         }); // forward events over the transport
+        // NOTE: Needs to be explicit otherwise Flow will complain about the
+        // type. We prefer this as opposed to using `any` types in such important infra code.
 
 
-        ['timeout', 'error', 'end', 'close', 'data'].forEach(event => {
-          socket.on(event, arg => {
-            this._sendMessage({
-              event,
-              arg,
-              clientId
-            });
+        socket.on('timeout', arg => {
+          this._sendMessage({
+            event: 'timeout',
+            arg,
+            clientId,
+            tunnelId: this._tunnelId
           });
         });
-        socket.once('error', error => {
-          this._destroySocket(clientId, error);
+        socket.on('end', arg => {
+          this._sendMessage({
+            event: 'end',
+            arg,
+            clientId,
+            tunnelId: this._tunnelId
+          });
         });
-        socket.once('close', this._closeSocket.bind(this, clientId));
+        socket.on('close', arg => {
+          this._sendMessage({
+            event: 'close',
+            arg,
+            clientId,
+            tunnelId: this._tunnelId
+          });
+        });
+        socket.on('data', arg => {
+          this._sendMessage({
+            event: 'data',
+            arg,
+            clientId,
+            tunnelId: this._tunnelId
+          });
+        });
+        socket.on('error', error => {
+          logger.error('error on socket: ', error);
+
+          this._sendMessage({
+            event: 'error',
+            error,
+            tunnelId: this._tunnelId,
+            clientId
+          });
+
+          socket.destroy(error);
+        });
+        socket.on('close', () => this._deleteSocket(clientId));
+
+        this._socketByClientId.set(clientId, socket);
       });
 
       this._server.on('error', error => {
+        logger.error(`error when listening on ${(0, _ProxyConfigUtils().getProxyConfigDescriptor)(this._tunnelConfig.local)}: `, error);
+
         this._sendMessage({
           event: 'proxyError',
-          port: this._localPort,
-          useIpv4: this._useIPv4,
-          remotePort: this._remotePort,
-          error
+          tunnelConfig: this._tunnelConfig,
+          error,
+          tunnelId: this._tunnelId
         });
 
         reject(error);
@@ -106,16 +150,13 @@ class Proxy extends _events.default {
         throw new Error("Invariant violation: \"this._server\"");
       }
 
-      this._server.listen({
-        port: this._localPort
-      }, () => {
-        logger.info(`successfully started listening on port ${this._localPort}`); // send a message to create the SocketManager
+      this._server.listen(this._tunnelConfig.local, () => {
+        logger.info(`successfully started listening on ${(0, _ProxyConfigUtils().getProxyConfigDescriptor)(this._tunnelConfig.local)}`); // send a message to create the SocketManager
 
         this._sendMessage({
           event: 'proxyCreated',
-          port: this._localPort,
-          useIPv4: this._useIPv4,
-          remotePort: this._remotePort
+          proxyConfig: this._tunnelConfig.remote,
+          tunnelId: this._tunnelId
         });
 
         resolve();
@@ -128,40 +169,43 @@ class Proxy extends _events.default {
   }
 
   receive(msg) {
-    const clientId = msg.clientId;
+    switch (msg.event) {
+      case 'data':
+        this._forwardData(msg.clientId, msg.arg);
 
-    if (!(clientId != null)) {
-      throw new Error("Invariant violation: \"clientId != null\"");
-    }
+        return;
 
-    const socket = this._socketByClientId.get(clientId);
+      case 'close':
+        this._ensureSocketClosed(msg.clientId);
 
-    const arg = msg.arg;
+        return;
 
-    if (socket == null) {
-      logger.warn(`received a ${msg.event} message for a non-existent or already closed socket`);
-    } else if (msg.event === 'data') {
-      if (!(arg != null)) {
-        throw new Error("Invariant violation: \"arg != null\"");
-      }
+      case 'error':
+        this._destroySocket(msg.clientId, msg.error);
 
-      socket.write(arg);
-    } else if (msg.event === 'close') {
-      socket.end();
-    } else if (msg.event === 'error') {
-      if (!(clientId != null)) {
-        throw new Error("Invariant violation: \"clientId != null\"");
-      }
+        return;
 
-      if (!(msg.error != null)) {
-        throw new Error("Invariant violation: \"msg.error != null\"");
-      }
+      case 'end':
+        this._endSocket(msg.clientId);
 
-      this._destroySocket(clientId, msg.error);
+        return;
+
+      default:
+        throw new Error(`Invalid tunnel message: ${msg.event}`);
     }
   }
 
-  _closeSocket(id) {
+  _forwardData(id, data) {
+    const socket = this._socketByClientId.get(id);
+
+    if (socket != null) {
+      socket.write(data);
+    } else {
+      logger.error(`data loss - socket already closed or nonexistent: ${id}`);
+    }
+  }
+
+  _deleteSocket(id) {
     logger.info(`socket ${id} closed`);
 
     const socket = this._socketByClientId.get(id);
@@ -176,23 +220,36 @@ class Proxy extends _events.default {
   }
 
   _destroySocket(id, error) {
-    logger.error('error on socket: ', error);
-
     const socket = this._socketByClientId.get(id);
 
-    if (!socket) {
-      throw new Error("Invariant violation: \"socket\"");
+    if (socket != null) {
+      socket.destroy(error);
+    } else {
+      logger.info(`no socket ${id} found for ${error.message}, this is expected if it was closed recently`);
     }
+  }
 
-    socket.destroy();
+  _endSocket(id) {
+    const socket = this._socketByClientId.get(id);
 
-    this._closeSocket(id);
+    if (socket != null) {
+      socket.end();
+    } else {
+      logger.info(`no socket ${id} found to be ended, this is expected if it was closed recently`);
+    }
+  }
+
+  _ensureSocketClosed(id) {
+    const socket = this._socketByClientId.get(id);
+
+    if (socket != null) {
+      logger.info(`socket ${id} wasn't closed in time, force closing it`);
+      socket.destroy();
+    }
   }
 
   _sendMessage(msg) {
-    this._transport.send(_Encoder().default.encode(Object.assign({
-      tunnelId: this._tunnelId
-    }, msg)));
+    this._transport.send(_Encoder().default.encode(msg));
   }
 
   close() {
@@ -209,7 +266,8 @@ class Proxy extends _events.default {
     this.removeAllListeners();
 
     this._sendMessage({
-      event: 'proxyClosed'
+      event: 'proxyClosed',
+      tunnelId: this._tunnelId
     });
   }
 

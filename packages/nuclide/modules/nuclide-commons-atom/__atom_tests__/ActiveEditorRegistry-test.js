@@ -39,10 +39,8 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 describe('ActiveEditorRegistry', () => {
   let activeEditorRegistry = null;
   let activeEditors = null;
-  let editorChanges = null;
   let editorSaves = null;
   let resultFunction = null;
-  let config = null;
   let eventSources = null;
   let editor1 = null;
   let editor2 = null;
@@ -51,7 +49,7 @@ describe('ActiveEditorRegistry', () => {
   let shouldProviderError = null;
 
   function initializeService() {
-    activeEditorRegistry = new (_ActiveEditorRegistry().default)(resultFunction, config, eventSources);
+    activeEditorRegistry = new (_ActiveEditorRegistry().default)(resultFunction, eventSources);
     events = activeEditorRegistry.getResultsStream().publishReplay();
     eventNames = events.map(event => event.kind);
     events.connect();
@@ -59,7 +57,6 @@ describe('ActiveEditorRegistry', () => {
 
   beforeEach(async () => {
     activeEditors = new _RxMin.Subject();
-    editorChanges = new _RxMin.Subject();
     editorSaves = new _RxMin.Subject();
     shouldProviderError = false;
     resultFunction = jest.fn().mockImplementation(async () => {
@@ -67,10 +64,8 @@ describe('ActiveEditorRegistry', () => {
         throw new Error('baaaaad');
       }
     });
-    config = {};
     eventSources = {
       activeEditors,
-      changesForEditor: () => editorChanges,
       savesForEditor: () => editorSaves
     };
     initializeService();
@@ -91,11 +86,9 @@ describe('ActiveEditorRegistry', () => {
       await waitForNextTick();
       activeEditors.next(editor1);
       await waitForNextTick();
-      editorChanges.next(undefined);
-      await waitForNextTick();
       activeEditors.next(editor2);
-      await (0, _testHelpers().expectObservableToStartWith)(eventNames, ['not-text-editor', 'pane-change', 'result', 'edit', 'result', 'pane-change', 'result']);
-      const fullEvents = await events.take(4).toArray().toPromise();
+      await (0, _testHelpers().expectObservableToStartWith)(eventNames, ['not-text-editor', 'pane-change', 'result', 'pane-change', 'result']);
+      const fullEvents = await events.take(3).toArray().toPromise();
       expect(fullEvents[1]).toEqual({
         kind: 'pane-change',
         editor: editor1
@@ -106,23 +99,9 @@ describe('ActiveEditorRegistry', () => {
         provider,
         result: undefined
       });
-      expect(fullEvents[3]).toEqual({
-        kind: 'edit',
-        editor: editor1
-      });
-    });
-    it('should not emit save events when it is configured to respond to edit events', async () => {
-      activeEditors.next(editor1);
-      await waitForNextTick();
-      editorChanges.next(undefined);
-      await waitForNextTick();
-      editorSaves.next(undefined);
-      await waitForNextTick();
-      await (0, _testHelpers().expectObservableToStartWith)(eventNames, ['pane-change', 'result', 'edit', 'result']);
     });
     describe('when configured to respond to save events', () => {
       beforeEach(() => {
-        config.updateOnEdit = false;
         initializeService(); // Have to re-add this since the re-initialization kills it
 
         activeEditorRegistry.consumeProvider({
@@ -133,8 +112,6 @@ describe('ActiveEditorRegistry', () => {
       it('should generate and respond to save events', async () => {
         activeEditors.next(editor1);
         await waitForNextTick();
-        editorChanges.next(undefined);
-        await waitForNextTick();
         editorSaves.next(undefined);
         await waitForNextTick();
         await (0, _testHelpers().expectObservableToStartWith)(eventNames, ['pane-change', 'result', 'save', 'result']);
@@ -143,39 +120,6 @@ describe('ActiveEditorRegistry', () => {
           kind: 'save',
           editor: editor1
         });
-      });
-    });
-    describe('when given providers with different updateOnEdit settings', () => {
-      beforeEach(() => {
-        initializeService(); // Have to re-add this since the re-initialization kills it
-
-        activeEditorRegistry.consumeProvider({
-          priority: 10,
-          grammarScopes: ['text.plain.null-grammar']
-        });
-        activeEditorRegistry.consumeProvider({
-          priority: 10,
-          grammarScopes: ['source.cpp'],
-          updateOnEdit: false
-        });
-        jest.spyOn(editor2, 'getGrammar').mockReturnValue({
-          scopeName: 'source.cpp'
-        });
-      });
-      it('should generate and respond to the appropriate event', async () => {
-        activeEditors.next(editor1);
-        await waitForNextTick();
-        editorChanges.next(undefined);
-        await waitForNextTick();
-        editorSaves.next(undefined);
-        await waitForNextTick();
-        activeEditors.next(editor2);
-        await waitForNextTick();
-        editorChanges.next(undefined);
-        await waitForNextTick();
-        editorSaves.next(undefined);
-        await waitForNextTick();
-        await (0, _testHelpers().expectObservableToStartWith)(eventNames, ['pane-change', 'result', 'edit', 'result', 'pane-change', 'result', 'save', 'result']);
       });
     });
     it("should produce the 'provider-error' event when a provider errors", async () => {

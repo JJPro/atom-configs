@@ -10,16 +10,6 @@ function _reactRedux() {
   return data;
 }
 
-function _FileTreeDispatcher() {
-  const data = require("../lib/FileTreeDispatcher");
-
-  _FileTreeDispatcher = function () {
-    return data;
-  };
-
-  return data;
-}
-
 function _FileTreeNode() {
   const data = require("../lib/FileTreeNode");
 
@@ -104,16 +94,6 @@ function Actions() {
   return data;
 }
 
-function SelectionActions() {
-  const data = _interopRequireWildcard(require("../lib/redux/SelectionActions"));
-
-  SelectionActions = function () {
-    return data;
-  };
-
-  return data;
-}
-
 function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) { var desc = Object.defineProperty && Object.getOwnPropertyDescriptor ? Object.getOwnPropertyDescriptor(obj, key) : {}; if (desc.get || desc.set) { Object.defineProperty(newObj, key, desc); } else { newObj[key] = obj[key]; } } } } newObj.default = obj; return newObj; } }
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
@@ -152,7 +132,7 @@ function renderEntryComponentIntoDocument(Component, store, props = {}, conf = {
     reposByRoot: {}
   }, conf);
   const node = new (_FileTreeNode().FileTreeNode)(nodeProps, nodeConf);
-  store.dispatch(SelectionActions().focus(node));
+  store.dispatch(Actions().focus(node));
   const selectedNodes = Selectors().getSelectedNodes(store.getState()).toSet();
   return _testUtils().default.renderIntoDocument(React.createElement(_reactRedux().Provider, {
     store: store
@@ -185,7 +165,7 @@ describe('Directory FileTreeEntryComponent', () => {
 
       _testUtils().default.Simulate.click(domNode);
 
-      expect(store.dispatch.mock.calls.map(call => call[0].type)).toContain(_FileTreeDispatcher().ActionTypes.EXPAND_NODE);
+      expect(store.dispatch.mock.calls.map(call => call[0].type)).toContain(Actions().EXPAND_NODE);
     });
   });
 });
@@ -208,7 +188,7 @@ describe('File FileTreeEntryComponent', () => {
 
       _testUtils().default.Simulate.click(domNode);
 
-      expect(store.dispatch.mock.calls.map(call => call[0].type)).not.toContain(_FileTreeDispatcher().ActionTypes.EXPAND_NODE);
+      expect(store.dispatch.mock.calls.map(call => call[0].type)).not.toContain(Actions().EXPAND_NODE);
     });
   });
   describe('when preview tabs are enabled', () => {
@@ -230,7 +210,7 @@ describe('File FileTreeEntryComponent', () => {
 
       _testUtils().default.Simulate.click(domNode);
 
-      expect(store.dispatch.mock.calls.map(call => call[0].type)).toContain(_FileTreeDispatcher().ActionTypes.CONFIRM_NODE);
+      expect(store.dispatch.mock.calls.map(call => call[0].type)).toContain(Actions().CONFIRM_NODE);
     });
   });
 });

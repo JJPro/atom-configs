@@ -20,10 +20,10 @@ function _log4js() {
   return data;
 }
 
-function _keytarWrapper() {
-  const data = _interopRequireDefault(require("../../../modules/nuclide-commons/keytarWrapper"));
+function keytar() {
+  const data = _interopRequireWildcard(require("nuclide-prebuilt-libs/keytar"));
 
-  _keytarWrapper = function () {
+  keytar = function () {
     return data;
   };
 
@@ -31,6 +31,8 @@ function _keytarWrapper() {
 }
 
 var _electron = _interopRequireDefault(require("electron"));
+
+function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) { var desc = Object.defineProperty && Object.getOwnPropertyDescriptor ? Object.getOwnPropertyDescriptor(obj, key) : {}; if (desc.get || desc.set) { Object.defineProperty(newObj, key, desc); } else { newObj[key] = obj[key]; } } } } newObj.default = obj; return newObj; } }
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
@@ -114,7 +116,7 @@ async function getConnectionConfigViaIPC(host) {
       // (seemed like it was flaky). It might be worth trying it
       // again after we upgrade electron
 
-      window.send(SERVER_CONFIG_REQUEST_EVENT, host, thisWindowsId);
+      window.webContents.send(SERVER_CONFIG_REQUEST_EVENT, host, thisWindowsId);
     });
   });
 }
@@ -190,7 +192,7 @@ async function encryptConfig(remoteProjectConfig) {
     password,
     encryptedString
   } = encryptString(realClientKey);
-  await _keytarWrapper().default.replacePassword('nuclide.remoteProjectConfig', sha1sum, password);
+  await keytar().setPassword('nuclide.remoteProjectConfig', sha1sum, password);
   const clientKeyWithSalt = encryptedString + '.' + salt;
 
   if (!certificateAuthorityCertificate) {
@@ -223,7 +225,7 @@ async function decryptConfig(remoteProjectConfig) {
 
   sha1.update(`${remoteProjectConfig.host}:${remoteProjectConfig.port}`);
   const sha1sum = sha1.digest('hex');
-  const password = await _keytarWrapper().default.getPassword('nuclide.remoteProjectConfig', sha1sum);
+  const password = await keytar().getPassword('nuclide.remoteProjectConfig', sha1sum);
 
   if (password == null) {
     throw new Error('Cannot find password for encrypted client key');

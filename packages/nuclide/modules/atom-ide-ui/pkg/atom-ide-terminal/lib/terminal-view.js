@@ -5,7 +5,7 @@ Object.defineProperty(exports, "__esModule", {
 });
 exports.deserializeTerminalView = deserializeTerminalView;
 exports.getSafeInitialInput = getSafeInitialInput;
-exports.TerminalView = exports.URI_PREFIX = void 0;
+exports.TerminalView = void 0;
 
 var _atom = require("atom");
 
@@ -165,16 +165,6 @@ function _config() {
   return data;
 }
 
-function _nuclideTerminalUri() {
-  const data = require("./nuclide-terminal-uri");
-
-  _nuclideTerminalUri = function () {
-    return data;
-  };
-
-  return data;
-}
-
 function _sink() {
   const data = require("./sink");
 
@@ -200,9 +190,6 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  */
 
 /* eslint-env browser */
-const URI_PREFIX = 'atom://nuclide-terminal-view';
-exports.URI_PREFIX = URI_PREFIX;
-
 class TerminalView {
   constructor(info) {
     this._syncFontAndFit = terminal => {
@@ -345,7 +332,6 @@ class TerminalView {
         // Note: Manipulating the clipboard directly because atom's core:copy and core:paste
         // commands are not working correctly with terminal selection.
         if (terminal.hasSelection()) {
-          // $FlowFixMe: add types for clipboard
           _electron.clipboard.writeText(terminal.getSelection());
         } else {
           document.execCommand('paste');
@@ -396,6 +382,10 @@ class TerminalView {
     this._syncFontAndFit(terminal);
 
     this._subscriptions.add((0, _measurePerformance().default)(terminal));
+
+    this._emitter.emit('spawn', {
+      success: true
+    });
   }
 
   _focused() {
@@ -437,6 +427,10 @@ class TerminalView {
       uri: this._cwd,
       startDelay: Math.round((0, _performanceNow().default)() - this._startTime),
       error: String(error)
+    });
+
+    this._emitter.emit('spawn', {
+      success: false
     });
   } // Since changing the font settings may resize the contents, we have to
   // trigger a re-fit when updating font settings.
@@ -536,7 +530,8 @@ class TerminalView {
       signal
     }));
 
-    if (code === 0 && !this._terminalInfo.remainOnCleanExit) {
+    if ( // eslint-disable-next-line eqeqeq
+    (code === 0 || code === null) && !this._terminalInfo.remainOnCleanExit) {
       this._closeTab();
 
       return;
@@ -620,6 +615,15 @@ class TerminalView {
 
   getURI() {
     return 'atom://nuclide-terminal-view';
+  } // Breadcrumbs uses this to determine what path to show.
+
+
+  getFileOrDirectory() {
+    if (this._path == null) {
+      return null;
+    }
+
+    return new _atom.Directory(this._path);
   }
 
   getTerminalKey() {
@@ -646,6 +650,10 @@ class TerminalView {
     return this.on('did-change-title', callback);
   }
 
+  onSpawn(callback) {
+    return this.on('spawn', callback);
+  }
+
   on(name, callback) {
     if (this._subscriptions.disposed) {
       return new (_UniversalDisposable().default)();
@@ -667,11 +675,7 @@ class TerminalView {
 exports.TerminalView = TerminalView;
 
 function deserializeTerminalView(state) {
-  if (state.initialInfo != null) {
-    return new TerminalView(state.initialInfo);
-  }
-
-  return new TerminalView((0, _nuclideTerminalUri().infoFromUri)(URI_PREFIX));
+  return new TerminalView(state.initialInfo);
 }
 
 function registerLinkHandlers(terminal, cwd) {
@@ -719,11 +723,13 @@ function registerLinkHandlers(terminal, cwd) {
       if (replacedUrl !== '') {
         const commandClicked = process.platform === 'win32' ? event.ctrlKey : event.metaKey;
 
-        if (commandClicked && tryOpenInAtom(replacedUrl, cwd)) {
-          return;
+        if (shouldOpenInAtom(replacedUrl)) {
+          if (commandClicked) {
+            tryOpenInAtom(replacedUrl, cwd);
+          }
+        } else {
+          _electron.shell.openExternal(replacedUrl);
         }
-
-        _electron.shell.openExternal(replacedUrl);
       }
     }, {
       matchIndex
@@ -731,36 +737,36 @@ function registerLinkHandlers(terminal, cwd) {
   }
 }
 
+function shouldOpenInAtom(link) {
+  const parsed = _url.default.parse(link);
+
+  return parsed.protocol === 'open-file-object:';
+}
+
 function tryOpenInAtom(link, cwd) {
   const parsed = _url.default.parse(link);
 
-  if (parsed.protocol === 'open-file-object:') {
-    const path = parsed.path;
+  const path = parsed.path;
 
-    if (path != null) {
-      const fileLine = path.split(':');
-      let filePath = fileLine[0];
-      let line = 0;
+  if (path != null) {
+    const fileLine = path.split(':');
+    let filePath = fileLine[0];
+    let line = 0;
 
-      if (fileLine.length > 1 && parseInt(fileLine[1], 10) > 0) {
-        line = parseInt(fileLine[1], 10) - 1;
-      }
-
-      if (cwd != null && _nuclideUri().default.isRemote(cwd)) {
-        const terminalLocation = _nuclideUri().default.parseRemoteUri(cwd);
-
-        filePath = _nuclideUri().default.createRemoteUri(terminalLocation.hostname, filePath);
-      }
-
-      (0, _goToLocation().goToLocation)(filePath, {
-        line
-      });
+    if (fileLine.length > 1 && parseInt(fileLine[1], 10) > 0) {
+      line = parseInt(fileLine[1], 10) - 1;
     }
 
-    return true;
-  }
+    if (cwd != null && _nuclideUri().default.isRemote(cwd)) {
+      const terminalLocation = _nuclideUri().default.parseRemoteUri(cwd);
 
-  return false;
+      filePath = _nuclideUri().default.createRemoteUri(terminalLocation.hostname, filePath);
+    }
+
+    (0, _goToLocation().goToLocation)(filePath, {
+      line
+    });
+  }
 }
 
 function openLink(event, link) {

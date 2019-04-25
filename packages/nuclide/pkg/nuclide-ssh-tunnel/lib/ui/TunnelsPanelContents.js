@@ -6,7 +6,7 @@ Object.defineProperty(exports, "__esModule", {
 exports.TunnelsPanelContents = void 0;
 
 function _passesGK() {
-  const data = _interopRequireDefault(require("../../../commons-node/passesGK"));
+  const data = _interopRequireDefault(require("../../../../modules/nuclide-commons/passesGK"));
 
   _passesGK = function () {
     return data;
@@ -81,7 +81,7 @@ class TunnelsPanelContents extends React.Component {
       tunnels: this.props.tunnels,
       closeTunnel: this.props.closeTunnel
     }), this.state.allowManualTunnels && React.createElement(_ManualTunnelSection().default, {
-      workingDirectoryHost: this.props.workingDirectoryHost,
+      workingDirectory: this.props.workingDirectory,
       openTunnel: this.props.openTunnel
     }));
   }

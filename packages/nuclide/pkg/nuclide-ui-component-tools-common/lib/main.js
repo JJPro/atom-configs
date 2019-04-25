@@ -4,27 +4,11 @@ Object.defineProperty(exports, "__esModule", {
   value: true
 });
 exports.getComponentDefinitionFromAst = getComponentDefinitionFromAst;
-Object.defineProperty(exports, "UI_COMPONENT_TOOLS_INDEXING_GK", {
-  enumerable: true,
-  get: function () {
-    return _constants().UI_COMPONENT_TOOLS_INDEXING_GK;
-  }
-});
 
 function _uiComponentAst() {
   const data = require("./uiComponentAst");
 
   _uiComponentAst = function () {
-    return data;
-  };
-
-  return data;
-}
-
-function _constants() {
-  const data = require("./constants");
-
-  _constants = function () {
     return data;
   };
 

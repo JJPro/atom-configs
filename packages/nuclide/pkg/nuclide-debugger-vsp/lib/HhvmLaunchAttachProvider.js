@@ -250,7 +250,6 @@ async function startAttachProcessConfig(targetUri, attachPort, serverAttach) {
       grammarName: 'source.hackfragment'
     }),
     customControlButtons: getCustomControlButtons(),
-    threadsComponentTitle: 'Requests',
     servicedFileExtensions: ['php', 'hh'],
     isRestartable: true,
     onDebugStartingCallback: instance => {

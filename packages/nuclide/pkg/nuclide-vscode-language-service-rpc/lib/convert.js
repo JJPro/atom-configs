@@ -15,6 +15,8 @@ exports.lspPosition_atomPoint = lspPosition_atomPoint;
 exports.lspRange_atomRange = lspRange_atomRange;
 exports.atomRange_lspRange = atomRange_lspRange;
 exports.atom_lspPositionParams = atom_lspPositionParams;
+exports.lspCompletionItemKind_atomCompletionType = lspCompletionItemKind_atomCompletionType;
+exports.lspCompletionItemKind_atomIcon = lspCompletionItemKind_atomIcon;
 exports.lspCompletionItem_atomCompletion = lspCompletionItem_atomCompletion;
 exports.lspMessageType_atomShowNotificationLevel = lspMessageType_atomShowNotificationLevel;
 exports.lspSymbolKind_atomIcon = lspSymbolKind_atomIcon;
@@ -27,6 +29,7 @@ exports.codeLensData_lspCodeLens = codeLensData_lspCodeLens;
 exports.lspCodeLens_codeLensData = lspCodeLens_codeLensData;
 exports.lspSignatureHelp_atomSignatureHelp = lspSignatureHelp_atomSignatureHelp;
 exports.watchmanFileChange_lspFileEvent = watchmanFileChange_lspFileEvent;
+exports.lspStatus_atomStatus = lspStatus_atomStatus;
 
 function _nuclideUri() {
   const data = _interopRequireDefault(require("../../../modules/nuclide-commons/nuclideUri"));
@@ -476,15 +479,18 @@ function lspSymbolKind_atomIcon(kind) {
       return 'type-package';
 
     case _protocol().SymbolKind.Class:
+    case _protocol().SymbolKind.Struct:
       return 'type-class';
 
     case _protocol().SymbolKind.Method:
       return 'type-method';
 
     case _protocol().SymbolKind.Property:
+    case _protocol().SymbolKind.Key:
       return 'type-property';
 
     case _protocol().SymbolKind.Field:
+    case _protocol().SymbolKind.EnumMember:
       return 'type-field';
 
     case _protocol().SymbolKind.Constructor:
@@ -497,9 +503,11 @@ function lspSymbolKind_atomIcon(kind) {
       return 'type-interface';
 
     case _protocol().SymbolKind.Function:
+    case _protocol().SymbolKind.Operator:
       return 'type-function';
 
     case _protocol().SymbolKind.Variable:
+    case _protocol().SymbolKind.Object:
       return 'type-variable';
 
     case _protocol().SymbolKind.Constant:
@@ -516,6 +524,16 @@ function lspSymbolKind_atomIcon(kind) {
 
     case _protocol().SymbolKind.Array:
       return 'type-array';
+
+    case _protocol().SymbolKind.Null:
+      // Empty string to display no icon.
+      return '';
+
+    case _protocol().SymbolKind.Event:
+      return 'octicon-pulse';
+
+    case _protocol().SymbolKind.TypeParameter:
+      return 'octicon-code';
 
     default:
       return 'question';
@@ -681,6 +699,10 @@ defaultSource) {
     atomDiagnostic.code = parseInt(String(diagnostic.code), 10);
   }
 
+  if (diagnostic.stale != null) {
+    atomDiagnostic.stale = diagnostic.stale;
+  }
+
   return atomDiagnostic;
 }
 
@@ -712,6 +734,10 @@ function atomDiagnostic_lspDiagnostic(diagnostic) {
 
     if (diagnostic.code != null) {
       lspDiagnostic.code = diagnostic.code;
+    }
+
+    if (diagnostic.stale != null) {
+      lspDiagnostic.stale = diagnostic.stale;
     }
 
     return lspDiagnostic;
@@ -772,4 +798,37 @@ function watchmanFileChange_lspFileEvent(fileChange, watchmanRoot) {
     uri: localPath_lspUri(_nuclideUri().default.resolve(watchmanRoot, fileChange.name)),
     type: fileChange.new ? _protocol().FileChangeType.Created : !fileChange.exists ? _protocol().FileChangeType.Deleted : _protocol().FileChangeType.Changed
   };
+}
+
+function lspStatus_atomStatus(params) {
+  const actions = params.actions || [];
+
+  switch (params.type) {
+    case _protocol().MessageType.Error:
+      return {
+        kind: 'red',
+        message: params.message == null ? '' : params.message,
+        buttons: actions.map(action => action.title)
+      };
+
+    case _protocol().MessageType.Warning:
+      return {
+        kind: 'yellow',
+        message: params.message == null ? '' : params.message,
+        shortMessage: params.shortMessage,
+        progress: params.progress == null ? undefined : {
+          numerator: params.progress.numerator,
+          denominator: params.progress.denominator
+        }
+      };
+
+    case _protocol().MessageType.Info:
+      return {
+        kind: 'green',
+        message: params.message
+      };
+
+    default:
+      return null;
+  }
 }

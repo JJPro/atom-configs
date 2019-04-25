@@ -15,6 +15,16 @@ function _featureConfig() {
   return data;
 }
 
+function _promise() {
+  const data = require("../../../modules/nuclide-commons/promise");
+
+  _promise = function () {
+    return data;
+  };
+
+  return data;
+}
+
 function _observePaneItemVisibility() {
   const data = _interopRequireDefault(require("../../../modules/nuclide-commons-atom/observePaneItemVisibility"));
 
@@ -70,7 +80,7 @@ function _ProviderRegistry() {
 }
 
 function _nuclideAnalytics() {
-  const data = require("../../nuclide-analytics");
+  const data = require("../../../modules/nuclide-analytics");
 
   _nuclideAnalytics = function () {
     return data;
@@ -145,6 +155,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  */
 const EDITOR_DEBOUNCE_INTERVAL = 500;
 const POSITION_DEBOUNCE_INTERVAL = 500;
+const DEFINITION_TIMEOUT_MS = 5000;
 const WORKSPACE_VIEW_URI = 'atom://nuclide/context-view';
 exports.WORKSPACE_VIEW_URI = WORKSPACE_VIEW_URI;
 const logger = (0, _log4js().getLogger)('nuclide-context-view');
@@ -298,17 +309,11 @@ class ContextViewManager {
             throw new Error("Invariant violation: \"editorPos != null\"");
           }
 
-          const definitionProvider = this._definitionProviders.getProviderForEditor(editorPos.editor);
-
-          if (definitionProvider == null) {
-            return Promise.resolve(null);
-          }
-
-          return definitionProvider.getDefinition(editorPos.editor, editorPos.position).catch(error => {
+          return Promise.all(Array.from(this._definitionProviders.getAllProvidersForEditor(editorPos.editor)).map(provider => (0, _promise().timeoutPromise)(provider.getDefinition(editorPos.editor, editorPos.position), DEFINITION_TIMEOUT_MS).catch(error => {
             logger.error('Error querying definition service: ', error);
             return null;
-          });
-        });
+          })));
+        }).then(results => results.find(result => result != null));
       }).map(queryResult => {
         if (queryResult != null) {
           (0, _nuclideAnalytics().track)('nuclide-context-view:filterQueryResults', {

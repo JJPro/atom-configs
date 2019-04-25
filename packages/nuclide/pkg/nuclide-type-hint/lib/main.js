@@ -45,30 +45,14 @@ const PACKAGE_NAME = 'nuclide-type-hint';
 class Activation {
   constructor(state) {
     this._disposables = new (_UniversalDisposable().default)();
-
-    if (this.typeHintManager == null) {
-      this.typeHintManager = new (_TypeHintManager().default)();
-    }
+    this.typeHintManager = new (_TypeHintManager().default)();
   }
 
   consumeTypehintProvider(provider) {
-    if (!this.typeHintManager) {
-      throw new Error("Invariant violation: \"this.typeHintManager\"");
-    }
-
-    this.typeHintManager.addProvider(provider);
-    return new (_UniversalDisposable().default)(() => {
-      if (this.typeHintManager != null) {
-        this.typeHintManager.removeProvider(provider);
-      }
-    });
+    return this.typeHintManager.addProvider(provider);
   }
 
   consumeDatatipService(service) {
-    if (!this.typeHintManager) {
-      throw new Error("Invariant violation: \"this.typeHintManager\"");
-    }
-
     const datatip = this.typeHintManager.datatip.bind(this.typeHintManager);
     const datatipProvider = {
       providerName: PACKAGE_NAME,

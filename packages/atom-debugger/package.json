@@ -1,0 +1,52 @@
+{
+  "_from": "https://www.atom.io/api/packages/atom-debugger/versions/0.1.6/tarball",
+  "_id": "atom-debugger@0.1.6",
+  "_inBundle": false,
+  "_integrity": "sha512-QeDejImLZYjndhC7hLH+xX5TLTvnHYGxNiiSDVVSvCE7Js3vTKjFqqnPbK8of28mmuGQKXqWzW0Cyw9lkotceg==",
+  "_location": "/atom-debugger",
+  "_phantomChildren": {},
+  "_requested": {
+    "type": "remote",
+    "raw": "https://www.atom.io/api/packages/atom-debugger/versions/0.1.6/tarball",
+    "rawSpec": "https://www.atom.io/api/packages/atom-debugger/versions/0.1.6/tarball",
+    "saveSpec": "https://www.atom.io/api/packages/atom-debugger/versions/0.1.6/tarball",
+    "fetchSpec": "https://www.atom.io/api/packages/atom-debugger/versions/0.1.6/tarball"
+  },
+  "_requiredBy": [
+    "#USER",
+    "/"
+  ],
+  "_resolved": "https://www.atom.io/api/packages/atom-debugger/versions/0.1.6/tarball",
+  "_shasum": "5fa447f6bd9daf5db6ff71e05ddc4562bc2b15ef",
+  "_spec": "https://www.atom.io/api/packages/atom-debugger/versions/0.1.6/tarball",
+  "_where": "/private/var/folders/v6/2396r3r94fq_jdzvfqzs9zx40000gn/T/apm-install-dir-118924-75194-15ga4hr.vb8",
+  "activationCommands": {
+    "atom-workspace": "debugger:toggle"
+  },
+  "bugs": {
+    "url": "https://github.com/xndcn/atom-debugger/issues"
+  },
+  "bundleDependencies": false,
+  "dependencies": {
+    "atom-space-pen-views": "^2.0.0"
+  },
+  "deprecated": false,
+  "description": "GDB debbuger for Atom",
+  "engines": {
+    "atom": ">=0.174.0 <2.0.0"
+  },
+  "homepage": "https://github.com/xndcn/atom-debugger#readme",
+  "keywords": [
+    "debugger",
+    "gdb",
+    "debug"
+  ],
+  "license": "MIT",
+  "main": "./lib/debugger",
+  "name": "atom-debugger",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/xndcn/atom-debugger.git"
+  },
+  "version": "0.1.6"
+}

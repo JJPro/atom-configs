@@ -41,7 +41,7 @@ function _goToLocation() {
 }
 
 function _nuclideAnalytics() {
-  const data = require("../../nuclide-analytics");
+  const data = require("../../../modules/nuclide-analytics");
 
   _nuclideAnalytics = function () {
     return data;
@@ -205,11 +205,10 @@ class Activation {
     const lineNumber = parseInt(line, 10);
 
     if (Number.isNaN(lineNumber)) {
-      (0, _goToLocation().goToLocation)(navUri);
-    } else if (addBreakpoint !== 'true') {
-      // If addBreakpoint === 'true', we will run the goToLocation later.
-      // NOTE: line numbers start at 0, so subtract 1.
-      (0, _goToLocation().goToLocation)(navUri, {
+      await (0, _goToLocation().goToLocation)(navUri);
+    } else {
+      // Note: editor line numbers are 0-based, so subtract 1.
+      await (0, _goToLocation().goToLocation)(navUri, {
         line: lineNumber - 1
       });
     }
@@ -217,10 +216,6 @@ class Activation {
     if (startDebugger) {
       if (addBreakpoint === 'true' && !Number.isNaN(lineNumber)) {
         // Insert a breakpoint if requested.
-        // NOTE: line numbers start at 0, so subtract 1.
-        await (0, _goToLocation().goToLocation)(navUri, {
-          line: lineNumber - 1
-        });
         atom.commands.dispatch(atom.views.getView(atom.workspace), 'debugger:add-breakpoint');
       }
 

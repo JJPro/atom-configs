@@ -13,13 +13,23 @@ exports.getOwners = getOwners;
 exports.getRootForPath = getRootForPath;
 exports.runBuckCommandFromProjectRoot = runBuckCommandFromProjectRoot;
 exports.query = query;
-exports._getFbRepoSpecificArgs = _getFbRepoSpecificArgs;
+exports._getPreferredArgsForRepo = _getPreferredArgsForRepo;
 exports.getBuildFile = getBuildFile;
 
 function _process() {
   const data = require("../../../modules/nuclide-commons/process");
 
   _process = function () {
+    return data;
+  };
+
+  return data;
+}
+
+function _promise() {
+  const data = require("../../../modules/nuclide-commons/promise");
+
+  _promise = function () {
     return data;
   };
 
@@ -79,9 +89,21 @@ function _log4js() {
 }
 
 function _nuclideAnalytics() {
-  const data = require("../../nuclide-analytics");
+  const data = require("../../../modules/nuclide-analytics");
 
   _nuclideAnalytics = function () {
+    return data;
+  };
+
+  return data;
+}
+
+var _RxMin = require("rxjs/bundles/Rx.min.js");
+
+function _types() {
+  const data = require("./types");
+
+  _types = function () {
     return data;
   };
 
@@ -102,9 +124,7 @@ function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj;
  * 
  * @format
  */
-const logger = (0, _log4js().getLogger)('nuclide-buck-rpc'); // Tag these Buck calls as coming from Nuclide for analytics purposes.
-
-const CLIENT_ID_ARGS = ['--config', 'client.id=nuclide'];
+const logger = (0, _log4js().getLogger)('nuclide-buck-rpc');
 
 /**
  * As defined in com.facebook.buck.cli.Command, some of Buck's subcommands are
@@ -195,7 +215,7 @@ function _translateOptionsToBuckBuildArgs(options) {
     extraArguments
   } = baseOptions;
   let args = [test ? 'test' : doInstall ? 'install' : run ? 'run' : 'build'];
-  args = args.concat(buildTargets, CLIENT_ID_ARGS);
+  args = args.concat(buildTargets, _types().CLIENT_ID_ARGS);
 
   if (!run) {
     args.push('--keep-going');
@@ -247,7 +267,7 @@ async function _build(rootPath, buildTargets, options) {
   try {
     await runBuckCommandFromProjectRoot(rootPath, args, options.commandOptions, false, // Do not add the client ID, since we already do it in the build args.
     true // Build commands are blocking.
-    );
+    ).toPromise();
   } catch (e) {
     // The build failed. However, because --keep-going was specified, the
     // build report should have still been written unless any of the target
@@ -278,8 +298,8 @@ function build(rootPath, buildTargets, options) {
   return _build(rootPath, buildTargets, options || {});
 }
 
-async function getDefaultPlatform(rootPath, target) {
-  const result = await query(rootPath, target, ['--output-attributes', 'defaults']);
+async function getDefaultPlatform(rootPath, target, extraArguments, appendPreferredArgs = true) {
+  const result = await query(rootPath, target, ['--output-attributes', 'defaults'].concat(extraArguments), appendPreferredArgs).toPromise();
 
   if (result[target] != null && result[target].defaults != null && result[target].defaults.platform != null) {
     return result[target].defaults.platform;
@@ -288,14 +308,14 @@ async function getDefaultPlatform(rootPath, target) {
   return null;
 }
 
-async function getOwners(rootPath, filePath, extraArguments, kindFilter) {
+async function getOwners(rootPath, filePath, extraArguments, kindFilter, appendPreferredArgs = true) {
   let queryString = `owner("${(0, _string().shellQuote)([filePath])}")`;
 
   if (kindFilter != null) {
     queryString = `kind(${JSON.stringify(kindFilter)}, ${queryString})`;
   }
 
-  return query(rootPath, queryString, extraArguments);
+  return query(rootPath, queryString, extraArguments, appendPreferredArgs).toPromise();
 }
 
 function getRootForPath(file) {
@@ -307,32 +327,43 @@ function getRootForPath(file) {
  */
 
 
-async function runBuckCommandFromProjectRoot(rootPath, args, commandOptions, addClientId = true, readOnly = true) {
-  const {
+function runBuckCommandFromProjectRoot(rootPath, args, commandOptions, addClientId = true, readOnly = true) {
+  return _RxMin.Observable.fromPromise(_getBuckCommandAndOptions(rootPath, commandOptions)).switchMap(({
     pathToBuck,
     buckCommandOptions: options
-  } = await _getBuckCommandAndOptions(rootPath, commandOptions); // Create an event name from the first arg, e.g. 'buck.query' or 'buck.build'.
-
-  const analyticsEvent = `buck.${args.length > 0 ? args[0] : ''}`;
-  const newArgs = addClientId ? args.concat(CLIENT_ID_ARGS) : args;
-  return getPool(rootPath, readOnly).submit(() => {
+  }) => {
+    // Create an event name from the first arg, e.g. 'buck.query' or 'buck.build'.
+    const analyticsEvent = `buck.${args.length > 0 ? args[0] : ''}`;
+    const newArgs = addClientId ? args.concat(_types().CLIENT_ID_ARGS) : args;
+    const deferredTimer = new (_promise().Deferred)();
     logger.debug(`Running \`${pathToBuck} ${(0, _string().shellQuote)(args)}\``);
-    return (0, _nuclideAnalytics().trackTiming)(analyticsEvent, () => (0, _process().runCommand)(pathToBuck, newArgs, options).toPromise(), {
+    let errored = false;
+    (0, _nuclideAnalytics().trackTiming)(analyticsEvent, () => deferredTimer.promise, {
       args
+    });
+    return (0, _process().runCommand)(pathToBuck, newArgs, options).catch(e => {
+      // Catch and rethrow exceptions to be tracked in our timer.
+      deferredTimer.reject(e);
+      errored = true;
+      return _RxMin.Observable.throw(e);
+    }).finally(() => {
+      if (!errored) {
+        deferredTimer.resolve();
+      }
     });
   });
 }
 /** Runs `buck query --json` with the specified query. */
 
 
-async function query(rootPath, queryString, extraArguments) {
-  const fbRepoSpecificArgs = await _getFbRepoSpecificArgs(rootPath);
-  const args = ['query', ...extraArguments, '--json', queryString, ...fbRepoSpecificArgs];
-  const result = await runBuckCommandFromProjectRoot(rootPath, args);
-  return JSON.parse(result);
+function query(rootPath, queryString, extraArguments, appendPreferredArgs = true) {
+  return _RxMin.Observable.fromPromise(_getPreferredArgsForRepo(rootPath)).switchMap(fbRepoSpecificArgs => {
+    const args = ['query', ...extraArguments, '--json', queryString, ...(appendPreferredArgs ? fbRepoSpecificArgs : [])];
+    return runBuckCommandFromProjectRoot(rootPath, args).map(JSON.parse);
+  });
 }
 
-async function _getFbRepoSpecificArgs(buckRoot) {
+async function _getPreferredArgsForRepo(buckRoot) {
   try {
     // $FlowFB
     const {
@@ -345,9 +376,9 @@ async function _getFbRepoSpecificArgs(buckRoot) {
   }
 }
 
-async function getBuildFile(rootPath, targetName) {
+async function getBuildFile(rootPath, targetName, extraArguments) {
   try {
-    const result = await query(rootPath, `buildfile(${targetName})`, []);
+    const result = await query(rootPath, `buildfile(${targetName})`, extraArguments).toPromise();
 
     if (result.length === 0) {
       return null;

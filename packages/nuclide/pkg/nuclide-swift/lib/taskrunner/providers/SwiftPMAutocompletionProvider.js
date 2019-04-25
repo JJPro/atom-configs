@@ -72,8 +72,7 @@ class SwiftPMAutocompletionProvider {
       prefix
     } = request;
     const offset = editor.getBuffer().characterIndexForPosition(bufferPosition) - prefix.length;
-    const result = await (0, _SourceKitten().asyncExecuteSourceKitten)('complete', ['--text', request.editor.getText(), '--offset', String(offset), '--', // flowlint-next-line sketchy-null-string:off
-    compilerArgs ? compilerArgs : '']); // flowlint-next-line sketchy-null-string:off
+    const result = await (0, _SourceKitten().asyncExecuteSourceKitten)('complete', ['--text', request.editor.getText(), '--offset', String(offset), '--'].concat(compilerArgs ? compilerArgs : [])); // flowlint-next-line sketchy-null-string:off
 
     if (!result) {
       return [];

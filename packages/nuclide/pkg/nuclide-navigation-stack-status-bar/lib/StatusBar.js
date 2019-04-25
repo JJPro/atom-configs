@@ -80,7 +80,7 @@ function _shallowequal() {
 }
 
 function analytics() {
-  const data = _interopRequireWildcard(require("../../nuclide-analytics"));
+  const data = _interopRequireWildcard(require("../../../modules/nuclide-analytics"));
 
   analytics = function () {
     return data;

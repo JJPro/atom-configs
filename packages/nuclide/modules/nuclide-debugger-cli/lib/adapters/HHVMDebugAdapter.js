@@ -110,6 +110,22 @@ class HHVMDebugAdapter {
     });
   }
 
+  transformExpression(exp, isCodeBlock) {
+    if (isCodeBlock) {
+      return exp;
+    } // NB This is the same hack that's done in classic hphpd to get around the
+    // fact that evaluating a code block like 'prep(genFoo())' returns the
+    // constant '1' rather than the asynchronously computed result of genFoo()
+
+
+    return exp; // `$_=${exp}`;
+  }
+
+  async canDebugFile(file) {
+    // no special cases, just use file extension
+    return false;
+  }
+
 }
 
 exports.default = HHVMDebugAdapter;

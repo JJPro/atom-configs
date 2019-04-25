@@ -54,7 +54,7 @@ describe('RecentFilesService', () => {
     [filePath1, filePath2, filePath3] = await Promise.all([_fsPromise().default.tempfile('1'), _fsPromise().default.tempfile('2'), _fsPromise().default.tempfile('3')]);
   });
   afterEach(async () => {
-    recentFilesService.dispose();
+    await recentFilesService.dispose();
     await _idbKeyval().default.clear();
   });
   describe('getRecentFiles', () => {
@@ -119,7 +119,7 @@ describe('RecentFilesService', () => {
       await recentFilesService.touchFile(filePath3);
       await recentFilesService.touchFile(filePath2);
       await recentFilesService.touchFile(filePath1);
-      recentFilesService.dispose();
+      await recentFilesService.dispose();
       const restoredRecentFilesService = new (_RecentFilesService().default)();
       const mostRecentFiles = await restoredRecentFilesService.getRecentFiles();
       expect(mostRecentFiles.length).toEqual(3);
@@ -131,9 +131,9 @@ describe('RecentFilesService', () => {
       await recentFilesService.touchFile(filePath3);
       await recentFilesService.touchFile(filePath2);
       await recentFilesService.touchFile(filePath1);
-      recentFilesService.dispose();
+      await recentFilesService.dispose();
       await recentFilesService.getRecentFiles();
-      recentFilesService.dispose();
+      await recentFilesService.dispose();
       const restoredRecentFilesService = new (_RecentFilesService().default)();
       const mostRecentFiles = await restoredRecentFilesService.getRecentFiles();
       expect(mostRecentFiles.length).toEqual(3);

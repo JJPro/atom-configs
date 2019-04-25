@@ -77,7 +77,7 @@ function initializeLogging(connection) {
   _log4js().default.configure({
     appenders: [{
       type: 'logLevelFilter',
-      level: 'DEBUG',
+      level: 'WARN',
       appender: {
         connection,
         type: require.resolve("../../nuclide-lsp-implementation-common/connectionConsoleAppender")

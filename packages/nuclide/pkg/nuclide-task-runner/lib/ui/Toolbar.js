@@ -5,6 +5,16 @@ Object.defineProperty(exports, "__esModule", {
 });
 exports.default = void 0;
 
+function _passesGK() {
+  const data = _interopRequireDefault(require("../../../../modules/nuclide-commons/passesGK"));
+
+  _passesGK = function () {
+    return data;
+  };
+
+  return data;
+}
+
 function _BuckTaskRunner() {
   const data = require("../../../nuclide-buck/lib/BuckTaskRunner");
 
@@ -75,6 +85,16 @@ function _SplitButtonDropdown() {
   return data;
 }
 
+function _TaskRunnerStatusComponent() {
+  const data = _interopRequireDefault(require("../../../nuclide-buck/lib/ui/TaskRunnerStatusComponent"));
+
+  _TaskRunnerStatusComponent = function () {
+    return data;
+  };
+
+  return data;
+}
+
 function _TaskRunnerButton() {
   const data = require("./TaskRunnerButton");
 
@@ -96,7 +116,7 @@ function _Dropdown() {
 }
 
 function _FullWidthProgressBar() {
-  const data = _interopRequireDefault(require("../../../nuclide-ui/FullWidthProgressBar"));
+  const data = _interopRequireDefault(require("../../../../modules/nuclide-commons-ui/FullWidthProgressBar"));
 
   _FullWidthProgressBar = function () {
     return data;
@@ -142,9 +162,45 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  * @format
  */
 // eslint-disable-next-line nuclide-internal/no-cross-atom-imports
+// eslint-disable-next-line nuclide-internal/no-cross-atom-imports
 const DEBUG_TASK_TYPE_KEY = 'nuclide-task-runner.debugTaskType';
 
 class Toolbar extends React.Component {
+  constructor() {
+    super();
+    this.state = {
+      taskbarStatusComponentGK: false,
+      bulletin: {
+        title: '',
+        body: ''
+      }
+    };
+    this._buckSuperConsoleGk = 'nuclide_buck_superconsole';
+
+    this._setTaskBarStatusGk();
+  }
+
+  componentDidUpdate(prevProps, prevState) {
+    if (prevProps.status != null && prevProps.status.type === 'bulletin' && prevProps.status.bulletin.title !== this.state.bulletin.title) {
+      this.setState({
+        bulletin: {
+          body: prevProps.status.bulletin.body,
+          title: prevProps.status.bulletin.title
+        }
+      });
+    }
+  }
+
+  async _setTaskBarStatusGk() {
+    const passedGk = await (0, _passesGK().default)(this._buckSuperConsoleGk);
+
+    if (passedGk) {
+      this.setState({
+        taskbarStatusComponentGK: true
+      });
+    }
+  }
+
   render() {
     const className = (0, _classnames().default)('nuclide-task-runner-toolbar', {
       disabled: this.props.toolbarDisabled
@@ -186,6 +242,23 @@ class Toolbar extends React.Component {
       iconComponent: this.props.iconComponent
     }));
 
+    let statusComponentContent = null;
+    let fullWidthProgressBar = null;
+
+    if (this.state.taskbarStatusComponentGK) {
+      statusComponentContent = React.createElement(_TaskRunnerStatusComponent().default, {
+        title: this.state.bulletin.title,
+        body: this.state.bulletin.body,
+        progress: this.props.progress,
+        visible: this.props.taskIsRunning
+      });
+    } else {
+      fullWidthProgressBar = React.createElement(_FullWidthProgressBar().default, {
+        progress: this.props.progress,
+        visible: this.props.taskIsRunning
+      });
+    }
+
     return React.createElement("div", {
       className: `${className} padded`
     }, React.createElement("div", {
@@ -201,10 +274,7 @@ class Toolbar extends React.Component {
         this.props.selectTaskRunner(value);
       },
       size: "sm"
-    })), taskRunnerSpecificContent), React.createElement(_FullWidthProgressBar().default, {
-      progress: this.props.progress,
-      visible: this.props.taskIsRunning
-    }));
+    })), taskRunnerSpecificContent, statusComponentContent), fullWidthProgressBar);
   }
 
   _renderTaskButtons() {
@@ -213,15 +283,14 @@ class Toolbar extends React.Component {
     return React.createElement("span", {
       className: "nuclide-task-button-container inline-block",
       key: "taskButtons"
-    }, React.createElement(_ButtonGroup().ButtonGroup, null, taskButtons, React.createElement(_Button().Button, {
+    }, React.createElement(_ButtonGroup().ButtonGroup, null, taskButtons, this.props.runningTaskIsCancelable === true ? React.createElement(_Button().Button, {
       className: "nuclide-task-button",
       key: "stop",
       size: _Button().ButtonSizes.SMALL,
       icon: "primitive-square",
       tooltip: tooltip('Stop'),
-      disabled: this.props.runningTaskIsCancelable !== true,
       onClick: this.props.stopRunningTask
-    })));
+    }) : null));
   }
 
   _getButtonsForTasks() {

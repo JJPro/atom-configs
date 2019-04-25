@@ -360,7 +360,8 @@ class DiagnosticsTable extends React.PureComponent {
           data: {
             classification: {
               kind: diagnostic.kind || 'lint',
-              severity: diagnostic.type
+              severity: diagnostic.type,
+              stale: diagnostic.stale
             },
             providerName: diagnostic.providerName,
             description: Object.assign({
@@ -410,13 +411,15 @@ var _initialiseProps = function () {
     }
 
     this.props.gotoMessageLocation(item.diagnostic, {
-      focusEditor: false
+      focusEditor: false,
+      pendingPane: event.type !== 'click'
     });
   };
 
   this._handleConfirmTableRow = item => {
     this.props.gotoMessageLocation(item.diagnostic, {
-      focusEditor: true
+      focusEditor: true,
+      pendingPane: false
     });
   };
 
@@ -451,7 +454,8 @@ function TypeComponent(props) {
   const classification = props.data;
   const iconName = getIconName(classification);
   return React.createElement(_Icon().Icon, {
-    icon: iconName
+    icon: iconName,
+    className: classification.stale ? 'nuclide-ui-table-type-icon-stale' : ''
   });
 }
 

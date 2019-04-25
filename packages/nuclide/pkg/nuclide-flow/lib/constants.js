@@ -15,5 +15,5 @@ exports.JS_GRAMMARS = void 0;
  *  strict
  * @format
  */
-const JS_GRAMMARS = Object.freeze(['source.js', 'source.js.jsx']);
+const JS_GRAMMARS = Object.freeze(['source.js', 'source.js.jsx', 'source.flow']);
 exports.JS_GRAMMARS = JS_GRAMMARS;

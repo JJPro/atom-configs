@@ -20,7 +20,7 @@ function _log4js() {
 }
 
 function _nuclideAnalytics() {
-  const data = require("../../nuclide-analytics");
+  const data = require("../../../modules/nuclide-analytics");
 
   _nuclideAnalytics = function () {
     return data;
@@ -174,15 +174,17 @@ class FlowProcess {
     this._isDisposed = new _RxMin.BehaviorSubject(false);
     this._fileCache = fileCache;
     this._optionalIDEConnections = new _RxMin.BehaviorSubject(null);
-    this._ideConnections = this._createIDEConnectionStream();
+    this._ideConnections = this._createIDEConnectionStream(); // eslint-disable-next-line nuclide-internal/unused-subscription
 
     this._serverStatus.subscribe(status => {
       logger.info(`[${status}]: Flow server in ${this._root}`);
-    });
+    }); // eslint-disable-next-line nuclide-internal/unused-subscription
+
 
     this._serverStatus.filter(x => x === _FlowConstants().ServerStatus.NOT_RUNNING).subscribe(() => {
       this._startFlowServer();
-    });
+    }); // eslint-disable-next-line nuclide-internal/unused-subscription
+
 
     this._serverStatus.scan(({
       previousState
@@ -200,7 +202,8 @@ class FlowProcess {
       shouldStartPinging
     }) => shouldStartPinging).subscribe(() => {
       this._pingServer();
-    });
+    }); // eslint-disable-next-line nuclide-internal/unused-subscription
+
 
     this._serverStatus.filter(status => status === _FlowConstants().ServerStatus.FAILED).subscribe(() => {
       (0, _nuclideAnalytics().track)('flow-server-failed');
@@ -214,7 +217,7 @@ class FlowProcess {
       }
 
       return execInfo.flowVersion;
-    });
+    }); // eslint-disable-next-line nuclide-internal/unused-subscription
 
     this._serverStatus.filter(state => state === 'not running').subscribe(() => this._version.invalidateVersion());
   }
@@ -531,7 +534,7 @@ class FlowProcess {
 
 
   async _pingServer() {
-    let hasReachedSteadyState = false;
+    let hasReachedSteadyState = false; // eslint-disable-next-line nuclide-internal/unused-subscription
 
     this._serverStatus.filter(state => !TEMP_SERVER_STATES.includes(state)).take(1).subscribe(() => {
       hasReachedSteadyState = true;

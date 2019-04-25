@@ -40,7 +40,9 @@ class Activation {
 
   consumeLegacyProvider(provider) {
     // Legacy providers used `selector` / `inclusionPriority`.
-    provider.grammarScopes = provider.grammarScopes || (provider.selector != null ? provider.selector.split(', ') : null);
+    // $FlowIgnore legacy API compatability.
+    provider.grammarScopes = provider.grammarScopes || ( // $FlowIgnore
+    provider.selector != null ? provider.selector.split(', ') : null);
     provider.priority = provider.priority != null ? provider.priority : // $FlowFixMe(>=0.68.0) Flow suppress (T27187857)
     provider.inclusionPriority != null ? provider.inclusionPriority : 0;
 

@@ -126,7 +126,7 @@ function startMetro(projectRoot, editorArgs, port = 8081, extraArgs = []) {
       }),
       killTreeWhenDone: true
     }).catch(error => {
-      if (error.exitCode === 11) {
+      if (error.exitCode === 22) {
         return _RxMin.Observable.throw(metroPortBusyError());
       } else {
         return _RxMin.Observable.throw(error);

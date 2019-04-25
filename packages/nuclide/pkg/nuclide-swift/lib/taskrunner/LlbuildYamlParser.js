@@ -84,7 +84,16 @@ async function readCompileCommands(path) {
 
     llbuildCommand.sources.forEach(source => {
       const otherArgs = llbuildCommand['other-args'] ? llbuildCommand['other-args'] : [];
-      compileCommands.set(source, otherArgs.concat(llbuildCommand.sources).join(' '));
+      const moduleName = llbuildCommand['module-name'] ? llbuildCommand['module-name'] : '';
+      const moduleNameArgs = ['-module-name', moduleName, '-Onone', '-enable-batch-mode', '-enforce-exclusivity=checked', '-DSWIFT_PACKAGE', '-DDEBUG', '-DXcode'];
+      const importPaths = llbuildCommand['import-paths'] ? llbuildCommand['import-paths'] : [];
+      const importPathsArgs = [];
+
+      for (let i = importPaths.length - 1; i >= 0; i--) {
+        importPathsArgs.push('-Xcc', '-I', '-Xcc', importPaths[i], '-I', importPaths[i], '-Xcc', '-F', '-Xcc', importPaths[i], '-F', importPaths[i]);
+      }
+
+      compileCommands.set(source, moduleNameArgs.concat(importPathsArgs).concat(otherArgs).concat(llbuildCommand.sources));
     });
   }
 

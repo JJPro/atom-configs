@@ -5,6 +5,16 @@ Object.defineProperty(exports, "__esModule", {
 });
 exports.default = void 0;
 
+function _ProviderRegistry() {
+  const data = _interopRequireDefault(require("../../../modules/nuclide-commons-atom/ProviderRegistry"));
+
+  _ProviderRegistry = function () {
+    return data;
+  };
+
+  return data;
+}
+
 function _analytics() {
   const data = _interopRequireDefault(require("../../../modules/nuclide-commons/analytics"));
 
@@ -19,16 +29,6 @@ function _getFragmentGrammar() {
   const data = _interopRequireDefault(require("../../../modules/nuclide-commons-atom/getFragmentGrammar"));
 
   _getFragmentGrammar = function () {
-    return data;
-  };
-
-  return data;
-}
-
-function _collection() {
-  const data = require("../../../modules/nuclide-commons/collection");
-
-  _collection = function () {
     return data;
   };
 
@@ -76,17 +76,12 @@ class TypeHintManager {
    * shows a type hint, otherwise it hides the current typehint.
    */
   constructor() {
-    this._typeHintProviders = [];
+    this._providers = new (_ProviderRegistry().default)();
   }
 
   async datatip(editor, position) {
     const grammar = editor.getGrammar();
-    const {
-      scopeName
-    } = grammar;
-
-    const matchingProviders = this._getMatchingProvidersForScopeName(scopeName);
-
+    const matchingProviders = [...this._providers.getAllProvidersForEditor(editor)];
     return (0, _promise().asyncFind)(matchingProviders.map(provider => this._getDatatipFromProvider(editor, position, grammar, provider)), x => x);
   }
 
@@ -152,21 +147,8 @@ class TypeHintManager {
     };
   }
 
-  _getMatchingProvidersForScopeName(scopeName) {
-    return this._typeHintProviders.filter(provider => {
-      const providerGrammars = provider.selector.split(/, ?/);
-      return provider.inclusionPriority > 0 && providerGrammars.indexOf(scopeName) !== -1;
-    }).sort((providerA, providerB) => {
-      return providerA.inclusionPriority - providerB.inclusionPriority;
-    });
-  }
-
   addProvider(provider) {
-    this._typeHintProviders.push(provider);
-  }
-
-  removeProvider(provider) {
-    (0, _collection().arrayRemove)(this._typeHintProviders, provider);
+    return this._providers.addProvider(provider);
   }
 
 }

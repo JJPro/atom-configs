@@ -67,16 +67,6 @@ function _destroyItemWhere() {
   return data;
 }
 
-function _nullthrows() {
-  const data = _interopRequireDefault(require("nullthrows"));
-
-  _nullthrows = function () {
-    return data;
-  };
-
-  return data;
-}
-
 function _DebuggerControlsView() {
   const data = _interopRequireDefault(require("./DebuggerControlsView"));
 
@@ -87,30 +77,10 @@ function _DebuggerControlsView() {
   return data;
 }
 
-function _ThreadsView() {
-  const data = _interopRequireDefault(require("./ThreadsView"));
-
-  _ThreadsView = function () {
-    return data;
-  };
-
-  return data;
-}
-
 function _DebuggerProcessTreeView() {
   const data = _interopRequireDefault(require("./DebuggerProcessTreeView"));
 
   _DebuggerProcessTreeView = function () {
-    return data;
-  };
-
-  return data;
-}
-
-function _DebuggerCallstackComponent() {
-  const data = _interopRequireDefault(require("./DebuggerCallstackComponent"));
-
-  _DebuggerCallstackComponent = function () {
     return data;
   };
 
@@ -168,8 +138,6 @@ function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj;
 const CONSOLE_VIEW_URI = 'atom://nuclide/console';
 const DEBUGGER_URI_BASE = 'atom://nuclide/debugger-';
 
-let _gkService;
-
 class DebuggerLayoutManager {
   constructor(service, state) {
     this._disposables = new (_UniversalDisposable().default)();
@@ -183,8 +151,6 @@ class DebuggerLayoutManager {
     this._initializeDebuggerPanes();
 
     this._reshowDebuggerPanes(state);
-
-    this._isInMultiGK = false;
 
     this._disposables.add(() => {
       if (this._leftPaneContainerModel != null) {
@@ -257,11 +223,9 @@ class DebuggerLayoutManager {
   }
 
   _initializeDebuggerPanes() {
-    const getFocusedProcess = () => this._service.viewModel.focusedProcess; // This configures the debugger panes. By default, they'll appear below the stepping
+    // This configures the debugger panes. By default, they'll appear below the stepping
     // controls from top to bottom in the order they're defined here. After that, the
     // user is free to move them around.
-
-
     this._debuggerPanes = [{
       uri: DEBUGGER_URI_BASE + 'controls',
       isLifetimeView: true,
@@ -269,18 +233,10 @@ class DebuggerLayoutManager {
       defaultLocation: _constants().DEBUGGER_PANELS_DEFAULT_LOCATION,
       isEnabled: () => true,
       createView: () => React.createElement(_DebuggerControlsView().default, {
-        service: this._service,
-        passesMultiGK: this._isInMultiGK
+        service: this._service
       }),
       onPaneResize: (dockPane, newFlexScale) => {
-        // If the debugger is stopped, let the controls pane keep its default
-        // layout to make room for the buttons and additional content. Otherwise,
-        // override the layout to shrink the pane and remove extra vertical whitespace.
-        const debuggerMode = this._getFocusedProcessMode();
-
-        if (debuggerMode !== _constants().DebuggerMode.STOPPED) {
-          this._overridePaneInitialHeight(dockPane, newFlexScale, 250);
-        } // If newFlexScale !== 1, that means the user must have resized this pane.
+        this._overridePaneInitialHeight(dockPane, newFlexScale, 135); // If newFlexScale !== 1, that means the user must have resized this pane.
         // Return true to unhook this callback and let the pane resize per Atom's
         // default behavior. The user is now responsible for the pane's height.
 
@@ -288,12 +244,12 @@ class DebuggerLayoutManager {
         return newFlexScale !== 1;
       }
     }, {
-      uri: DEBUGGER_URI_BASE + 'callstack',
+      uri: DEBUGGER_URI_BASE + 'debuggertree',
       isLifetimeView: false,
       defaultLocation: _constants().DEBUGGER_PANELS_DEFAULT_LOCATION,
-      title: () => 'Call Stack',
+      title: () => 'Processes',
       isEnabled: () => true,
-      createView: () => React.createElement(_DebuggerCallstackComponent().default, {
+      createView: () => React.createElement(_DebuggerProcessTreeView().default, {
         service: this._service
       }),
       debuggerModeFilter: mode => mode !== _constants().DebuggerMode.STOPPED
@@ -326,23 +282,8 @@ class DebuggerLayoutManager {
       createView: () => React.createElement(_WatchView().default, {
         service: this._service
       })
-    }, {
-      uri: DEBUGGER_URI_BASE + 'threads',
-      isLifetimeView: false,
-      defaultLocation: _constants().DEBUGGER_PANELS_DEFAULT_LOCATION,
-      title: () => getFocusedProcess() == null ? 'Threads' : (0, _nullthrows().default)(getFocusedProcess()).configuration.threadsComponentTitle || 'Threads',
-      isEnabled: () => getFocusedProcess() == null ? false : (0, _nullthrows().default)(getFocusedProcess()).configuration.showThreads == null ? true : Boolean((0, _nullthrows().default)(getFocusedProcess()).configuration.showThreads),
-      createView: () => React.createElement(_ThreadsView().default, {
-        service: this._service
-      }),
-      debuggerModeFilter: mode => mode !== _constants().DebuggerMode.STOPPED
     }];
-
-    if (_gkService != null) {
-      this.convertToDebuggerTreePanes();
-    } else {
-      this.registerContextMenus();
-    }
+    this.registerContextMenus();
 
     this._restoreDebuggerPaneLocations();
   }
@@ -440,53 +381,6 @@ class DebuggerLayoutManager {
       orientation: 'vertical'
     };
     return docks;
-  }
-
-  convertToDebuggerTreePanes() {
-    if (_gkService != null) {
-      _gkService.passesGK('nuclide_processtree_debugging').then(passes => {
-        if (passes) {
-          this._debuggerPanes.splice(1, 0, {
-            uri: DEBUGGER_URI_BASE + 'debuggertree',
-            isLifetimeView: false,
-            defaultLocation: _constants().DEBUGGER_PANELS_DEFAULT_LOCATION,
-            title: () => 'Processes',
-            isEnabled: () => true,
-            createView: () => React.createElement(_DebuggerProcessTreeView().default, {
-              service: this._service
-            }),
-            debuggerModeFilter: mode => mode !== _constants().DebuggerMode.STOPPED
-          });
-
-          for (let i = 0; i < this._debuggerPanes.length; i++) {
-            const uri = this._debuggerPanes[i].uri;
-
-            if (uri === DEBUGGER_URI_BASE + 'callstack' || uri === DEBUGGER_URI_BASE + 'threads') {
-              this._debuggerPanes.splice(i, 1);
-            }
-          }
-
-          if (this._debuggerVisible) {
-            this.showDebuggerViews();
-          }
-        }
-
-        this.registerContextMenus();
-      });
-    }
-  }
-
-  consumeGatekeeperService(service) {
-    _gkService = service;
-    this.convertToDebuggerTreePanes();
-
-    if (_gkService != null) {
-      _gkService.passesGK('nuclide_multitarget_debugging').then(passes => {
-        this._isInMultiGK = passes;
-      });
-    }
-
-    return new (_UniversalDisposable().default)(() => _gkService = null);
   }
 
   _isDockEmpty(dock) {

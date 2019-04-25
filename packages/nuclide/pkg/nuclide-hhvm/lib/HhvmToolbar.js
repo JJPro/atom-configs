@@ -5,32 +5,10 @@ Object.defineProperty(exports, "__esModule", {
 });
 exports.default = void 0;
 
-var _electron = require("electron");
-
-function _constants() {
-  const data = require("../../nuclide-hack-common/lib/constants.js");
-
-  _constants = function () {
-    return data;
-  };
-
-  return data;
-}
-
 function _AtomInput() {
   const data = require("../../../modules/nuclide-commons-ui/AtomInput");
 
   _AtomInput = function () {
-    return data;
-  };
-
-  return data;
-}
-
-function _Dropdown() {
-  const data = require("../../../modules/nuclide-commons-ui/Dropdown");
-
-  _Dropdown = function () {
     return data;
   };
 
@@ -57,17 +35,25 @@ function _Checkbox() {
   return data;
 }
 
-function _nullthrows() {
-  const data = _interopRequireDefault(require("nullthrows"));
+function _Dropdown() {
+  const data = require("../../../modules/nuclide-commons-ui/Dropdown");
 
-  _nullthrows = function () {
+  _Dropdown = function () {
     return data;
   };
 
   return data;
 }
 
-var React = _interopRequireWildcard(require("react"));
+function _event() {
+  const data = require("../../../modules/nuclide-commons/event");
+
+  _event = function () {
+    return data;
+  };
+
+  return data;
+}
 
 function _HhvmToolbarSettings() {
   const data = require("./HhvmToolbarSettings");
@@ -79,9 +65,23 @@ function _HhvmToolbarSettings() {
   return data;
 }
 
-function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) { var desc = Object.defineProperty && Object.getOwnPropertyDescriptor ? Object.getOwnPropertyDescriptor(obj, key) : {}; if (desc.get || desc.set) { Object.defineProperty(newObj, key, desc); } else { newObj[key] = obj[key]; } } } } newObj.default = obj; return newObj; } }
+var React = _interopRequireWildcard(require("react"));
+
+var _electron = require("electron");
+
+function _UniversalDisposable() {
+  const data = _interopRequireDefault(require("../../../modules/nuclide-commons/UniversalDisposable"));
+
+  _UniversalDisposable = function () {
+    return data;
+  };
+
+  return data;
+}
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) { var desc = Object.defineProperty && Object.getOwnPropertyDescriptor ? Object.getOwnPropertyDescriptor(obj, key) : {}; if (desc.get || desc.set) { Object.defineProperty(newObj, key, desc); } else { newObj[key] = obj[key]; } } } } newObj.default = obj; return newObj; } }
 
 /**
  * Copyright (c) 2015-present, Facebook, Inc.
@@ -93,96 +93,57 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  * 
  * @format
  */
-const WEB_SERVER_OPTION = {
-  label: 'Attach to WebServer',
-  value: 'webserver'
-};
-const SCRIPT_OPTION = {
-  label: 'Launch Script',
-  value: 'script'
-};
-const DEBUG_OPTIONS = [WEB_SERVER_OPTION, SCRIPT_OPTION];
-const NO_LAUNCH_DEBUG_OPTIONS = [WEB_SERVER_OPTION];
-
 class HhvmToolbar extends React.Component {
   constructor(props) {
     super(props);
 
-    this._updateLastScriptCommand = command => {
-      if (this.props.projectStore.getDebugMode() !== 'webserver') {
-        if (this.state.stickyScript) {
-          this.props.projectStore.setStickyCommand(command, true);
-        } else {
-          this.props.projectStore.updateLastScriptCommand(command);
-        }
-      }
-    };
-
     this._handleDropdownChange = value => {
-      this.props.projectStore.setDebugMode(value);
-
-      this._suggestTargetIfCustomDebugMode(value);
-    };
-
-    this.state = {
-      stickyScript: false,
-      useTerminal: false,
-      settingsVisible: false
-    };
-  }
-
-  _getMenuItems() {
-    const additionalOptions = [];
-
-    try {
-      // $FlowFB: This is suppressed elsewhere, so vary the filename.
-      const helpers = require("./fb-hhvm.js");
-
-      additionalOptions.push(...helpers.getAdditionalLaunchOptions());
-    } catch (e) {}
-
-    return this._isTargetLaunchable(this.props.projectStore.getCurrentFilePath()) ? DEBUG_OPTIONS.concat(additionalOptions) : NO_LAUNCH_DEBUG_OPTIONS;
-  }
-
-  _isTargetLaunchable(targetFilePath) {
-    if (targetFilePath.endsWith('.php') || targetFilePath.endsWith('.hh')) {
-      return true;
-    }
-
-    return atom.workspace.getTextEditors().some(editor => {
-      const editorPath = editor.getPath();
-
-      if (editorPath != null && editorPath.endsWith(targetFilePath)) {
-        const grammar = editor.getGrammar();
-        return _constants().HACK_GRAMMARS.indexOf(grammar.scopeName) >= 0;
+      if (this.props.projectStore.getSticky()) {
+        this.props.projectStore.setSticky(false);
       }
 
-      return false;
+      this.props.projectStore.setDebugMode(value);
+    };
+
+    this._handleTargetBoxChange = value => {
+      this.props.projectStore.setDebugTarget(value);
+    };
+
+    this._disposables = new (_UniversalDisposable().default)();
+    this.state = Object.assign({}, this._getState(), {
+      settingsVisible: false
     });
+
+    this._disposables.add((0, _event().observableFromSubscribeFunction)(this.props.projectStore.onChange.bind(this.props.projectStore)).subscribe(() => {
+      this.setState(Object.assign({}, this._getState()));
+    }));
   }
 
-  UNSAFE_componentWillReceiveProps(nextProps) {
-    // Reset selected item to webserver if target is not launchable anymore.
-    // TODO[jeffreytan]: this is ugly, refactor to make it more elegant.
-    const store = this.props.projectStore;
+  _getState() {
+    return {
+      stickyScript: this.props.projectStore.getSticky(),
+      useTerminal: this.props.projectStore.getUseTerminal(),
+      debugMode: this.props.projectStore.getDebugMode(),
+      launchTarget: this.props.projectStore.getLaunchTarget()
+    };
+  }
 
-    if (store.getDebugMode() === 'script' && !this.state.stickyScript && !this._isTargetLaunchable(store.getCurrentFilePath())) {
-      store.setDebugMode('webserver');
-    }
-
-    this._suggestTargetIfCustomDebugMode(store.getDebugMode());
-
-    (0, _nullthrows().default)(this._debugTarget).setText(store.getDebugTarget());
+  componentWillUnmount() {
+    this._disposables.dispose();
   }
 
   render() {
-    const store = this.props.projectStore;
-    const isDebugScript = store.getDebugMode() !== 'webserver';
-    const isDisabled = !isDebugScript;
-    const value = store.getDebugTarget();
+    const {
+      stickyScript,
+      useTerminal,
+      settingsVisible,
+      debugMode,
+      launchTarget
+    } = this.state;
+    const isDebugScript = debugMode !== 'webserver';
 
     const openFn = () => {
-      const browserUri = (this._debugTarget != null ? this._debugTarget.getText() : store.getDebugTarget()) || '';
+      const browserUri = launchTarget;
       const address = browserUri.trim().toLowerCase();
 
       if (!address.startsWith('http://') && !address.startsWith('https://')) {
@@ -196,12 +157,9 @@ class HhvmToolbar extends React.Component {
       className: "hhvm-toolbar"
     }, React.createElement(_Dropdown().Dropdown, {
       className: "inline-block",
-      options: this._getMenuItems(),
-      value: store.getDebugMode(),
+      options: this.props.debugOptions,
+      value: debugMode,
       onChange: this._handleDropdownChange,
-      ref: dropdown => {
-        this._dropdown = dropdown;
-      },
       size: "sm"
     }), React.createElement("div", {
       className: "inline-block",
@@ -209,14 +167,12 @@ class HhvmToolbar extends React.Component {
         width: '300px'
       }
     }, React.createElement(_AtomInput().AtomInput, {
-      ref: input => {
-        this._debugTarget = input;
-      },
-      value: value,
-      onDidChange: isDisabled ? () => {} : this._updateLastScriptCommand,
+      value: launchTarget,
+      onDidChange: this._handleTargetBoxChange,
       onConfirm: openFn,
+      disabled: stickyScript,
       size: "sm"
-    })), store.getDebugMode() !== 'webserver' ? React.createElement(_Button().Button, {
+    })), debugMode !== 'webserver' ? React.createElement(_Button().Button, {
       className: "icon icon-gear",
       size: _Button().ButtonSizes.SMALL,
       title: "Advanced settings",
@@ -224,7 +180,7 @@ class HhvmToolbar extends React.Component {
         'margin-right': '3px'
       },
       onClick: () => this._showSettings()
-    }) : null, this.state.settingsVisible ? React.createElement(_HhvmToolbarSettings().HhvmToolbarSettings, {
+    }) : null, settingsVisible ? React.createElement(_HhvmToolbarSettings().HhvmToolbarSettings, {
       projectStore: this.props.projectStore,
       onDismiss: () => this._hideSettings()
     }) : null, React.createElement("div", {
@@ -233,27 +189,22 @@ class HhvmToolbar extends React.Component {
       size: "SMALL",
       onClick: openFn
     }, "Open In Browser") : React.createElement(_Checkbox().Checkbox, {
-      checked: this.state.stickyScript,
+      checked: stickyScript,
       className: "nuclide-hhvm-be-sticky-control",
       label: "Sticky",
       onChange: isChecked => {
-        this.props.projectStore.setStickyCommand((0, _nullthrows().default)(this._debugTarget).getText(), isChecked);
-        this.setState({
-          stickyScript: isChecked
-        });
+        this.props.projectStore.setSticky(isChecked);
       },
+      disabled: !this.props.projectStore.isCurrentSettingDebuggable(),
       tooltip: {
-        title: 'When checked, the target script will not change when switching to another editor tab'
+        title: this.props.projectStore.isCurrentSettingDebuggable() ? 'When checked, the target script will not change when switching to another editor tab' : 'The current HHVM debug settings are not valid.'
       }
-    }), store.getDebugMode() === 'script' ? React.createElement(_Checkbox().Checkbox, {
-      checked: this.state.useTerminal,
+    }), debugMode === 'script' ? React.createElement(_Checkbox().Checkbox, {
+      checked: useTerminal,
       className: "nuclide-hhvm-use-terminal-control",
       label: "Run in Terminal",
       onChange: isChecked => {
         this.props.projectStore.setUseTerminal(isChecked);
-        this.setState({
-          useTerminal: isChecked
-        });
       },
       tooltip: {
         title: "When checked, the target script's STDIN and STDOUT will be redirected to a new Nuclide Terminal pane"
@@ -271,22 +222,6 @@ class HhvmToolbar extends React.Component {
     this.setState({
       settingsVisible: false
     });
-  }
-
-  _suggestTargetIfCustomDebugMode(debugMode) {
-    const store = this.props.projectStore; // If a custom debug mode is selected, suggest a debug target for the user.
-
-    if (DEBUG_OPTIONS.find(option => option.value === debugMode) == null) {
-      try {
-        // $FlowFB
-        const helpers = require("./fb-hhvm");
-
-        const suggestedTarget = helpers.suggestDebugTargetName(debugMode, store.getCurrentFilePath());
-        store.updateLastScriptCommand(suggestedTarget != null ? suggestedTarget : '');
-      } catch (e) {}
-    } else {
-      store.updateLastScriptCommand('');
-    }
   }
 
 }

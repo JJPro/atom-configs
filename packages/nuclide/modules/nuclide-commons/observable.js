@@ -314,43 +314,82 @@ function concatLatest(...observables) {
     accumulator[index] = list;
     return accumulator;
   }, observables.map(x => [])).map(accumulator => [].concat(...accumulator));
-}
+} // Use a sentinel so we can distinguish between when `null` is emitted and when
+// nothing is.
 
-/**
- * A more sensible alternative to RxJS's throttle/audit/sample operators.
- */
-function throttle(duration, options_) {
-  return source => {
-    const options = options_ || {};
-    const leading = options.leading !== false;
-    let audit;
 
-    switch (typeof duration) {
-      case 'number':
-        audit = obs => obs.auditTime(duration);
+const NONE = {};
 
-        break;
+function throttle(delay) {
+  let getDelay;
 
-      case 'function':
-        audit = obs => obs.audit(duration);
+  switch (typeof delay) {
+    case 'number':
+      getDelay = () => _RxMin.Observable.timer(delay);
 
-        break;
+      break;
 
-      default:
-        audit = obs => obs.audit(() => duration);
+    case 'function':
+      getDelay = delay;
+      break;
 
-    }
+    case 'object':
+      getDelay = () => delay;
 
-    if (!leading) {
-      return audit(source);
-    }
+      break;
 
+    default:
+      throw new Error(`Invalid delay: ${delay}`);
+  }
+
+  return function doThrottle(source) {
     return _RxMin.Observable.create(observer => {
-      const connectableSource = source.publish();
+      // The elements that are actually emitted. We use this to know when to
+      // start ignoring elements.
+      const emittedElements = new _RxMin.Subject();
+      let latestValue = NONE;
+      let shouldIgnore = false;
 
-      const throttled = _RxMin.Observable.merge(connectableSource.take(1), audit(connectableSource.skip(1)));
+      const checkShouldNext = () => {
+        if (!shouldIgnore && latestValue !== NONE) {
+          // At this point, latestValue must be of type T
+          latestValue = latestValue;
+          const valueToDispatch = latestValue;
+          latestValue = NONE;
+          shouldIgnore = true;
+          observer.next(valueToDispatch);
+          emittedElements.next(valueToDispatch);
+        }
+      };
 
-      return new (_UniversalDisposable().default)(throttled.subscribe(observer), connectableSource.connect());
+      const sub = new _RxMin.Subscription();
+      sub.add(emittedElements.switchMap(x => {
+        const timer = getDelay(x);
+
+        if (timer instanceof _RxMin.Observable) {
+          return timer.take(1);
+        } else {
+          return timer;
+        }
+      }).subscribe(() => {
+        shouldIgnore = false;
+        checkShouldNext();
+      }));
+      sub.add(source.subscribe({
+        next: x => {
+          latestValue = x;
+          checkShouldNext();
+        },
+        error: err => {
+          observer.error(err);
+        },
+        complete: () => {
+          shouldIgnore = false;
+          checkShouldNext();
+          observer.complete();
+        }
+      }));
+      return sub;
     });
   };
 }

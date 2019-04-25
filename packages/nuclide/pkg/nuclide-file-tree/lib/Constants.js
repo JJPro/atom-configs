@@ -3,7 +3,7 @@
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-exports.WORKSPACE_VIEW_URI = exports.ShowUncommittedChangesKind = exports.SHOW_UNCOMMITTED_CHANGES_KIND_CONFIG_KEY = exports.SHOW_UNCOMMITTED_CHANGES_CONFIG_KEY = exports.SHOW_OPEN_FILE_CONFIG_KEY = exports.REVEAL_FILE_ON_SWITCH_SETTING = void 0;
+exports.PREFERRED_WIDTH = exports.WORKSPACE_VIEW_URI = exports.ShowUncommittedChangesKind = exports.SHOW_UNCOMMITTED_CHANGES_KIND_CONFIG_KEY = exports.SHOW_UNCOMMITTED_CHANGES_CONFIG_KEY = exports.SHOW_OPEN_FILE_CONFIG_KEY = exports.REVEAL_FILE_ON_SWITCH_SETTING = void 0;
 
 /**
  * Copyright (c) 2015-present, Facebook, Inc.
@@ -33,3 +33,5 @@ exports.ShowUncommittedChangesKind = ShowUncommittedChangesKind;
 ShowUncommittedChangesKind;
 const WORKSPACE_VIEW_URI = 'atom://nuclide/file-tree';
 exports.WORKSPACE_VIEW_URI = WORKSPACE_VIEW_URI;
+const PREFERRED_WIDTH = 300;
+exports.PREFERRED_WIDTH = PREFERRED_WIDTH;

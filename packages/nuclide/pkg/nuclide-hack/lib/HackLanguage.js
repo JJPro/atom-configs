@@ -88,18 +88,6 @@ function _autocomplete() {
   return data;
 }
 
-function _passesGK() {
-  const data = _interopRequireDefault(require("../../commons-node/passesGK"));
-
-  _passesGK = function () {
-    return data;
-  };
-
-  return data;
-}
-
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
 /**
  * Copyright (c) 2015-present, Facebook, Inc.
  * All rights reserved.
@@ -112,22 +100,6 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  */
 const HACK_SERVICE_NAME = 'HackService';
 
-async function getUseFfpAutocomplete() {
-  return (0, _passesGK().default)('nuclide_hack_use_ffp_autocomplete');
-}
-
-async function getUseEnhancedHover() {
-  return (0, _passesGK().default)('nuclide_hack_use_enhanced_hover');
-}
-
-async function getUseTextEditAutocomplete() {
-  return (0, _passesGK().default)('nuclide_hack_use_textedit_autocomplete');
-}
-
-async function getUseSignatureHelp() {
-  return (0, _passesGK().default)('nuclide_hack_signature_help');
-}
-
 async function connectionToHackService(connection) {
   const hackService = (0, _nuclideRemoteConnection().getServiceByConnection)(HACK_SERVICE_NAME, connection);
   const config = (0, _config().getConfig)();
@@ -137,14 +109,12 @@ async function connectionToHackService(connection) {
     return hackService.initialize(config.hhClientPath, config.logLevel, fileNotifier);
   } else {
     const host = await (0, _nuclideLanguageService().getHostServices)();
-    const autocompleteArg = (await getUseFfpAutocomplete()) ? ['--ffp-autocomplete'] : [];
-    const enhancedHoverArg = (await getUseEnhancedHover()) ? ['--enhanced-hover'] : [];
     const lspService = await hackService.initializeLsp(config.hhClientPath, // command
-    ['lsp', '--from', 'nuclide', ...autocompleteArg, ...enhancedHoverArg], // arguments
+    ['lsp', '--from', 'nuclide', '--enhanced-hover'], // arguments
     [_constants().HACK_CONFIG_FILE_NAME], // project file
     _constants().HACK_FILE_EXTENSIONS, // which file-notifications should be sent to LSP
     config.logLevel, fileNotifier, host, {
-      useTextEditAutocomplete: await getUseTextEditAutocomplete()
+      useTextEditAutocomplete: true
     });
     return lspService || new (_nuclideLanguageServiceRpc().NullLanguageService)();
   }
@@ -218,14 +188,7 @@ async function createLanguageService() {
     diagnostics: {
       version: '0.2.0',
       analyticsEventName: 'hack.observe-diagnostics'
-    },
-    signatureHelp: (await getUseSignatureHelp()) ? {
-      version: '0.1.0',
-      priority: 1,
-      triggerCharacters: new Set(['(', ',']),
-      showDocBlock: false,
-      analyticsEventName: 'hack.signatureHelp'
-    } : undefined
+    }
   };
   return new (_nuclideLanguageService().AtomLanguageService)(connectionToHackService, atomConfig, null, _config().logger);
 } // This needs to be initialized eagerly for Hack Symbol search and the HHVM Toolbar.

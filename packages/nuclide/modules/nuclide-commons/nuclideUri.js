@@ -337,17 +337,13 @@ function _getWindowsPathFromWindowsFileUri(uri) {
 
 
 function uriToNuclideUri(uri) {
-  // TODO(ljw): the following check is incorrect. It's designed to support
-  // two-slash file URLs of the form "file://c:\path". But those are invalid
-  // file URLs, and indeed it fails to %-escape "file://c:\My%20Documents".
-  const windowsPathFromUri = _getWindowsPathFromWindowsFileUri(uri); // flowlint-next-line sketchy-null-string:off
+  // file:// URIs should never normally contain Windows backslashes:
+  // e.g. vscode-uri escapes C:\abc to file:///c:/abc.
+  // This just handles any hacky users that simply prepended 'file://'.
+  // (vscode-uri does not know how to handle file://C:\abc.)
+  const windowsPathFromUri = _getWindowsPathFromWindowsFileUri(uri);
 
-
-  if (windowsPathFromUri) {
-    // If the specified URI is a local file:// URI to a Windows path,
-    // handle specially first. url.parse() gets confused by the "X:"
-    // part of the Windows path and thinks the X is the name of a remote
-    // host.
+  if (windowsPathFromUri != null) {
     return windowsPathFromUri;
   }
 
@@ -355,7 +351,7 @@ function uriToNuclideUri(uri) {
 
   if (lspUri.scheme === 'file' && lspUri.path) {
     // only handle real files for now.
-    return lspUri.path;
+    return lspUri.fsPath;
   } else if (isRemote(uri)) {
     return uri;
   } else {
@@ -449,6 +445,24 @@ function registerHostnameFormatter(formatter) {
     }
   };
 }
+
+function hostnameToDisplayHostname(hostname) {
+  return hostFormatters.reduce((current, formatter) => {
+    const next = formatter(current);
+
+    if (next != null && next !== '') {
+      return next;
+    } else {
+      return current;
+    }
+  }, hostname);
+}
+
+function nuclideUriToDisplayHostname(uri) {
+  _testForIllegalUri(uri);
+
+  return isRemote(uri) ? hostnameToDisplayHostname(getHostname(uri)) : uri;
+}
 /**
  * NuclideUris should never be shown to humans.
  * This function returns a human usable string.
@@ -458,22 +472,7 @@ function registerHostnameFormatter(formatter) {
 function nuclideUriToDisplayString(uri) {
   _testForIllegalUri(uri);
 
-  if (isRemote(uri)) {
-    let hostname = getHostname(uri);
-
-    for (const formatter of hostFormatters) {
-      const formattedHostname = formatter(hostname); // flowlint-next-line sketchy-null-string:off
-
-      if (formattedHostname) {
-        hostname = formattedHostname;
-        break;
-      }
-    }
-
-    return `${hostname}:${getPath(uri)}`;
-  } else {
-    return uri;
-  }
+  return isRemote(uri) ? `${nuclideUriToDisplayHostname(uri)}:${getPath(uri)}` : uri;
 }
 
 function ensureTrailingSeparator(uri) {
@@ -510,6 +509,12 @@ function endsWithSeparator(uri) {
   return uri.endsWith(uriPathModule.sep);
 }
 
+function endsWithEdenDir(uri) {
+  _testForIllegalUri(uri);
+
+  return uri.endsWith('.eden');
+}
+
 function isAbsolute(uri) {
   _testForIllegalUri(uri);
 
@@ -544,6 +549,12 @@ function resolve(uri, ...paths) {
 
     return _archiveDecode(uriPathModule, uriPathModule.resolve.apply(null, paths));
   }
+}
+
+function isHomeRelative(uri) {
+  _testForIllegalUri(uri);
+
+  return uri.startsWith('~');
 }
 
 function expandHomeDir(uri) {
@@ -860,11 +871,15 @@ var _default = {
   contains,
   collapse,
   nuclideUriToDisplayString,
+  nuclideUriToDisplayHostname,
+  hostnameToDisplayHostname,
   registerHostnameFormatter,
   ensureTrailingSeparator,
   trimTrailingSeparator,
   endsWithSeparator,
+  endsWithEdenDir,
   isAbsolute,
+  isHomeRelative,
   resolve,
   expandHomeDir,
   splitPathList,

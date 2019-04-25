@@ -37,6 +37,16 @@ function _UniversalDisposable() {
 
 var _RxMin = require("rxjs/bundles/Rx.min.js");
 
+function _nuclideAnalytics() {
+  const data = require("../../../modules/nuclide-analytics");
+
+  _nuclideAnalytics = function () {
+    return data;
+  };
+
+  return data;
+}
+
 function _nuclideRemoteConnection() {
   const data = require("../../nuclide-remote-connection");
 
@@ -140,15 +150,6 @@ var _initialiseProps = function () {
       this._logTailer.start({
         onRunning: error => {
           if (error != null) {
-            // Handling these errors here because LogTailer never becomes "ready"
-            // $FlowFixMe(>=0.68.0) Flow suppress (T27187857)
-            if (error.code === _types2().NO_METRO_PROJECT_ERROR) {
-              atom.notifications.addError('Could not find Metro project', {
-                dismissable: true,
-                description: 'Make sure that your current working root (or its ancestor) contains a' + ' `node_modules` directory with react-native installed, or a .buckconfig file' + ' with a `[react-native]` section that has a `server` key.'
-              });
-            }
-
             reject(error);
           } else {
             resolve();
@@ -221,6 +222,11 @@ var _initialiseProps = function () {
     return this._projectRootPath.distinctUntilChanged().subscribe(path => {
       if (this._logTailer.getStatus() !== 'stopped') {
         this.stop();
+
+        if (path == null) {
+          return;
+        }
+
         const notification = atom.notifications.addWarning('Metro was stopped, because your Current Working Root has changed.', {
           dismissable: true,
           buttons: [{
@@ -236,8 +242,6 @@ var _initialiseProps = function () {
   };
 
   this._createLogTailer = (projectRootPath, port, extraArgs) => {
-    const self = this;
-
     const metroEvents = _RxMin.Observable.defer(() => {
       const path = projectRootPath.getValue();
 
@@ -247,6 +251,31 @@ var _initialiseProps = function () {
 
       const metroService = (0, _nuclideRemoteConnection().getMetroServiceByNuclideUri)(path);
       return metroService.startMetro(path, getEditorArgs(path), port.getValue(), extraArgs.getValue()).refCount();
+    }).catch(error => {
+      (0, _nuclideAnalytics().track)('nuclide-metro:error', {
+        error
+      }); // $FlowFixMe(>=0.68.0) Flow suppress (T27187857)
+
+      if (error.code === _types2().NO_METRO_PROJECT_ERROR) {
+        atom.notifications.addError('Could not find Metro project', {
+          dismissable: true,
+          description: 'Make sure that your current working root (or its ancestor) contains a' + ' `node_modules` directory with react-native installed, or a .buckconfig file' + ' with a `[react-native]` section that has a `server` key.',
+          icon: 'nuclicon-metro'
+        }); // $FlowFixMe(>=0.68.0) Flow suppress (T27187857)
+      } else if (error.code === _types2().METRO_PORT_BUSY_ERROR) {
+        atom.notifications.addInfo(`Metro could not start, port ${port.getValue()} is busy.`, {
+          description: "If you are running Metro in a different window or in a terminal, this is expected and you don't need to do anything.",
+          dismissable: true,
+          icon: 'nuclicon-metro'
+        });
+      } else if (error.message.includes('Terminated')) {
+        atom.notifications.addWarning('Metro was killed.', {
+          dismissable: true,
+          icon: 'nuclicon-metro'
+        });
+      }
+
+      return _RxMin.Observable.throw(error);
     }).share();
 
     const messages = metroEvents.filter(event => event.type === 'message').map(event => {
@@ -261,20 +290,6 @@ var _initialiseProps = function () {
       name: 'Metro',
       messages,
       ready,
-
-      handleError(error) {
-        if (error.message != null && error.message.includes('EADDRINUSE')) {
-          atom.notifications.addInfo(`Port ${port.getValue()} is busy. Most likely it's another metro instance and you don't need to do anything`);
-          return;
-        }
-
-        atom.notifications.addError(`Unexpected error while running Metro.\n\n${error.message}`, {
-          dismissable: true
-        });
-        logger.warn('stopping metro due to an error');
-        self.stop();
-      },
-
       trackingEvents: {
         start: 'metro:start',
         stop: 'metro:stop',

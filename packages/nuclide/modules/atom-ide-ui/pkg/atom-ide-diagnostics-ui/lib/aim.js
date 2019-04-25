@@ -5,6 +5,16 @@ Object.defineProperty(exports, "__esModule", {
 });
 exports.hoveringOrAiming = hoveringOrAiming;
 
+function _event() {
+  const data = require("../../../../nuclide-commons/event");
+
+  _event = function () {
+    return data;
+  };
+
+  return data;
+}
+
 var _RxMin = require("rxjs/bundles/Rx.min.js");
 
 /**
@@ -15,7 +25,7 @@ var _RxMin = require("rxjs/bundles/Rx.min.js");
  * LICENSE file in the root directory of this source tree. An additional grant
  * of patent rights can be found in the PATENTS file in the same directory.
  *
- *  strict
+ *  strict-local
  * @format
  */
 const VECTOR_DURATION = 100;
@@ -30,8 +40,8 @@ const eventToPoint = e => ({
 }); // Combine mouseenter and mouseleave to create an observable of hovering state.
 
 
-function areHovering(element) {
-  return _RxMin.Observable.merge(_RxMin.Observable.fromEvent(element, 'mouseenter').mapTo(true), _RxMin.Observable.fromEvent(element, 'mouseleave').mapTo(false));
+function areHovering(element, editorElement) {
+  return _RxMin.Observable.merge(_RxMin.Observable.fromEvent(element, 'mouseenter').mapTo(true), _RxMin.Observable.fromEvent(element, 'mouseleave').mapTo(false), editorScrolled(editorElement).mapTo(false));
 }
 
 function findCorners(node) {
@@ -70,6 +80,12 @@ function areAiming(from, to) {
   return _RxMin.Observable.fromEvent(document, 'mousemove').map(eventToPoint).auditTime(VECTOR_DURATION).map(mouse => distance(mouse, cornerA) + distance(mouse, cornerB)).pairwise().map(([prevDist, currentDist]) => prevDist > currentDist).distinctUntilChanged();
 }
 
-function hoveringOrAiming(from, to) {
-  return _RxMin.Observable.concat(areHovering(from).startWith(true).takeWhile(Boolean), _RxMin.Observable.combineLatest(areAiming(from, to).startWith(true), areHovering(to).startWith(false), (aiming, hovering) => aiming || hovering)).distinctUntilChanged();
+function editorScrolled(editorElement) {
+  return (0, _event().observableFromSubscribeFunction)(cb => editorElement.onDidChangeScrollTop(cb));
+}
+
+function hoveringOrAiming(from, to, editorElement) {
+  return _RxMin.Observable.concat(areHovering(from, editorElement).startWith(true).takeWhile(Boolean), _RxMin.Observable.combineLatest(areAiming(from, to).startWith(true), areHovering(to, editorElement).startWith(false), editorScrolled(editorElement).mapTo(true).startWith(false), (aiming, hovering, scrolled) => {
+    return (aiming || hovering) && !scrolled;
+  })).distinctUntilChanged();
 }

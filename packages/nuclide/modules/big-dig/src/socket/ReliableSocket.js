@@ -239,7 +239,8 @@ class ReliableSocket {
           } else {
             logger.error('pingId mismatch');
           }
-        });
+        }); // eslint-disable-next-line nuclide-internal/unused-subscription
+
         ws.onMessage().subscribe(() => {
           this._schedulePing(pingId, ws);
         });

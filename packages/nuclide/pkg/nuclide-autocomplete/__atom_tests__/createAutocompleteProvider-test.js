@@ -52,7 +52,7 @@ describe('getSuggestions', () => {
       eventName: 'test',
       shouldLogInsertedSuggestion: false
     }
-  });
+  }, () => 3000);
   const autocompleteProviderThatTimeOut = (0, _createAutocompleteProvider().default)({
     selector: '',
 
@@ -66,7 +66,7 @@ describe('getSuggestions', () => {
       eventName: 'test',
       shouldLogInsertedSuggestion: false
     }
-  });
+  }, () => 3000);
   let trackSpy;
   beforeEach(() => {
     jest.restoreAllMocks();

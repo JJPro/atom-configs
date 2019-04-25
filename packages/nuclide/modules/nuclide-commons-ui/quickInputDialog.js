@@ -84,7 +84,7 @@ function quickInputDialog(title, inputLabel, onConfirm, validateInput, initialVa
   return new Promise((resolve, reject) => {
     const cancel = () => {
       panel.destroy();
-      reject(new Error('User cancelled'));
+      resolve(null);
     };
 
     _reactDom.default.render(React.createElement(QuickInputDialog, {

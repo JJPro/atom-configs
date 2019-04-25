@@ -20,6 +20,16 @@ function _nuclideBuckBase() {
   return data;
 }
 
+function _observeBuildCommands() {
+  const data = require("../observeBuildCommands");
+
+  _observeBuildCommands = function () {
+    return data;
+  };
+
+  return data;
+}
+
 function Actions() {
   const data = _interopRequireWildcard(require("./Actions"));
 
@@ -104,7 +114,7 @@ function setBuckRootEpic(actions, store) {
     }
 
     const watcherService = (0, _nuclideRemoteConnection().getFileWatcherServiceByNuclideUri)(buckRoot);
-    return _RxMin.Observable.of(undefined).concat(watcherService.watchWithNode(buckRoot, true).refCount().filter(event => _nuclideUri().default.basename(event.path) === '.buckversion')).switchMap(() => readBuckversionFile(buckRoot)).map(fileContents => Actions().setBuckversionFileContents(fileContents));
+    return _RxMin.Observable.merge(_RxMin.Observable.of(undefined).concat(watcherService.watchWithNode(buckRoot, true).refCount().filter(event => _nuclideUri().default.basename(event.path) === '.buckversion')).switchMap(() => readBuckversionFile(buckRoot)).map(fileContents => Actions().setBuckversionFileContents(fileContents)), (0, _observeBuildCommands().observeBuildCommands)(buckRoot, () => store.getState().taskSettings));
   });
 }
 

@@ -35,6 +35,16 @@ function _Format() {
   return data;
 }
 
+function _TokenizedLine() {
+  const data = _interopRequireDefault(require("./TokenizedLine"));
+
+  _TokenizedLine = function () {
+    return data;
+  };
+
+  return data;
+}
+
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) { var desc = Object.defineProperty && Object.getOwnPropertyDescriptor ? Object.getOwnPropertyDescriptor(obj, key) : {}; if (desc.get || desc.set) { Object.defineProperty(newObj, key, desc); } else { newObj[key] = obj[key]; } } } } newObj.default = obj; return newObj; } }
@@ -82,7 +92,8 @@ current location in the ouput. Otherwise, listing will begin at the given line n
     this._debugger = debug;
   }
 
-  async execute(args) {
+  async execute(line) {
+    const args = line.stringTokens().slice(1);
     let ref;
 
     switch (args.length) {
@@ -107,6 +118,13 @@ current location in the ouput. Otherwise, listing will begin at the given line n
     }
 
     await this._printSourceLines(ref);
+  }
+
+  onStopped() {
+    // Default behavior if list is re-run is to show more source.
+    // When we stop at a breakpoint, reset that state so the first 'list'
+    // always shows source around the stop location
+    this._source.path = '';
   }
 
   _previousSource() {
@@ -212,7 +230,7 @@ current location in the ouput. Otherwise, listing will begin at the given line n
   }
 
   _sourceIsEmpty() {
-    return this._source.path == null && (this._source.sourceReference == null || this._source.sourceReference === 0);
+    return (this._source.path == null || this._source.path === '') && (this._source.sourceReference == null || this._source.sourceReference === 0);
   } // the console itself does tab expansion, but it won't be right because
   // source code is formatted as if the lines start in column 1, which they
   // won't when we write them because of the line number prefix area.

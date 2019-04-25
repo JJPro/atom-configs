@@ -137,7 +137,6 @@ function getOCamlAutoGenConfig() {
   const autoGenLaunchConfig = {
     launch: true,
     vsAdapterType: _nuclideDebuggerCommon().VsAdapterTypes.OCAML,
-    threads: false,
     properties: [debugExecutable, executablePath, argumentsProperty, environmentVariables, workingDirectory, additionalIncludeDirectories, breakAfterStart, logLevel],
     scriptPropertyName: 'executable',
     cwdPropertyName: 'working directory',

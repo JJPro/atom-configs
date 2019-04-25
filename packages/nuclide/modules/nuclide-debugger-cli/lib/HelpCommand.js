@@ -5,6 +5,18 @@ Object.defineProperty(exports, "__esModule", {
 });
 exports.default = void 0;
 
+function _TokenizedLine() {
+  const data = _interopRequireDefault(require("./TokenizedLine"));
+
+  _TokenizedLine = function () {
+    return data;
+  };
+
+  return data;
+}
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
 /**
  * Copyright (c) 2017-present, Facebook, Inc.
  * All rights reserved.
@@ -24,7 +36,8 @@ class HelpCommand {
     this._dispatcher = dispatcher;
   }
 
-  async execute(args) {
+  async execute(line) {
+    const args = line.stringTokens().slice(1);
     const [command] = args;
 
     if (command != null) {

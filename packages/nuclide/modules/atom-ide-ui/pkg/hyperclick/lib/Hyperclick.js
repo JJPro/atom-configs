@@ -75,6 +75,45 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  */
 class Hyperclick {
   constructor() {
+    this.getSuggestion = async (textEditor, position) => {
+      for (const provider of this._providers.getAllProvidersForEditor(textEditor)) {
+        let result;
+
+        if (provider.getSuggestion) {
+          // eslint-disable-next-line no-await-in-loop
+          result = await provider.getSuggestion(textEditor, position);
+        } else if (provider.getSuggestionForWord) {
+          const match = (0, _range().wordAtPosition)(textEditor, position, provider.wordRegExp);
+
+          if (match == null) {
+            continue;
+          }
+
+          const {
+            wordMatch,
+            range
+          } = match;
+
+          if (!provider.getSuggestionForWord) {
+            throw new Error("Invariant violation: \"provider.getSuggestionForWord\"");
+          } // eslint-disable-next-line no-await-in-loop
+
+
+          result = await provider.getSuggestionForWord(textEditor, wordMatch[0], range);
+        } else {
+          throw new Error('Hyperclick must have either `getSuggestion` or `getSuggestionForWord`');
+        }
+
+        if (result != null) {
+          return result;
+        }
+      }
+    };
+
+    this.showSuggestionList = (textEditor, suggestion) => {
+      this._suggestionList.show(textEditor, suggestion);
+    };
+
     this._providers = new (_ProviderRegistry().default)();
     this._suggestionList = new (_SuggestionList().default)();
     this._hyperclickForTextEditors = new Set();
@@ -82,7 +121,7 @@ class Hyperclick {
   }
 
   observeTextEditor(textEditor) {
-    const hyperclickForTextEditor = new (_HyperclickForTextEditor().default)(textEditor, this);
+    const hyperclickForTextEditor = new (_HyperclickForTextEditor().default)(textEditor, this.getSuggestion, this.showSuggestionList);
 
     this._hyperclickForTextEditors.add(hyperclickForTextEditor);
 
@@ -115,45 +154,6 @@ class Hyperclick {
    * Returns the first suggestion from the consumed providers.
    */
 
-
-  async getSuggestion(textEditor, position) {
-    for (const provider of this._providers.getAllProvidersForEditor(textEditor)) {
-      let result;
-
-      if (provider.getSuggestion) {
-        // eslint-disable-next-line no-await-in-loop
-        result = await provider.getSuggestion(textEditor, position);
-      } else if (provider.getSuggestionForWord) {
-        const match = (0, _range().wordAtPosition)(textEditor, position, provider.wordRegExp);
-
-        if (match == null) {
-          continue;
-        }
-
-        const {
-          wordMatch,
-          range
-        } = match;
-
-        if (!provider.getSuggestionForWord) {
-          throw new Error("Invariant violation: \"provider.getSuggestionForWord\"");
-        } // eslint-disable-next-line no-await-in-loop
-
-
-        result = await provider.getSuggestionForWord(textEditor, wordMatch[0], range);
-      } else {
-        throw new Error('Hyperclick must have either `getSuggestion` or `getSuggestionForWord`');
-      }
-
-      if (result != null) {
-        return result;
-      }
-    }
-  }
-
-  showSuggestionList(textEditor, suggestion) {
-    this._suggestionList.show(textEditor, suggestion);
-  }
 
 }
 

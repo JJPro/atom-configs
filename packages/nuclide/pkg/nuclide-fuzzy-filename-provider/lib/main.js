@@ -21,7 +21,7 @@ function _createPackage() {
 }
 
 function _scheduleIdleCallback() {
-  const data = _interopRequireDefault(require("../../commons-node/scheduleIdleCallback"));
+  const data = _interopRequireDefault(require("../../../modules/nuclide-commons/scheduleIdleCallback"));
 
   _scheduleIdleCallback = function () {
     return data;
@@ -81,7 +81,7 @@ function _utils() {
 }
 
 function _passesGK() {
-  const data = require("../../commons-node/passesGK");
+  const data = require("../../../modules/nuclide-commons/passesGK");
 
   _passesGK = function () {
     return data;

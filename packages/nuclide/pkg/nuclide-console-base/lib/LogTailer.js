@@ -16,7 +16,7 @@ function _UniversalDisposable() {
 }
 
 function _nuclideAnalytics() {
-  const data = require("../../nuclide-analytics");
+  const data = require("../../../modules/nuclide-analytics");
 
   _nuclideAnalytics = function () {
     return data;
@@ -122,6 +122,7 @@ class LogTailer {
 
       return _RxMin.Observable.empty();
     }).share().publish(); // Whenever the status becomes "running," invoke all of the registered running callbacks.
+    // eslint-disable-next-line nuclide-internal/unused-subscription
 
     this._statuses.distinctUntilChanged().filter(status => status === 'running').subscribe(() => {
       this._invokeRunningCallbacks();
@@ -140,12 +141,8 @@ class LogTailer {
 
   stop() {
     // If the process is explicitly stopped, call all of the running callbacks with a cancellation
-    // error.
-    this._startCount = 0;
-
-    this._runningCallbacks.forEach(cb => {
-      cb(new ProcessCanceledError(this._name));
-    });
+    // error. We don't care if the error was handled or not.
+    this._invokeRunningCallbacks(new ProcessCanceledError(this._name));
 
     this._stop();
   }

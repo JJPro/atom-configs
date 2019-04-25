@@ -5,6 +5,18 @@ Object.defineProperty(exports, "__esModule", {
 });
 exports.default = void 0;
 
+function _TokenizedLine() {
+  const data = _interopRequireDefault(require("./TokenizedLine"));
+
+  _TokenizedLine = function () {
+    return data;
+  };
+
+  return data;
+}
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
 /**
  * Copyright (c) 2017-present, Facebook, Inc.
  * All rights reserved.
@@ -18,21 +30,63 @@ exports.default = void 0;
  */
 class ThreadsCommand {
   constructor(con, debug) {
-    this.name = 'threads';
-    this.helpText = "List all of the target's threads.";
+    this.name = 'thread';
+    this.helpText = "[[l]ist | thread-id] Work with target's threads.";
+    this.detailedHelpText = `
+With no parameters, shows information about the current thread.
+
+[t]hread [l]ist shows all of the target's threads.
+
+Given a numeric thread-id, sets the debugger's current thread context to that
+thread.
+  `;
     this._console = con;
     this._debugger = debug;
   }
 
-  async execute() {
+  async execute(line) {
+    const args = line.stringTokens().slice(1);
+
+    if (args.length === 0) {
+      this.printCurrentThread();
+      return;
+    }
+
+    if ('list'.startsWith(args[0])) {
+      this.printAllThreads();
+      return;
+    }
+
+    const tid = parseInt(args[0], 10);
+
+    if (isNaN(tid) || tid < 0) {
+      throw new Error('Thread id must be a positive integer.');
+    }
+
+    this._debugger.getThreads().setFocusThread(tid);
+  }
+
+  printCurrentThread() {
+    const threads = this._debugger.getThreads();
+
+    const thread = threads.focusThread;
+
+    if (thread == null) {
+      throw new Error('There is no focused thread.');
+    }
+
+    this._console.outputLine(`Thread #${thread.id()} ${thread.name() || ''}${thread.isStopped ? ' [stopped]' : ''}`);
+  }
+
+  printAllThreads() {
     const threads = this._debugger.getThreads();
 
     const focusThread = threads.focusThreadId;
-    threads.allThreads.sort((left, right) => left.id() - right.id()).forEach(thread => {
-      const activeMarker = thread.id() === focusThread ? '*' : ' ';
 
-      this._console.outputLine(`${activeMarker} ${thread.id()} ${thread.name() || ''}`);
-    });
+    this._console.more(threads.allThreads.sort((left, right) => left.id() - right.id()).map(thread => {
+      const activeMarker = thread.id() === focusThread ? '*' : ' ';
+      return `${activeMarker} ${thread.id()} ${thread.name() || ''} ${thread.isStopped ? ' [stopped]' : ''}`;
+    }).join('\n'));
   }
 
 }

@@ -81,9 +81,10 @@ async function main(argv) {
     commands = await (0, _CommandClient().getCommands)(argv,
     /* rejectIfZeroConnections */
     false);
-  } catch (e) {
+  } catch (error) {
     // Only a FailedConnectionError is expected.
-    if (!(e instanceof _errors().FailedConnectionError)) {
+    if (!(error instanceof _errors().FailedConnectionError)) {
+      await (0, _errors().trackError)('connections', argv, error);
       return _errors().EXIT_CODE_CONNECTION_ERROR;
     }
   }
@@ -129,9 +130,10 @@ async function main(argv) {
     foldersArray = Array.from(rootFolders);
   }
 
-  foldersArray.sort(); // eslint-disable-next-line no-console
-
-  console.log(JSON.stringify(foldersArray, null, 2));
+  foldersArray.sort();
+  process.stdout.write(JSON.stringify(foldersArray, null, 2));
+  process.stdout.write('\n');
+  await (0, _errors().trackSuccess)('connections', argv);
   return _errors().EXIT_CODE_SUCCESS;
 }
 

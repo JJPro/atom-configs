@@ -123,6 +123,18 @@ function createTerminal(options = {}) {
     allowTransparency: _featureConfig().default.get(_config().TRANSPARENCY_CONFIG),
     experimentalCharAtlas: _featureConfig().default.get(_config().CHAR_ATLAS_CONFIG),
     rendererType: rendererType === 'auto' ? 'canvas' : rendererType
-  }, options)));
+  }, options))); // Patch into xterm Linkifier to catch errors on out of bounds line fetching.
+  // Track issue at https://github.com/xtermjs/xterm.js/issues/1669
+
+  const linkifier = terminal._core.linkifier;
+  const doLinkifyRow = linkifier._doLinkifyRow;
+
+  linkifier._doLinkifyRow = (row, text, matcher, offset) => {
+    try {
+      doLinkifyRow.call(linkifier, row, text, matcher, offset);
+    } catch (e) {// swallow errors to avoid red box because the linkifier runs on a timer.
+    }
+  };
+
   return terminal;
 }

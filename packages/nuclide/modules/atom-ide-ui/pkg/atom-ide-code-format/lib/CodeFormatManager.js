@@ -3,7 +3,27 @@
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-exports.default = void 0;
+exports.default = exports.SAVE_TIMEOUT = void 0;
+
+function _nullthrows() {
+  const data = _interopRequireDefault(require("nullthrows"));
+
+  _nullthrows = function () {
+    return data;
+  };
+
+  return data;
+}
+
+function _FileEventHandlers() {
+  const data = require("../../../../nuclide-commons-atom/FileEventHandlers");
+
+  _FileEventHandlers = function () {
+    return data;
+  };
+
+  return data;
+}
 
 function _config() {
   const data = require("./config");
@@ -114,10 +134,11 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  */
 // Save events are critical, so don't allow providers to block them.
 const SAVE_TIMEOUT = 2500;
+exports.SAVE_TIMEOUT = SAVE_TIMEOUT;
 
 class CodeFormatManager {
   constructor() {
-    this._subscriptions = new (_UniversalDisposable().default)(this._subscribeToEvents());
+    this._subscriptions = new (_UniversalDisposable().default)(this._subscribeToEvents(), (0, _FileEventHandlers().registerOnWillSave)(this._onWillSaveProvider()));
     this._rangeProviders = new (_ProviderRegistry().default)();
     this._fileProviders = new (_ProviderRegistry().default)();
     this._onTypeProviders = new (_ProviderRegistry().default)();
@@ -157,42 +178,15 @@ class CodeFormatManager {
 
 
   _getEditorEventStream(editor) {
-    const changeEvents = (0, _event().observableFromSubscribeFunction)(callback => editor.getBuffer().onDidChangeText(callback));
-
-    const saveEvents = _RxMin.Observable.create(observer => {
-      const realSave = editor.save;
-      const newSaves = new _RxMin.Subject(); // HACK: intercept the real TextEditor.save and handle it ourselves.
-      // Atom has no way of injecting content into the buffer asynchronously
-      // before a save operation.
-      // If we try to format after the save, and then save again,
-      // it's a poor user experience (and also races the text buffer's reload).
-
-      const editor_ = editor;
-
-      editor_.save = () => {
-        newSaves.next('new-save');
-        return this._safeFormatCodeOnSave(editor).takeUntil(newSaves).toPromise().then(() => realSave.call(editor));
-      };
-
-      const subscription = newSaves.subscribe(observer);
-      return () => {
-        // Restore the save function when we're done.
-        editor_.save = realSave;
-        subscription.unsubscribe();
-      };
-    }); // We need to capture when editors are about to be destroyed in order to
+    const changeEvents = (0, _event().observableFromSubscribeFunction)(callback => editor.getBuffer().onDidChangeText(callback)); // We need to capture when editors are about to be destroyed in order to
     // interrupt any pending formatting operations. (Otherwise, we may end up
     // attempting to save a destroyed editor!)
-
 
     const willDestroyEvents = (0, _event().observableFromSubscribeFunction)(cb => atom.workspace.onWillDestroyPaneItem(cb)).filter(event => event.item === editor);
     return _RxMin.Observable.merge(changeEvents.map(edit => ({
       type: 'type',
       editor,
       edit
-    })), saveEvents.map(type => ({
-      type,
-      editor
     }))).takeUntil(_RxMin.Observable.merge((0, _textEditor().observeEditorDestroy)(editor), willDestroyEvents));
   }
 
@@ -203,7 +197,9 @@ class CodeFormatManager {
 
     switch (event.type) {
       case 'command':
-        return this._formatCodeInTextEditor(editor).map(result => {
+        return this._formatCodeInTextEditor(editor).do(edits => {
+          (0, _textEdit().applyTextEditsToBuffer)(editor.getBuffer(), edits);
+        }).map(result => {
           if (!result) {
             throw new Error('No code formatting providers found!');
           }
@@ -220,15 +216,6 @@ class CodeFormatManager {
           return _RxMin.Observable.empty();
         });
 
-      case 'save':
-        return this._safeFormatCodeOnSave(editor) // Fire-and-forget the original save function.
-        // This is actually async for remote files, but we don't use the result.
-        // NOTE: finally is important, as saves should still fire on unsubscribe.
-        .finally(() => editor.getBuffer().save());
-
-      case 'new-save':
-        return _RxMin.Observable.empty();
-
       default:
         return _RxMin.Observable.throw(`unknown event type ${event.type}`);
     }
@@ -240,8 +227,7 @@ class CodeFormatManager {
     if (before !== after) {
       throw new Error('The file contents were changed before formatting was complete.');
     }
-  } // Formats code in the editor specified, returning whether or not a
-  // code formatter completed successfully.
+  } // Return the text edits used to format code in the editor specified.
 
 
   _formatCodeInTextEditor(editor, range) {
@@ -268,42 +254,43 @@ class CodeFormatManager {
         formatRange = new _atom.Range([selectionStart.row, 0], selectionEnd.column === 0 ? selectionEnd : [selectionEnd.row + 1, 0]);
       }
 
-      const rangeProvider = this._rangeProviders.getProviderForEditor(editor);
-
-      const fileProvider = this._fileProviders.getProviderForEditor(editor);
-
+      const rangeProviders = [...this._rangeProviders.getAllProvidersForEditor(editor)];
+      const fileProviders = [...this._fileProviders.getAllProvidersForEditor(editor)];
       const contents = editor.getText();
 
-      if (rangeProvider != null && ( // When formatting the entire file, prefer file-based providers.
-      !formatRange.isEqual(buffer.getRange()) || fileProvider == null)) {
-        return _RxMin.Observable.defer(() => this._reportBusy(editor, rangeProvider.formatCode(editor, formatRange))).map(edits => {
-          // Throws if contents have changed since the time of triggering format code.
-          this._checkContentsAreSame(contents, editor.getText());
+      const rangeEdits = _RxMin.Observable.defer(() => this._reportBusy(editor, Promise.all(rangeProviders.map(p => p.formatCode(editor, formatRange))))).switchMap(allEdits => {
+        const firstNonEmpty = allEdits.find(edits => edits.length > 0);
 
-          if (!(0, _textEdit().applyTextEditsToBuffer)(editor.getBuffer(), edits)) {
-            throw new Error('Could not apply edits to text buffer.');
-          }
+        if (firstNonEmpty == null) {
+          return _RxMin.Observable.empty();
+        } else {
+          return _RxMin.Observable.of(firstNonEmpty);
+        }
+      });
 
-          return true;
-        });
-      } else if (fileProvider != null) {
-        return _RxMin.Observable.defer(() => this._reportBusy(editor, fileProvider.formatEntireFile(editor, formatRange))).map(({
-          newCursor,
-          formatted
-        }) => {
-          // Throws if contents have changed since the time of triggering format code.
-          this._checkContentsAreSame(contents, editor.getText());
+      const fileEdits = _RxMin.Observable.defer(() => this._reportBusy(editor, Promise.all(fileProviders.map(p => p.formatEntireFile(editor, formatRange))))).switchMap(allResults => {
+        const firstNonNull = allResults.find(result => result != null);
 
-          buffer.setTextViaDiff(formatted);
-          const newPosition = newCursor != null ? buffer.positionForCharacterIndex(newCursor) : editor.getCursorBufferPosition(); // We call setCursorBufferPosition even when there is no newCursor,
-          // because it unselects the text selection.
+        if (firstNonNull == null) {
+          return _RxMin.Observable.empty();
+        } else {
+          return _RxMin.Observable.of(firstNonNull);
+        }
+      }).map(({
+        _,
+        formatted
+      }) => {
+        return [{
+          oldRange: editor.getBuffer().getRange(),
+          newText: formatted,
+          oldText: contents
+        }];
+      }); // When formatting the entire file, prefer file-based providers.
 
-          editor.setCursorBufferPosition(newPosition);
-          return true;
-        });
-      } else {
-        return _RxMin.Observable.of(false);
-      }
+
+      const preferFileEdits = formatRange.isEqual(buffer.getRange());
+      const edits = preferFileEdits ? fileEdits.concat(rangeEdits) : rangeEdits.concat(fileEdits);
+      return edits.first(Boolean, x => x, []);
     });
   }
 
@@ -323,10 +310,9 @@ class CodeFormatManager {
 
 
       const character = event.newText[event.newText.length - 1];
+      const providers = [...this._onTypeProviders.getAllProvidersForEditor(editor)];
 
-      const provider = this._onTypeProviders.getProviderForEditor(editor);
-
-      if (provider == null) {
+      if (providers.length === 0) {
         return _RxMin.Observable.empty();
       }
 
@@ -344,7 +330,21 @@ class CodeFormatManager {
       // format request, so that we format at the right position (and potentially
       // also let any other event handlers have their go).
 
-      return _observable().microtask.switchMap(() => provider.formatAtPosition(editor, editor.getCursorBufferPosition(), character)).do(edits => {
+      return _observable().microtask.switchMap(() => Promise.all(providers.map(p => p.formatAtPosition(editor, editor.getCursorBufferPosition(), character)))).switchMap(allEdits => {
+        const firstNonEmptyIndex = allEdits.findIndex(edits => edits.length > 0);
+
+        if (firstNonEmptyIndex === -1) {
+          return _RxMin.Observable.empty();
+        } else {
+          return _RxMin.Observable.of({
+            edits: (0, _nullthrows().default)(allEdits[firstNonEmptyIndex]),
+            provider: providers[firstNonEmptyIndex]
+          });
+        }
+      }).do(({
+        edits,
+        provider
+      }) => {
         if (edits.length === 0) {
           return;
         }
@@ -362,26 +362,35 @@ class CodeFormatManager {
         if (provider.keepCursorPosition) {
           editor.setCursorBufferPosition(cursorPosition);
         }
-      });
+      }).map(({
+        edits
+      }) => edits);
     });
   }
 
-  _safeFormatCodeOnSave(editor) {
-    return this._formatCodeOnSaveInTextEditor(editor).timeout(SAVE_TIMEOUT).catch(err => {
-      (0, _log4js().getLogger)('code-format').warn('Failed to format code on save:', err);
-      return _RxMin.Observable.empty();
-    });
+  _onWillSaveProvider() {
+    return {
+      priority: 0,
+      timeout: SAVE_TIMEOUT,
+      callback: this._formatCodeOnSaveInTextEditor.bind(this)
+    };
   }
 
   _formatCodeOnSaveInTextEditor(editor) {
-    const saveProvider = this._onSaveProviders.getProviderForEditor(editor);
+    const saveProviders = [...this._onSaveProviders.getAllProvidersForEditor(editor)];
 
-    if (saveProvider != null) {
-      return _RxMin.Observable.defer(() => this._reportBusy(editor, saveProvider.formatOnSave(editor), false)).map(edits => {
-        (0, _textEdit().applyTextEditsToBuffer)(editor.getBuffer(), edits);
-      });
+    if (saveProviders.length > 0) {
+      return _RxMin.Observable.defer(() => this._reportBusy(editor, Promise.all(saveProviders.map(p => p.formatOnSave(editor))), false)).switchMap(allEdits => {
+        const firstNonEmpty = allEdits.find(edits => edits.length > 0);
+
+        if (firstNonEmpty == null) {
+          return _RxMin.Observable.empty();
+        } else {
+          return _RxMin.Observable.of(firstNonEmpty);
+        }
+      }).flatMap(edits => _RxMin.Observable.of(...edits));
     } else if ((0, _config().getFormatOnSave)(editor)) {
-      return this._formatCodeInTextEditor(editor, editor.getBuffer().getRange()).ignoreElements();
+      return this._formatCodeInTextEditor(editor, editor.getBuffer().getRange()).flatMap(edits => _RxMin.Observable.of(...edits));
     }
 
     return _RxMin.Observable.empty();

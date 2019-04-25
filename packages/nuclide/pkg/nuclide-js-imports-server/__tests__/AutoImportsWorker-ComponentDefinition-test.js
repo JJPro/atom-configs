@@ -31,8 +31,7 @@ const {
 describe('getExportsForFile component definitions', () => {
   beforeEach(() => {
     process.env.JS_IMPORTS_INITIALIZATION_SETTINGS = JSON.stringify({
-      componentModulePathFilter: null,
-      uiComponentToolsIndexingGkEnabled: true
+      componentModulePathFilter: null
     });
   });
   it('gets the component definition for a React component', async () => {

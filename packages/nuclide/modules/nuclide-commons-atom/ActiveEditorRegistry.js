@@ -87,7 +87,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  * LICENSE file in the root directory of this source tree. An additional grant
  * of patent rights can be found in the PATENTS file in the same directory.
  *
- *  strict-local
+ * 
  * @format
  */
 
@@ -95,23 +95,13 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  * ActiveEditorRegistry provides abstractions for creating services that operate
  * on text editor contents.
  */
-const DEFAULT_CONFIG = {
-  updateOnEdit: true
-};
-
-function getConcreteConfig(config) {
-  return Object.assign({}, DEFAULT_CONFIG, config);
-}
-
 class ActiveEditorRegistry {
-  constructor(resultFunction, config = {}, eventSources = {}) {
-    this._config = getConcreteConfig(config);
+  constructor(resultFunction, eventSources = {}) {
     this._resultFunction = resultFunction;
     this._providerRegistry = new (_ProviderRegistry().default)();
     this._newProviderEvents = new _RxMin.Subject();
     this._resultsStream = this._createResultsStream({
       activeEditors: eventSources.activeEditors || (0, _debounced().observeActiveEditorsDebounced)(),
-      changesForEditor: eventSources.changesForEditor || (editor => (0, _debounced().editorChangesDebounced)(editor)),
       savesForEditor: eventSources.savesForEditor || (editor => {
         return (0, _event().observableFromSubscribeFunction)(callback => editor.onDidSave(callback)).mapTo(undefined);
       })
@@ -157,7 +147,7 @@ class ActiveEditorRegistry {
         editor
       }), // wait for pending panes to no longer be pending, or if they're not,
       // get the result right away.
-      ((0, _paneItem().isPending)(editor) ? (0, _paneItem().observePendingStateEnd)(editor).take(1) : _RxMin.Observable.of(null)).ignoreElements(), _RxMin.Observable.fromPromise(this._getResultForEditor(this._getProviderForEditor(editor), editor)), this._resultsForEditor(editor, eventSources));
+      ((0, _paneItem().isPending)(editor) ? (0, _paneItem().observePendingStateEnd)(editor).take(1) : _RxMin.Observable.of(null)).ignoreElements(), _RxMin.Observable.fromPromise(this._getResultForEditor(this._getProvidersForEditor(editor), editor)), this._resultsForEditor(editor, eventSources));
     });
     return (0, _observable().cacheWhileSubscribed)(results);
   }
@@ -165,55 +155,53 @@ class ActiveEditorRegistry {
   _resultsForEditor(editor, eventSources) {
     // It's possible that the active provider for an editor changes over time.
     // Thus, we have to subscribe to both edits and saves.
-    return _RxMin.Observable.merge(eventSources.changesForEditor(editor).map(() => 'edit'), eventSources.savesForEditor(editor).map(() => 'save')).flatMap(event => {
-      const provider = this._getProviderForEditor(editor);
+    return _RxMin.Observable.merge(eventSources.savesForEditor(editor).map(() => 'save')).flatMap(event => {
+      const providers = this._getProvidersForEditor(editor);
 
-      if (provider != null) {
-        let updateOnEdit = provider.updateOnEdit; // Fall back to the config's updateOnEdit if not provided.
-
-        if (updateOnEdit == null) {
-          updateOnEdit = this._config.updateOnEdit;
-        }
-
-        if (updateOnEdit !== (event === 'edit')) {
-          return _RxMin.Observable.empty();
-        }
-      }
-
-      return _RxMin.Observable.concat( // $FlowIssue: {kind: edit | save} <=> {kind: edit} | {kind: save}
+      return _RxMin.Observable.concat( // $FlowIssue: {kind: save}
       _RxMin.Observable.of({
         kind: event,
         editor
-      }), _RxMin.Observable.fromPromise(this._getResultForEditor(provider, editor)));
+      }), _RxMin.Observable.fromPromise(this._getResultForEditor(providers, editor)));
     });
   }
 
-  _getProviderForEditor(editor) {
-    return this._providerRegistry.getProviderForEditor(editor);
+  _getProvidersForEditor(editor) {
+    return [...this._providerRegistry.getAllProvidersForEditor(editor)];
   }
 
-  async _getResultForEditor(provider, editor) {
-    if (provider == null) {
+  async _getResultForEditor(providers, editor) {
+    if (providers.length === 0) {
       return {
         kind: 'no-provider',
         grammar: editor.getGrammar()
       };
     }
 
-    try {
-      return {
-        kind: 'result',
-        result: await this._resultFunction(provider, editor),
-        provider,
-        editor
-      };
-    } catch (e) {
-      (0, _log4js().getLogger)(this.constructor.name).error(`Error from provider for ${editor.getGrammar().scopeName}`, e);
-      return {
-        provider,
-        kind: 'provider-error'
-      };
+    let errorResult;
+    const results = await Promise.all(providers.map(async provider => {
+      try {
+        return await this._resultFunction(provider, editor);
+      } catch (error) {
+        (0, _log4js().getLogger)(this.constructor.name).error(`Error from provider for ${editor.getGrammar().scopeName}`, error);
+        errorResult = {
+          provider,
+          kind: 'provider-error'
+        };
+      }
+    }));
+
+    if (errorResult != null) {
+      return errorResult;
     }
+
+    const resultIndex = results.findIndex(r => r != null);
+    return {
+      kind: 'result',
+      result: results[resultIndex],
+      provider: providers[resultIndex] || providers[0],
+      editor
+    };
   }
 
 }

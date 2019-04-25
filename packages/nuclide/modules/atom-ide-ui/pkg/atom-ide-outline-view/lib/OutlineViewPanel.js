@@ -104,7 +104,7 @@ class OutlineViewPanelState {
         visible
       }));
     }), _OutlineView().OutlineView);
-    return (0, _renderReactRoot().renderReactRoot)(React.createElement(BoundOutlineView, null));
+    return (0, _renderReactRoot().renderReactRoot)(React.createElement(BoundOutlineView, null), 'OutlineViewRoot');
   }
 
   serialize() {

@@ -45,10 +45,10 @@ function _nuclideUri() {
   return data;
 }
 
-function _FileTreeHelpers() {
-  const data = _interopRequireDefault(require("../../nuclide-file-tree/lib/FileTreeHelpers"));
+function FileTreeHelpers() {
+  const data = _interopRequireWildcard(require("../../nuclide-file-tree/lib/FileTreeHelpers"));
 
-  _FileTreeHelpers = function () {
+  FileTreeHelpers = function () {
     return data;
   };
 
@@ -56,6 +56,8 @@ function _FileTreeHelpers() {
 }
 
 var _RxMin = require("rxjs/bundles/Rx.min.js");
+
+function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) { var desc = Object.defineProperty && Object.getOwnPropertyDescriptor ? Object.getOwnPropertyDescriptor(obj, key) : {}; if (desc.get || desc.set) { Object.defineProperty(newObj, key, desc); } else { newObj[key] = obj[key]; } } } } newObj.default = obj; return newObj; } }
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
@@ -147,5 +149,5 @@ function isValidDirectory(directory) {
     return true;
   }
 
-  return _FileTreeHelpers().default.isValidDirectory(directory);
+  return FileTreeHelpers().isValidDirectory(directory);
 }

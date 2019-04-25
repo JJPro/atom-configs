@@ -42,6 +42,7 @@ class SettingsCategory extends React.Component {
           key: settingName
         }, React.createElement(_SettingsControl().default, {
           keyPath: settingData.keyPath,
+          title: settingData.title,
           value: settingData.value,
           onChange: settingData.onChange,
           schema: settingData.schema

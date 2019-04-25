@@ -3,6 +3,7 @@
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
+exports.getFormatOptions = getFormatOptions;
 exports.CodeFormatProvider = void 0;
 
 function _nuclideRemoteConnection() {
@@ -16,7 +17,7 @@ function _nuclideRemoteConnection() {
 }
 
 function _nuclideAnalytics() {
-  const data = require("../../nuclide-analytics");
+  const data = require("../../../modules/nuclide-analytics");
 
   _nuclideAnalytics = function () {
     return data;
@@ -132,9 +133,7 @@ class FileFormatProvider extends CodeFormatProvider {
         }
       }
 
-      return {
-        formatted: editor.getText()
-      };
+      return null;
     });
   }
 

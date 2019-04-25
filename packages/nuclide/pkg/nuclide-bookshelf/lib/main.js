@@ -113,7 +113,7 @@ function _event() {
 }
 
 function _nuclideAnalytics() {
-  const data = require("../../nuclide-analytics");
+  const data = require("../../../modules/nuclide-analytics");
 
   _nuclideAnalytics = function () {
     return data;
@@ -135,7 +135,8 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  * @format
  */
 function createStateStream(actions, initialState) {
-  const states = new _RxMin.BehaviorSubject(initialState);
+  const states = new _RxMin.BehaviorSubject(initialState); // eslint-disable-next-line nuclide-internal/unused-subscription
+
   actions.scan(_accumulateState().accumulateState, initialState).catch(error => {
     (0, _log4js().getLogger)('nuclide-bookshelf').fatal('bookshelf middleware got broken', error);
     atom.notifications.addError('Nuclide bookshelf broke, please report a bug to help us fix it!');

@@ -52,15 +52,24 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  * @format
  */
 // Normalize host URIs
-function resolveTunnel(tunnel) {
+async function resolveTunnel(tunnel) {
   const {
     from,
     to
   } = tunnel;
+  const fromHost = getSharedHostUri(from.host);
+  let fromPort;
+
+  if (from.port === 'any_available') {
+    fromPort = await getSocketServiceByHost(fromHost).getAvailableServerPort();
+  } else {
+    fromPort = from.port;
+  }
+
   return {
     from: {
       host: getSharedHostUri(from.host),
-      port: from.port,
+      port: fromPort,
       family: from.family || 6
     },
     to: {

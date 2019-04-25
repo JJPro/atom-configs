@@ -3,26 +3,13 @@
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-exports.rejectArchivePaths = rejectArchivePaths;
-exports.checkArchivePathsToFallbackToRpc = checkArchivePathsToFallbackToRpc;
 exports.convertToFsFileStat = convertToFsFileStat;
 exports.convertToFsDirectoryEntries = convertToFsDirectoryEntries;
-exports.AccessArchiveError = exports.FallbackToRpcError = void 0;
 
 var _fs = _interopRequireDefault(require("fs"));
 
-function _nuclideUri() {
-  const data = _interopRequireDefault(require("../../../../modules/nuclide-commons/nuclideUri"));
-
-  _nuclideUri = function () {
-    return data;
-  };
-
-  return data;
-}
-
 function _filesystem_types() {
-  const data = _interopRequireDefault(require("../../../../modules/big-dig/src/services/fs/gen-nodejs/filesystem_types"));
+  const data = _interopRequireDefault(require("../../../../modules/big-dig/src/thrift-services/fs/gen-nodejs/filesystem_types"));
 
   _filesystem_types = function () {
     return data;
@@ -43,26 +30,6 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  * 
  * @format
  */
-class FallbackToRpcError extends Error {}
-
-exports.FallbackToRpcError = FallbackToRpcError;
-
-class AccessArchiveError extends Error {}
-
-exports.AccessArchiveError = AccessArchiveError;
-
-function rejectArchivePaths(uri, operation) {
-  if (_nuclideUri().default.isInArchive(uri)) {
-    throw new AccessArchiveError(`The '${operation}' operation does not support archive paths like '${uri}'`);
-  }
-}
-
-function checkArchivePathsToFallbackToRpc(uri, operation) {
-  if (_nuclideUri().default.isInArchive(uri)) {
-    throw new FallbackToRpcError(`Unable to perform: ${operation} on archive file: ${uri}, fallback to use RPC method`);
-  }
-}
-
 function convertToFsFileStat(stat) {
   const fileStat = new _fs.default.Stats();
   fileStat.dev = stat.dev;
@@ -86,10 +53,9 @@ function convertToFsDirectoryEntries(entries) {
   return entries.map(entry => {
     const localName = entry.fname;
 
-    const isFile = entry.ftype === _filesystem_types().default.FileType.FILE;
+    const isFile = entry.ftype !== _filesystem_types().default.FileType.DIRECTORY;
 
-    const isSymbolicLink = entry.ftype === _filesystem_types().default.FileType.SYMLINK;
-
+    const isSymbolicLink = entry.isSymbolicLink;
     return [localName, isFile, isSymbolicLink];
   });
 }

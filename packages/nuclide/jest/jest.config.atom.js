@@ -6,14 +6,11 @@
  * the root directory of this source tree.
  *
  * @noflow
+ * @format
  */
 'use strict';
 
-/* eslint
-  comma-dangle: [1, always-multiline],
-  prefer-object-spread/prefer-object-spread: 0,
-  nuclide-internal/no-commonjs: 0,
-  */
+/* eslint nuclide-internal/no-commonjs: 0 */
 
 const path = require('path');
 const p = nuclidePath => path.resolve(__dirname, '..', nuclidePath);
@@ -27,6 +24,7 @@ module.exports = {
     '\\.js$': p('jest/transform.js'),
   },
   setupTestFrameworkScriptFile: p('jest/setupTestFrameworkScriptFile.atom.js'),
+  setupFiles: [p('jest/setup.js')],
   runner: p('modules/jest-atom-runner/build/index.js'),
   testRunner: require.resolve('jest-circus/runner'),
   moduleNameMapper: {

@@ -36,16 +36,6 @@ function _nuclideUri() {
   return data;
 }
 
-function _ini() {
-  const data = _interopRequireDefault(require("ini"));
-
-  _ini = function () {
-    return data;
-  };
-
-  return data;
-}
-
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 /**
@@ -67,25 +57,18 @@ async function getStartCommandFromBuck(projectRoot) {
 
   if (buckProjectRoot == null) {
     return null;
-  } // TODO(matthewwithanm): Move this to BuckUtils?
+  }
 
+  const serverCommand = await (0, _nuclideBuckRpc().getBuckConfig)(buckProjectRoot, 'react-native', 'server');
 
-  const filePath = _nuclideUri().default.join(buckProjectRoot, '.buckconfig');
-
-  const content = await _fsPromise().default.readFile(filePath, 'utf8');
-
-  const parsed = _ini().default.parse(`scope = global\n${content}`);
-
-  const section = parsed['react-native'];
-
-  if (section == null || section.server == null) {
+  if (serverCommand == null) {
     return null;
   }
 
   return {
     cwd: buckProjectRoot,
     args: ['--disable-global-hotkey'],
-    command: section.server
+    command: serverCommand
   };
 }
 /**

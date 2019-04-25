@@ -5,6 +5,16 @@ Object.defineProperty(exports, "__esModule", {
 });
 exports.OpenFilesListComponent = void 0;
 
+function _DraggableFile() {
+  const data = _interopRequireDefault(require("../../../modules/nuclide-commons-ui/DraggableFile"));
+
+  _DraggableFile = function () {
+    return data;
+  };
+
+  return data;
+}
+
 function _nuclideUri() {
   const data = _interopRequireDefault(require("../../../modules/nuclide-commons/nuclideUri"));
 
@@ -37,10 +47,10 @@ function _PanelComponentScroller() {
   return data;
 }
 
-function _FileTreeHelpers() {
-  const data = _interopRequireDefault(require("../lib/FileTreeHelpers"));
+function FileTreeHelpers() {
+  const data = _interopRequireWildcard(require("../lib/FileTreeHelpers"));
 
-  _FileTreeHelpers = function () {
+  FileTreeHelpers = function () {
     return data;
   };
 
@@ -78,7 +88,7 @@ function _DragResizeContainer() {
 }
 
 function _nuclideAnalytics() {
-  const data = require("../../nuclide-analytics");
+  const data = require("../../../modules/nuclide-analytics");
 
   _nuclideAnalytics = function () {
     return data;
@@ -188,7 +198,7 @@ class OpenFilesListComponent extends React.PureComponent {
     event.stopPropagation();
     const rootNode = Selectors().getRootForPath(this.props.store.getState(), entry.uri);
 
-    if (_FileTreeHelpers().default.getSelectionMode(event) === 'single-select' && !entry.isSelected && rootNode != null) {
+    if (FileTreeHelpers().getSelectionMode(event) === 'single-select' && !entry.isSelected && rootNode != null) {
       this.props.store.dispatch(Actions().setTargetNode(rootNode.rootUri, entry.uri));
       this.setState({
         selectedUri: entry.uri
@@ -304,6 +314,9 @@ class OpenFilesListComponent extends React.PureComponent {
         name: e.name // eslint-disable-next-line nuclide-internal/jsx-simple-callback-refs
         ,
         ref: e.isSelected ? this._handleSelectedRow : null
+      }, React.createElement(_DraggableFile().default, {
+        uri: e.uri,
+        trackingSource: "open-files"
       }, React.createElement("span", {
         className: (0, _classnames().default)('icon', {
           'icon-primitive-dot': e.isModified && !isHoveredUri,
@@ -313,7 +326,7 @@ class OpenFilesListComponent extends React.PureComponent {
         onClick: this._onCloseClick.bind(this, e)
       }), React.createElement(_PathWithFileIcon().default, {
         path: e.name
-      }));
+      })));
     }))))));
   }
 

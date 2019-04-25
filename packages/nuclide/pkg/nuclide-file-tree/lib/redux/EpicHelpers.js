@@ -49,10 +49,10 @@ function _log4js() {
   return data;
 }
 
-function _FileTreeHelpers() {
-  const data = _interopRequireDefault(require("../FileTreeHelpers"));
+function FileTreeHelpers() {
+  const data = _interopRequireWildcard(require("../FileTreeHelpers"));
 
-  _FileTreeHelpers = function () {
+  FileTreeHelpers = function () {
     return data;
   };
 
@@ -89,8 +89,6 @@ function _nuclideRemoteConnection() {
   return data;
 }
 
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
 function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) { var desc = Object.defineProperty && Object.getOwnPropertyDescriptor ? Object.getOwnPropertyDescriptor(obj, key) : {}; if (desc.get || desc.set) { Object.defineProperty(newObj, key, desc); } else { newObj[key] = obj[key]; } } } } newObj.default = obj; return newObj; } }
 
 /**
@@ -103,13 +101,7 @@ function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj;
  *  strict-local
  * @format
  */
-const logger = (0, _log4js().getLogger)('nuclide-file-tree');
-
-const {
-  replaceNode,
-  updateNodeAtRoot,
-  updateNodeAtAllRoots
-} = _FileTreeHelpers().default; //
+const logger = (0, _log4js().getLogger)('nuclide-file-tree'); //
 //
 // Dragons!
 //
@@ -128,7 +120,6 @@ const {
  * for the node to monitor future changes.
  */
 
-
 function fetchChildKeys(store, nodeKey) {
   const existingPromise = Selectors().getLoading(store.getState(), nodeKey);
 
@@ -136,13 +127,13 @@ function fetchChildKeys(store, nodeKey) {
     return existingPromise;
   }
 
-  const promise = (0, _promise().timeoutAfterDeadline)((0, _promise().createDeadline)(20000), _FileTreeHelpers().default.fetchChildren(nodeKey)).then(childrenKeys => setFetchedKeys(store, nodeKey, childrenKeys), error => {
+  const promise = (0, _promise().timeoutAfterDeadline)((0, _promise().createDeadline)(20000), FileTreeHelpers().fetchChildren(nodeKey)).then(childrenKeys => setFetchedKeys(store, nodeKey, childrenKeys), error => {
     logger.error(`Unable to fetch children for "${nodeKey}".`);
     logger.error('Original error: ', error); // Unless the contents were already fetched in the past
     // collapse the node and clear its loading state on error so the
     // user can retry expanding it.
 
-    store.dispatch(Actions().setRoots(updateNodeAtAllRoots(Selectors().getRoots(store.getState()), nodeKey, node => {
+    store.dispatch(Actions().setRoots(FileTreeHelpers().updateNodeAtAllRoots(Selectors().getRoots(store.getState()), nodeKey, node => {
       if (node.wasFetched) {
         return node.setIsLoading(false);
       }
@@ -170,7 +161,7 @@ async function setGeneratedChildren(store, nodeKey) {
   }
 
   const generatedFileTypes = await generatedFileService.getGeneratedFileTypes(nodeKey);
-  store.dispatch(Actions().setRoots(updateNodeAtAllRoots(Selectors().getRoots(store.getState()), nodeKey, node => {
+  store.dispatch(Actions().setRoots(FileTreeHelpers().updateNodeAtAllRoots(Selectors().getRoots(store.getState()), nodeKey, node => {
     const children = node.children.map(childNode => {
       const generatedType = generatedFileTypes.get(childNode.uri);
 
@@ -188,11 +179,10 @@ async function setGeneratedChildren(store, nodeKey) {
 }
 
 function setFetchedKeys(store, nodeKey, childrenKeys = []) {
-  const directory = _FileTreeHelpers().default.getDirectoryByKey(nodeKey);
-
+  const directory = FileTreeHelpers().getDirectoryByKey(nodeKey);
   const nodesToAutoExpand = []; // The node with URI === nodeKey might be present at several roots - update them all
 
-  store.dispatch(Actions().setRoots(updateNodeAtAllRoots(Selectors().getRoots(store.getState()), nodeKey, node => {
+  store.dispatch(Actions().setRoots(FileTreeHelpers().updateNodeAtAllRoots(Selectors().getRoots(store.getState()), nodeKey, node => {
     // Maintain the order fetched from the FS
     const childrenNodes = childrenKeys.map(uri => {
       const prevNode = node.find(uri); // If we already had a child with this URI - keep it
@@ -266,7 +256,7 @@ function expandNode(store, rootKey, nodeKey) {
     });
   };
 
-  store.dispatch(Actions().setRoots(updateNodeAtRoot(Selectors().getRoots(store.getState()), rootKey, nodeKey, recursivelyExpandNode)));
+  store.dispatch(Actions().setRoots(FileTreeHelpers().updateNodeAtRoot(Selectors().getRoots(store.getState()), rootKey, nodeKey, recursivelyExpandNode)));
 }
 
 function makeSubscription(store, nodeKey, directory) {
@@ -371,7 +361,7 @@ class FileTreeStoreBfsIterator {
     this._numNodesTraversed += childrenKeys.length;
 
     if (this._numNodesTraversed < this._limit) {
-      const nextLevelNodes = childrenKeys.filter(childKey => _FileTreeHelpers().default.isDirOrArchiveKey(childKey));
+      const nextLevelNodes = childrenKeys.filter(childKey => FileTreeHelpers().isDirOrArchiveKey(childKey));
       this._nodesToTraverse = this._nodesToTraverse.concat(nextLevelNodes);
       this._currentlyTraversedNode = this._nodesToTraverse.splice(0, 1)[0];
       this._promise = null;
@@ -442,8 +432,7 @@ function ensureChildNode(store, nodeKey) {
       node.subscription.dispose();
     }
 
-    const directory = _FileTreeHelpers().default.getDirectoryByKey(node.uri);
-
+    const directory = FileTreeHelpers().getDirectoryByKey(node.uri);
     const subscription = makeSubscription(store, node.uri, directory);
     return node.set({
       subscription,
@@ -468,20 +457,18 @@ function ensureChildNode(store, nodeKey) {
     }
 
     if (deepest.uri === nodeKey) {
-      return replaceNode(deepest, deepest, expandNode_);
+      return FileTreeHelpers().replaceNode(deepest, deepest, expandNode_);
     }
 
     const parents = [];
     let prevUri = nodeKey;
-
-    let currentParentUri = _FileTreeHelpers().default.getParentKey(nodeKey);
-
+    let currentParentUri = FileTreeHelpers().getParentKey(nodeKey);
     const rootUri = root.uri;
 
     while (currentParentUri !== deepest.uri && currentParentUri !== prevUri) {
       parents.push(currentParentUri);
       prevUri = currentParentUri;
-      currentParentUri = _FileTreeHelpers().default.getParentKey(currentParentUri);
+      currentParentUri = FileTreeHelpers().getParentKey(currentParentUri);
     }
 
     if (currentParentUri !== deepest.uri) {
@@ -506,7 +493,7 @@ function ensureChildNode(store, nodeKey) {
       currentChild = parent;
     });
     fetchChildKeys(store, deepest.uri);
-    return replaceNode(deepest, deepest.set({
+    return FileTreeHelpers().replaceNode(deepest, deepest.set({
       isLoading: true,
       isExpanded: true,
       isPendingLoad: true,
@@ -535,7 +522,7 @@ function setRootKeys(store, rootKeys) {
       rootUri,
       isLoading: true,
       isExpanded: true,
-      connectionTitle: _FileTreeHelpers().default.getDisplayTitle(rootUri) || ''
+      connectionTitle: FileTreeHelpers().getDisplayTitle(rootUri) || ''
     }, conf);
   });
   const roots = Immutable().OrderedMap(rootNodes.map(root => [root.uri, root]));

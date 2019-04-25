@@ -26,7 +26,7 @@ function _promise() {
 }
 
 function _nuclideAnalytics() {
-  const data = require("../../nuclide-analytics");
+  const data = require("../../../modules/nuclide-analytics");
 
   _nuclideAnalytics = function () {
     return data;
@@ -47,17 +47,6 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  * 
  * @format
  */
-
-/**
- * Autocomplete is extremely critical to the user experience!
- * Don't tolerate anything longer than AUTOCOMPLETE_TIMEOUT seconds; just fail
- * fast and let the fallback providers provide something at least.
- *
- * NOTE: We keep a higher time limit for only testing envirnoment since the
- * autocomplete check happens right after you open the file and providers don't
- * have enough time to initialize.
- */
-const AUTOCOMPLETE_TIMEOUT = atom.inSpecMode() ? 3000 : 500;
 const E2E_SAMPLE_RATE = 10;
 const ON_GET_SUGGESTIONS_SAMPLE_RATE = 10;
 const durationBySuggestion = new WeakMap();
@@ -66,7 +55,7 @@ const durationBySuggestion = new WeakMap();
  * `getSuggestions` calls and stop unhandled exceptions on to cascade.
  */
 
-function createAutocompleteProvider(provider) {
+function createAutocompleteProvider(provider, getTimeout) {
   // The `eventNames` could be computed in deep functions, but we don't want
   // to change the logger if a provider decides to changes its name.
   const eventNames = getAnalytics(provider);
@@ -74,7 +63,7 @@ function createAutocompleteProvider(provider) {
     get: (target, prop, receiver) => {
       switch (prop) {
         case 'getSuggestions':
-          return getSuggestions.bind(null, target, eventNames);
+          return getSuggestions.bind(null, target, eventNames, getTimeout);
 
         case 'onDidInsertSuggestion':
           return onDidInsertSuggestion.bind(null, target, eventNames);
@@ -98,7 +87,7 @@ function createAutocompleteProvider(provider) {
 
 const requestTrackers = new WeakMap();
 
-function _getRequestTracker(request, provider) {
+function _getRequestTracker(request, provider, timeout) {
   // Kind of hacky.. but the bufferPosition is a unique object per request.
   const key = request.bufferPosition;
   const tracker = requestTrackers.get(key);
@@ -109,15 +98,15 @@ function _getRequestTracker(request, provider) {
 
   const startTime = (0, _performanceNow().default)();
   const newTracker = {
-    timeoutPromise: (0, _promise().sleep)(AUTOCOMPLETE_TIMEOUT).then(() => {
+    timeoutPromise: (0, _promise().sleep)(timeout).then(() => {
       if (newTracker.pendingProviders) {
         (0, _nuclideAnalytics().trackSampled)('e2e-autocomplete', E2E_SAMPLE_RATE, {
           path: request.editor.getPath(),
-          duration: AUTOCOMPLETE_TIMEOUT,
+          duration: timeout,
           slowestProvider: 'timeout',
           pendingProviders: newTracker.pendingProviders
         });
-        throw new (_promise().TimedOutError)(AUTOCOMPLETE_TIMEOUT);
+        throw new (_promise().TimedOutError)(timeout);
       }
 
       const {
@@ -138,10 +127,11 @@ function _getRequestTracker(request, provider) {
   return newTracker;
 }
 
-function getSuggestions(provider, eventNames, request) {
+function getSuggestions(provider, eventNames, getTimeout, request) {
   const logObject = {};
+  const timeout = getTimeout();
 
-  const requestTracker = _getRequestTracker(request, provider);
+  const requestTracker = _getRequestTracker(request, provider, timeout);
 
   requestTracker.pendingProviders++;
   return (0, _nuclideAnalytics().trackTimingSampled)(eventNames.onGetSuggestions, async () => {
@@ -159,9 +149,13 @@ function getSuggestions(provider, eventNames, request) {
         result = await Promise.race([Promise.resolve(provider.getSuggestions(request)), requestTracker.timeoutPromise]);
       } catch (e) {
         if (e instanceof _promise().TimedOutError) {
-          (0, _nuclideAnalytics().track)(eventNames.timeoutOnGetSuggestions);
+          (0, _nuclideAnalytics().track)(eventNames.timeoutOnGetSuggestions, {
+            timeout
+          });
         } else {
-          (0, _nuclideAnalytics().track)(eventNames.errorOnGetSuggestions);
+          (0, _nuclideAnalytics().track)(eventNames.errorOnGetSuggestions, {
+            timeout
+          });
         }
       }
     }

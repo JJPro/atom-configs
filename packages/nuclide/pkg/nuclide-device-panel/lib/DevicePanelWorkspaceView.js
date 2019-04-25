@@ -27,12 +27,20 @@ function _RootPanel() {
   return data;
 }
 
-var _RxMin = require("rxjs/bundles/Rx.min.js");
-
 function _bindObservableAsProps() {
   const data = require("../../../modules/nuclide-commons-ui/bindObservableAsProps");
 
   _bindObservableAsProps = function () {
+    return data;
+  };
+
+  return data;
+}
+
+function _observableFromReduxStore() {
+  const data = _interopRequireDefault(require("../../../modules/nuclide-commons/observableFromReduxStore"));
+
+  _observableFromReduxStore = function () {
     return data;
   };
 
@@ -48,6 +56,8 @@ function Actions() {
 
   return data;
 }
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) { var desc = Object.defineProperty && Object.getOwnPropertyDescriptor ? Object.getOwnPropertyDescriptor(obj, key) : {}; if (desc.get || desc.set) { Object.defineProperty(newObj, key, desc); } else { newObj[key] = obj[key]; } } } } newObj.default = obj; return newObj; } }
 
@@ -134,8 +144,7 @@ class DevicePanelWorkspaceView {
   }
 
   getElement() {
-    const PreparedDevicePanel = (0, _bindObservableAsProps().bindObservableAsProps)( // $FlowFixMe: Teach flow about Symbol.observable
-    _RxMin.Observable.from(this._store).distinctUntilChanged().map(state => this._appStateToProps(state)), _RootPanel().RootPanel);
+    const PreparedDevicePanel = (0, _bindObservableAsProps().bindObservableAsProps)((0, _observableFromReduxStore().default)(this._store).distinctUntilChanged().map(state => this._appStateToProps(state)), _RootPanel().RootPanel);
     return (0, _renderReactRoot().renderReactRoot)(React.createElement(PreparedDevicePanel, null));
   }
 

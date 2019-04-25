@@ -74,7 +74,6 @@ class StatusBarTile extends React.Component {
         break;
 
       case 'pane-change':
-      case 'edit':
       case 'save':
         this.setState({
           pending: true

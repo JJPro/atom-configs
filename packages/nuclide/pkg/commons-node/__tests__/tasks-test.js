@@ -147,11 +147,17 @@ describe('commons-node/tasks', () => {
       const handler = jest.fn();
       observable.subscribe(handler);
 
-      task._status('fine and dandy');
+      task._status({
+        type: 'string',
+        status: 'fine and dandy'
+      });
 
       expect(handler).toHaveBeenCalledWith({
         type: 'status',
-        status: 'fine and dandy'
+        status: {
+          type: 'string',
+          status: 'fine and dandy'
+        }
       });
     });
   });
@@ -271,9 +277,15 @@ describe('commons-node/tasks', () => {
       expect(handler).not.toHaveBeenCalled();
       observable.next({
         type: 'status',
+        status: {
+          type: 'string',
+          status: 'fine and dandy'
+        }
+      });
+      expect(handler).toHaveBeenCalledWith({
+        type: 'string',
         status: 'fine and dandy'
       });
-      expect(handler).toHaveBeenCalledWith('fine and dandy');
     });
   });
 });

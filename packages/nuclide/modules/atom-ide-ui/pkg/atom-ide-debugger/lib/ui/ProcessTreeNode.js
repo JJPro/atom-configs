@@ -89,6 +89,16 @@ function _LoadingSpinner() {
   return data;
 }
 
+function _Icon() {
+  const data = require("../../../../../nuclide-commons-ui/Icon");
+
+  _Icon = function () {
+    return data;
+  };
+
+  return data;
+}
+
 function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) { var desc = Object.defineProperty && Object.getOwnPropertyDescriptor ? Object.getOwnPropertyDescriptor(obj, key) : {}; if (desc.get || desc.set) { Object.defineProperty(newObj, key, desc); } else { newObj[key] = obj[key]; } } } } newObj.default = obj; return newObj; } }
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
@@ -210,6 +220,7 @@ class ProcessTreeNode extends React.Component {
       isFocused,
       isCollapsed
     } = this.state;
+    const readOnly = service.viewModel.focusedProcess != null && service.viewModel.focusedProcess.configuration.isReadOnly;
 
     const handleTitleClick = event => {
       if (!this._computeIsFocused()) {
@@ -234,20 +245,27 @@ class ProcessTreeNode extends React.Component {
       onClick: handleTitleClick,
       className: isFocused ? 'debugger-tree-process debugger-tree-process-thread-selected' : 'debugger-tree-process',
       title: title
-    }, title));
+    }, title, readOnly ? ' (READ ONLY)' : null));
     const filteredThreads = threads.filter(t => this.filterThread(t));
+    const focusedThread = service.viewModel.focusedThread;
+    const selectedThreadFiltered = threads.some(t => t === focusedThread) && !filteredThreads.some(t => t === focusedThread);
+    const focusedThreadHiddenWarning = React.createElement("span", {
+      className: "debugger-thread-no-match-text"
+    }, React.createElement(_Icon().Icon, {
+      icon: "nuclicon-warning"
+    }), "The focused thread is hidden by your thread filter!");
     return threads.length === 0 ? React.createElement(_Tree().TreeItem, null, formattedTitle) : React.createElement(_Tree().NestedTreeItem, {
       title: formattedTitle,
       collapsed: isCollapsed,
       onSelect: this.handleSelect
-    }, filteredThreads.length === 0 && threads.length > 0 ? React.createElement("span", {
+    }, filteredThreads.length === 0 && threads.length > 0 ? selectedThreadFiltered ? focusedThreadHiddenWarning : React.createElement("span", {
       className: "debugger-thread-no-match-text"
     }, "No threads match the current filter.") : filteredThreads.map((thread, threadIndex) => React.createElement(_ThreadTreeNode().default, {
       key: threadIndex,
       thread: thread,
       service: service,
       threadTitle: this._threadTitle(thread)
-    })));
+    })).concat(selectedThreadFiltered ? focusedThreadHiddenWarning : null));
   }
 
 }

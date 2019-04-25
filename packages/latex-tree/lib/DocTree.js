@@ -18,6 +18,7 @@ export default class DocTree {
         this.setUpdateFreq(updateFreqText);
         this.docTree = [];
         this.timeout = null;
+        this.rootDir = null;
     }
 
     // Change update frequency
@@ -70,18 +71,22 @@ export default class DocTree {
                 rootPath = null;
         }
         // Create the buffer
-        if (rootPath)
+        if (rootPath) {
             buffNow = TextBuffer.loadSync(rootPath);
+            this.rootDir = path.dirname(rootPath);
+        }
+        else
+            this.rootDir = path.dirname(buffNow.getPath());
 
-        this.appendToDocTree (buffNow, null);
+        this.appendToDocTree (buffNow, null, null);
 
     }
 
     // Add to current docTree using the textBuffer provided
     // Can be recursively called (need to make sure not calling the same
     // buffer / infinite recursive loop)
-    appendToDocTree (buff, prevLvl) {
-        let regEx = new RegExp(/\\(include|input|part|chapter|(?:sub){0,2}section|(?:sub)?paragraph)(?:\s*(?:%.*\s*)*\*?\s*(?:%.*\s*)*{|\s*(?:%.*\s*)*\[)/, 'gm');
+    appendToDocTree (buff, prevLvl, overrideRootDir) {
+        let regEx = new RegExp(/\\(include(?:from)?|input(?:from)?|(?:sub)?import|sub(?:input|include)from|part|chapter|(?:sub){0,2}section|(?:sub)?paragraph)(?:\s*(?:%.*\s*)*\*?\s*(?:%.*\s*)*{|\s*(?:%.*\s*)*\[)/, 'gm');
 
         // Scan text buffer for regex
         buff.scan(regEx, result => {
@@ -93,16 +98,30 @@ export default class DocTree {
 
             // Check if it is '\include' or '\input'
             if (parseObj.level < 0) {
-                let targetBuff = parseObj.getTargetFileBuff();
+
+                if (overrideRootDir != null)
+                    var targetBuff = parseObj.getTargetFileBuff(overrideRootDir);
+                else
+                    var targetBuff = parseObj.getTargetFileBuff(this.rootDir);
+
                 if (targetBuff === null)
                     return;
+
+                let thisOverrideDir = null;
+                if (parseObj.level === -3 || parseObj.level === -4)
+                {
+                    thisOverrideDir = path.dirname(targetBuff.getPath());
+                }
+                else if (overrideRootDir != null)
+                    thisOverrideDir = overrideRootDir;
 
                 // Store previous file information (handle start pt and path)
                 this.appendToDocTree(targetBuff,
                     {
                         handleStartPt: result.range.start,
                         filePath: buff.getPath()
-                    }
+                    },
+                    thisOverrideDir
                 );
             }
             else {

@@ -27,16 +27,6 @@ function _UniversalDisposable() {
 
 var React = _interopRequireWildcard(require("react"));
 
-function _TruncatedButton() {
-  const data = _interopRequireDefault(require("../../../../../nuclide-commons-ui/TruncatedButton"));
-
-  _TruncatedButton = function () {
-    return data;
-  };
-
-  return data;
-}
-
 var _RxMin = require("rxjs/bundles/Rx.min.js");
 
 function _DebuggerSteppingComponent() {
@@ -69,10 +59,10 @@ function _DebuggerControllerView() {
   return data;
 }
 
-function _goToLocation() {
-  const data = require("../../../../../nuclide-commons-atom/go-to-location");
+function _DebuggerAddTargetButton() {
+  const data = require("./DebuggerAddTargetButton");
 
-  _goToLocation = function () {
+  _DebuggerAddTargetButton = function () {
     return data;
   };
 
@@ -94,15 +84,12 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  *  strict-local
  * @format
  */
-const DEVICE_PANEL_URL = 'atom://nuclide/devices';
-
 class DebuggerControlsView extends React.PureComponent {
   constructor(props) {
     super(props);
     this._disposables = new (_UniversalDisposable().default)();
     this.state = {
-      mode: _constants().DebuggerMode.STOPPED,
-      hasDevicePanelService: false
+      mode: _constants().DebuggerMode.STOPPED
     };
   }
 
@@ -121,9 +108,7 @@ class DebuggerControlsView extends React.PureComponent {
       this.setState({
         mode: focusedProcess == null ? _constants().DebuggerMode.STOPPED : focusedProcess.debuggerMode
       });
-    }), atom.packages.serviceHub.consume('nuclide.devices', '0.0.0', provider => this.setState({
-      hasDevicePanelService: true
-    })));
+    }));
   }
 
   componentWillUnmount() {
@@ -136,8 +121,7 @@ class DebuggerControlsView extends React.PureComponent {
 
   render() {
     const {
-      service,
-      passesMultiGK
+      service
     } = this.props;
     const {
       mode
@@ -146,27 +130,19 @@ class DebuggerControlsView extends React.PureComponent {
       className: "debugger-pane-content"
     }, React.createElement("div", {
       className: "debugger-state-notice"
-    }, React.createElement("span", null, "The debugger is not attached.")));
-    const debuggerRunningNotice = mode !== _constants().DebuggerMode.RUNNING ? null : React.createElement("div", {
+    }, "The debugger is not attached."), React.createElement("div", {
+      className: "debugger-state-notice"
+    }, (0, _DebuggerAddTargetButton().AddTargetButton)('debugger-buttongroup-center')));
+
+    const running = mode === _constants().DebuggerMode.RUNNING;
+
+    const paused = mode === _constants().DebuggerMode.PAUSED;
+
+    const debuggerRunningNotice = !running && !paused ? null : React.createElement("div", {
       className: "debugger-pane-content"
     }, React.createElement("div", {
       className: "debugger-state-notice"
-    }, (service.viewModel.focusedProcess == null || service.viewModel.focusedProcess.configuration.processName == null ? 'The debug target' : service.viewModel.focusedProcess.configuration.processName) + ' is currently running.'));
-    const debuggerNotice = mode !== _constants().DebuggerMode.STOPPED && !passesMultiGK ? null : React.createElement("div", {
-      className: "padded"
-    }, React.createElement(_TruncatedButton().default, {
-      onClick: () => atom.commands.dispatch(atom.views.getView(atom.workspace), 'debugger:show-attach-dialog'),
-      icon: "nuclicon-debugger",
-      label: "Attach debugger..."
-    }), React.createElement(_TruncatedButton().default, {
-      onClick: () => atom.commands.dispatch(atom.views.getView(atom.workspace), 'debugger:show-launch-dialog'),
-      icon: "nuclicon-debugger",
-      label: "Launch debugger..."
-    }), this.state.hasDevicePanelService ? React.createElement(_TruncatedButton().default, {
-      onClick: () => (0, _goToLocation().goToLocation)(DEVICE_PANEL_URL),
-      icon: "device-mobile",
-      label: "Manage devices..."
-    }) : null);
+    }, (service.viewModel.focusedProcess == null || service.viewModel.focusedProcess.configuration.processName == null ? 'The debug target' : service.viewModel.focusedProcess.configuration.processName) + ` is ${running ? 'running' : 'paused'}.`));
     return React.createElement("div", {
       className: "debugger-container-new"
     }, React.createElement("div", {
@@ -177,7 +153,7 @@ class DebuggerControlsView extends React.PureComponent {
       className: "debugger-section-header debugger-controls-section"
     }, React.createElement(_DebuggerSteppingComponent().default, {
       service: service
-    })), debuggerRunningNotice, debuggerStoppedNotice, debuggerNotice);
+    })), debuggerRunningNotice, debuggerStoppedNotice);
   }
 
 }

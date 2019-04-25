@@ -19,6 +19,7 @@ exports.fetchFileContentAtRevision = fetchFileContentAtRevision;
 exports.batchFetchFileContentsAtRevision = batchFetchFileContentsAtRevision;
 exports.fetchFilesChangedAtRevision = fetchFilesChangedAtRevision;
 exports.fetchRevisionInfoBetweenHeadAndBase = fetchRevisionInfoBetweenHeadAndBase;
+exports.fetchHeadRevisionInfo = fetchHeadRevisionInfo;
 exports.fetchSmartlogRevisions = fetchSmartlogRevisions;
 exports.getBaseRevision = getBaseRevision;
 exports.getBlameAtHead = getBlameAtHead;
@@ -56,6 +57,7 @@ exports.copy = copy;
 exports.getHeadId = getHeadId;
 exports.getFullHashForRevision = getFullHashForRevision;
 exports.fold = fold;
+exports.importPatch = importPatch;
 exports.runCommand = runCommand;
 exports.observeExecution = observeExecution;
 exports.addRemove = addRemove;
@@ -271,10 +273,7 @@ const NUM_FETCH_STATUSES_LIMIT = 200; // Suffixes of hg error messages that indi
 // when performing an hg operation on a non-existent or untracked file.
 
 const IGNORABLE_ERROR_SUFFIXES = ['abort: no files to copy', 'No such file or directory', 'does not exist!'];
-/**
- * These are status codes used by Mercurial's output.
- * Documented in http://selenic.com/hg/help/status.
- */
+const DEFAULT_HG_COMMIT_TITLE_REGEX = /^<Replace this line with a title. Use 1 line only, 67 chars or less>/;
 
 async function logWhenSubscriptionEstablished(sub, subName) {
   await sub;
@@ -366,6 +365,7 @@ class HgRepositorySubscriptions {
     this._filesDidChangeObserver = new _RxMin.Subject();
     this._hgActiveBookmarkDidChangeObserver = new _RxMin.Subject();
     this._lockFilesDidChange = _RxMin.Observable.empty();
+    this._watchmanHealth = _RxMin.Observable.empty();
     this._hgBookmarksDidChangeObserver = new _RxMin.Subject();
     this._hgRepoStateDidChangeObserver = new _RxMin.Subject();
     this._hgConflictStateDidChangeObserver = new _RxMin.Subject();
@@ -462,7 +462,8 @@ class HgRepositorySubscriptions {
       defer_vcs: false
     });
     logWhenSubscriptionEstablished(progressSubscriptionPromise, WATCHMAN_SUBSCRIPTION_NAME_PROGRESS);
-    this._lockFilesDidChange = (0, _watchFileCreationAndDeletion().subscribeToFilesCreateAndDelete)(watchmanClient, workingDirectory, _hgConstants().LockFilesList, WATCHMAN_SUBSCRIPTION_NAME_LOCK_FILES).publish().refCount(); // Those files' changes indicate a commit-changing action has been applied to the repository,
+    this._lockFilesDidChange = (0, _watchFileCreationAndDeletion().subscribeToFilesCreateAndDelete)(watchmanClient, workingDirectory, _hgConstants().LockFilesList, WATCHMAN_SUBSCRIPTION_NAME_LOCK_FILES).publish().refCount();
+    this._watchmanHealth = watchmanClient.observeHealth(); // Those files' changes indicate a commit-changing action has been applied to the repository,
     // Watchman currently (v4.7) ignores `.hg/store` file updates.
     // Hence, we here use node's filesystem watchers instead.
 
@@ -542,6 +543,10 @@ class HgRepositorySubscriptions {
 
   _hgOperationProgressDidChange() {
     this._hgOperationProgressDidChangeObserver.next();
+  }
+
+  observeWatchmanHealth() {
+    return this._watchmanHealth.takeUntil(this._disposeObserver).publish();
   }
   /**
    * Observes one of more files has changed. Applies to all files except
@@ -861,6 +866,10 @@ async function fetchRevisionInfoBetweenHeadAndBase(workingDirectory) {
   return revisionsInfo;
 }
 
+function fetchHeadRevisionInfo(workingDirectory) {
+  return (0, _hgRevisionExpressionHelpers().fetchHeadRevisionInfo)(workingDirectory);
+}
+
 function fetchSmartlogRevisions(workingDirectory) {
   return (0, _hgRevisionExpressionHelpers().fetchSmartlogRevisions)(workingDirectory);
 }
@@ -982,7 +991,6 @@ async function getSmartlog(workingDirectory, ttyOutput, concise) {
 
 function _commitCode(workingDirectory, message, args) {
   // TODO(T17463635)
-  let editMergeConfigs;
   return _RxMin.Observable.fromPromise((async () => {
     if (message == null) {
       return args;
@@ -994,12 +1002,6 @@ function _commitCode(workingDirectory, message, args) {
     const execOptions = {
       cwd: workingDirectory
     };
-
-    if (editMergeConfigs != null) {
-      execArgs.push(...editMergeConfigs.args);
-      execOptions.HGEDITOR = editMergeConfigs.hgEditor;
-    }
-
     return (0, _hgUtils().hgObserveExecution)(execArgs, execOptions);
   });
 }
@@ -1155,7 +1157,7 @@ function diff(workingDirectory, revision, unified, diffCommitted, noPrefix, noDa
 
 
 function purge(workingDirectory) {
-  return _runSimpleInWorkingDirectory(workingDirectory, 'purge', []);
+  return _runSimpleInWorkingDirectory(workingDirectory, 'purge', ['--files']);
 }
 /**
  * Undoes the effect of a local commit, specifically the working directory parent.
@@ -1279,7 +1281,7 @@ async function getTemplateCommitMessage(workingDirectory) {
     const {
       stdout
     } = await (0, _hgUtils().hgAsyncExecute)(args, execOptions);
-    return stdout;
+    return stdout.replace(DEFAULT_HG_COMMIT_TITLE_REGEX, '');
   } catch (e) {
     (0, _log4js().getLogger)('nuclide-hg-rpc').error('Failed when trying to get template commit message');
     return null;
@@ -1505,6 +1507,25 @@ function fold(workingDirectory, from, to, message) {
   const args = ['fold', '--exact', `${from}::${to}`, '--message', message];
   const execOptions = {
     cwd: workingDirectory
+  };
+  return (0, _hgUtils().hgRunCommand)(args, execOptions).publish();
+}
+/**
+ * @param patch This will be the patch passed through std/in to hg import
+ * @param noCommit True will leave the imported changes uncommitted
+ */
+
+
+function importPatch(workingDirectory, patch, noCommit = false) {
+  const args = ['import', '-'];
+
+  if (noCommit) {
+    args.push('--no-commit');
+  }
+
+  const execOptions = {
+    cwd: workingDirectory,
+    input: patch
   };
   return (0, _hgUtils().hgRunCommand)(args, execOptions).publish();
 }

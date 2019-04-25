@@ -64,7 +64,10 @@ describe('ThriftServerManager', () => {
     name: 'thrift-rfs',
     remoteCommand: '',
     remoteCommandArgs: [],
-    remotePort: mockPort,
+    remoteConnection: {
+      type: 'tcp',
+      port: mockPort
+    },
     killOldThriftServerProcess: true
   };
   const startServerMessage = {
@@ -92,10 +95,13 @@ describe('ThriftServerManager', () => {
     }
 
     mockCloseServerFn = jest.fn();
-    mockGetPortFn = jest.fn().mockReturnValue(mockPort);
+    mockGetPortFn = jest.fn().mockReturnValue({
+      port: mockPort,
+      useIPv4: false
+    });
     (0, _jest_mock_utils().getMock)(_createThriftServer().createThriftServer).mockImplementation(() => {
       return {
-        getPort: mockGetPortFn,
+        getConnectionOptions: mockGetPortFn,
         close: mockCloseServerFn
       };
     });
@@ -114,7 +120,10 @@ describe('ThriftServerManager', () => {
       payload: {
         type: 'response',
         success: true,
-        port: String(mockPort)
+        connectionOptions: {
+          port: mockPort,
+          useIPv4: false
+        }
       }
     };
     const responsePromise = serverMessage.take(1).toPromise();
@@ -226,7 +235,10 @@ describe('ThriftServerManager', () => {
       payload: {
         type: 'response',
         success: true,
-        port: String(mockPort)
+        connectionOptions: {
+          port: mockPort,
+          useIPv4: false
+        }
       }
     };
     const secondResponsePromise = serverMessage.take(1).toPromise();

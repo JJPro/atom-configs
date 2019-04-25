@@ -40,7 +40,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 describe('xfetch', () => {
   beforeEach(() => {
     // Normally we get a stubbed version during tests.
-    jest.spyOn(require("../system-info"), 'isRunningInTest').mockReturnValue(false);
+    jest.spyOn(require("../../../modules/nuclide-commons/system-info"), 'isRunningInTest').mockReturnValue(false);
   });
   it('is the correct module', () => {
     if (typeof atom === 'undefined') {

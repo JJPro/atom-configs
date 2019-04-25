@@ -1,5 +1,11 @@
 "*":
   "atom-autocomplete-php": {}
+  "atom-ide-ui":
+    "atom-ide-code-format": {}
+  "clang-format":
+    formatCOnSave: true
+    formatCPlusPlusOnSave: true
+    formatJavascriptOnSave: true
   core:
     customFileTypes:
       "source.ini": [
@@ -21,15 +27,22 @@
       "latextools"
       "linter-sass-lint"
       "vim-mode-plus"
+      "linter"
+      "autocomplete-clang"
+      "ide-cpp"
+      "clang-format"
     ]
     telemetryConsent: "no"
   editor:
+    fontSize: 12
     softWrap: true
   "exception-reporting":
     userId: "fa06bac5-9996-41d4-b1f4-b9e4c614e537"
   "latex-plus":
     texBin: "/Library/TeX/texbin/"
-  "linter-ui-default": {}
+  "linter-ui-default":
+    panelHeight: 355
+    showPanel: true
   "markdown-preview":
     useGitHubStyle: true
   nuclide:

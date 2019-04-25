@@ -16,6 +16,7 @@ export default class LatexTreeView {
         this.selectedNowInd = null;
         this.textEditorNow = null;
         this.docTree = null;
+        this.foldStatus = {};
 
         this.focusEditorAfterClick = atom.config.get('latex-tree.focusEditorAfterClick');
         this.highlightCursorPost = atom.config.get('latex-tree.highlightWithCursorPost');
@@ -103,6 +104,7 @@ export default class LatexTreeView {
         if (editor != this.textEditorNow) {
             this.textEditorNow = editor;
             this.selectedNowInd = null;
+            this.foldStatus = {};
         }
 
         // Create root element for tree
@@ -125,6 +127,8 @@ export default class LatexTreeView {
 
         // Processing each node in docTree to turn to html element
         let haveChildren;
+        let tmp = this.foldStatus;
+        this.foldStatus = {};
         for (let i = 0; i < docTree.length; i++) {
 
             // Determine if there is a children
@@ -138,7 +142,9 @@ export default class LatexTreeView {
             // Create the html element
             let nodeElement = document.createElement('li');
             let nameTag = document.createElement('div');
-            nameTag.textContent = docTree[i].text;
+            let txt = document.createElement('span');
+            txt.textContent = docTree[i].text;
+            nameTag.appendChild(txt);
             nodeElement.appendChild(nameTag);
             docTree[i].htmlElement = nodeElement;
 
@@ -165,6 +171,16 @@ export default class LatexTreeView {
                 for (var j = docTree[i].level+1; j < lastParentOLNode.length; j++) {
                     lastParentOLNode[j] = null;
                 }
+
+                // Check fold status
+                let foldStatusStr = this.docTree[i].level + '_' + this.docTree[i].text;
+                if (foldStatusStr in tmp) {
+                    if (tmp[foldStatusStr] == 1) {
+                        nodeElement.classList.add('collapsed');
+                        this.foldStatus[foldStatusStr] = 1;
+                    }
+                }
+
             }
             else {
                 docTree[i].listItemElement = nodeElement;
@@ -194,7 +210,23 @@ export default class LatexTreeView {
 
         // Checks it is from the primary button
         if (e.button === 0) {
-            this.highlight(parseInt(e.currentTarget.id.substring(10)));
+            nodeIndex = parseInt(e.currentTarget.id.substring(10));
+            if (e.offsetX < e.currentTarget.childNodes[0].offsetLeft) {
+                if (e.currentTarget.nodeName === 'DIV') {
+                    let parent = e.currentTarget.parentElement;
+                    let foldStatusStr = this.docTree[nodeIndex].level + '_' + this.docTree[nodeIndex].text;
+                    if (parent.classList.contains('collapsed')) {
+                        parent.classList.remove('collapsed');
+                        this.foldStatus[foldStatusStr] = 0;
+                    }
+                    else {
+                        parent.classList.add('collapsed');
+                        this.foldStatus[foldStatusStr] = 1;
+                    }
+                    return;
+                }
+            }
+            this.highlight(nodeIndex);
             let docNodeNow = this.docTree[this.selectedNowInd];
             if (docNodeNow.filePath === this.textEditorNow.getPath())
                 this.textEditorNow.setCursorBufferPosition(docNodeNow.startPt);

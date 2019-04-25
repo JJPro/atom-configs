@@ -111,6 +111,20 @@ describe('arrayFindLastIndex', () => {
     expect((0, _collection().arrayFindLastIndex)([1, 1, 2], x => x === 0)).toBe(-1);
   });
 });
+describe('arrayPartition', () => {
+  it('partitions an array into two', () => {
+    expect((0, _collection().arrayPartition)([1, 2, 3], x => x === 1)).toEqual([[1], [2, 3]]);
+  });
+  it('can partition an empty passing array', () => {
+    expect((0, _collection().arrayPartition)([2, 3, 4], x => x === 1)).toEqual([[], [2, 3, 4]]);
+  });
+  it('can partition an empty failing array', () => {
+    expect((0, _collection().arrayPartition)([1, 1, 1], x => x === 1)).toEqual([[1, 1, 1], []]);
+  });
+  it('handles empty arrays', () => {
+    expect((0, _collection().arrayPartition)([], x => x === 1)).toEqual([[], []]);
+  });
+});
 describe('mapUnion', () => {
   it('merges two unique maps', () => {
     const map1 = new Map([['key1', 'value1'], ['key2', 'value2']]);
@@ -269,6 +283,31 @@ describe('DefaultMap', () => {
     map.get('c');
     expect([...map.entries()]).toEqual([['a', 1], ['b', 2], ['c', 0]]);
     expect(map.size).toBe(3);
+  });
+});
+describe('DefaultWeakMap', () => {
+  const a = {};
+  const b = {};
+  const c = {};
+  it('calls the factory each time you get a nonexistant key', () => {
+    const spy = jest.fn().mockReturnValue('default');
+    const map = new (_collection().DefaultWeakMap)(spy);
+    expect(map.get(a)).toBe('default');
+    expect(map.get(b)).toBe('default');
+    expect(spy.mock.calls).toHaveLength(2);
+  });
+  it('can update default values', () => {
+    const map = new (_collection().DefaultWeakMap)(() => 'default');
+    expect(map.get(a)).toBe('default');
+    map.set(a, 'custom');
+    expect(map.get(a)).toBe('custom');
+  });
+  it('takes initial values', () => {
+    const map = new (_collection().DefaultWeakMap)(() => 0, [[a, 1], [b, 2]]);
+    map.get(c);
+    expect(map.get(a)).toBe(1);
+    expect(map.get(b)).toBe(2);
+    expect(map.get(c)).toBe(0);
   });
 });
 describe('MultiMap', () => {
@@ -588,5 +627,34 @@ describe('distinct', () => {
     }, {
       x: 4
     }]);
+  });
+});
+describe('findTopRanked', () => {
+  it('returns the top ranked value', () => {
+    expect((0, _collection().findTopRanked)([{
+      a: 1
+    }, {
+      a: 3
+    }, {
+      a: 2
+    }], x => x.a)).toEqual({
+      a: 3
+    });
+  });
+  it("doesn't include zero-ranked items", () => {
+    expect((0, _collection().findTopRanked)([{
+      a: 1
+    }, {
+      a: 2
+    }], x => 0)).toBe(undefined);
+  });
+  it('stops iterating when it finds the max rank', () => {
+    expect((0, _collection().findTopRanked)([{
+      a: 1
+    }, {
+      a: 2
+    }], x => x.a, 1)).toEqual({
+      a: 1
+    });
   });
 });

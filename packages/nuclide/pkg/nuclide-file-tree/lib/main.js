@@ -70,30 +70,10 @@ function _disablePackage() {
   return data;
 }
 
-function _viewableFromReactElement() {
-  const data = require("../../commons-atom/viewableFromReactElement");
-
-  _viewableFromReactElement = function () {
-    return data;
-  };
-
-  return data;
-}
-
 function _observable() {
   const data = require("../../../modules/nuclide-commons/observable");
 
   _observable = function () {
-    return data;
-  };
-
-  return data;
-}
-
-function _FileTreeSidebarComponent() {
-  const data = _interopRequireDefault(require("../components/FileTreeSidebarComponent"));
-
-  _FileTreeSidebarComponent = function () {
     return data;
   };
 
@@ -150,12 +130,10 @@ function _destroyItemWhere() {
   return data;
 }
 
-var React = _interopRequireWildcard(require("react"));
-
 var _RxMin = require("rxjs/bundles/Rx.min.js");
 
 function _passesGK() {
-  const data = _interopRequireDefault(require("../../commons-node/passesGK"));
+  const data = _interopRequireDefault(require("../../../modules/nuclide-commons/passesGK"));
 
   _passesGK = function () {
     return data;
@@ -188,6 +166,16 @@ function _createStore() {
   const data = _interopRequireDefault(require("./redux/createStore"));
 
   _createStore = function () {
+    return data;
+  };
+
+  return data;
+}
+
+function _ViewModel() {
+  const data = _interopRequireDefault(require("./ViewModel"));
+
+  _ViewModel = function () {
     return data;
   };
 
@@ -305,19 +293,19 @@ class Activation {
     }), _featureConfig().default.observe(focusEditorOnFileSelection, value => {
       this._store.dispatch(Actions().setFocusEditorOnFileSelection(value));
     }), atom.commands.add('atom-workspace', 'tree-view:toggle-focus', () => {
-      const component = this._fileTreeComponent;
+      const viewModel = this._viewModel;
 
-      if (component == null) {
+      if (viewModel == null) {
         return;
       }
 
-      if (component.isFocused()) {
+      if (viewModel.isFocused()) {
         // Focus the center.
         const center = atom.workspace.getCenter ? atom.workspace.getCenter() : atom.workspace;
         center.getActivePane().activate();
       } else {
         // Focus the file tree.
-        component.focus();
+        viewModel.focus();
       }
     }), this._registerCommandAndOpener());
   }
@@ -342,6 +330,15 @@ class Activation {
     };
 
     return disposables;
+  } // Currently we only support one remoteTransferService at a time.
+
+
+  consumeRemoteFileTransfer(remoteTransferService) {
+    this._store.dispatch(Actions().gotRemoteTransferService(remoteTransferService));
+
+    return new (_UniversalDisposable().default)(() => {
+      this._store.dispatch(Actions().gotRemoteTransferService(null));
+    });
   }
 
   consumeTerminal(terminal) {
@@ -489,10 +486,8 @@ class Activation {
 
   _createView() {
     // Currently, we assume that only one will be created.
-    this._fileTreeComponent = (0, _viewableFromReactElement().viewableFromReactElement)(React.createElement(_FileTreeSidebarComponent().default, {
-      store: this._store
-    }));
-    return this._fileTreeComponent;
+    this._viewModel = new (_ViewModel().default)(this._store);
+    return this._viewModel;
   }
 
   _registerCommandAndOpener() {
@@ -500,7 +495,7 @@ class Activation {
       if (uri === _Constants().WORKSPACE_VIEW_URI) {
         return this._createView();
       }
-    }), () => (0, _destroyItemWhere().destroyItemWhere)(item => item instanceof _FileTreeSidebarComponent().default), atom.commands.add('atom-workspace', 'tree-view:toggle', () => {
+    }), () => (0, _destroyItemWhere().destroyItemWhere)(item => item instanceof _ViewModel().default), atom.commands.add('atom-workspace', 'tree-view:toggle', () => {
       atom.workspace.toggle(_Constants().WORKSPACE_VIEW_URI);
     }));
     (0, _passesGK().default)('nuclide_open_connect_menu_on_clean_startup').then(openConnectMenu => {
@@ -511,14 +506,14 @@ class Activation {
             searchAllPanes: true
           });
         } else {
-          (0, _event().observableFromSubscribeFunction)(atom.project.onDidChangePaths.bind(atom.project)).startWith(null).map(() => atom.project.getPaths().length).pairwise().take(1).subscribe(([oldLength, newLength]) => {
+          disposable.add((0, _event().observableFromSubscribeFunction)(atom.project.onDidChangePaths.bind(atom.project)).startWith(null).map(() => atom.project.getPaths().length).pairwise().take(1).subscribe(([oldLength, newLength]) => {
             if (oldLength === 0 && newLength === 1) {
               // eslint-disable-next-line nuclide-internal/atom-apis
               atom.workspace.open(_Constants().WORKSPACE_VIEW_URI, {
                 searchAllPanes: true
               });
             }
-          });
+          }));
         }
       }
     });
@@ -526,7 +521,7 @@ class Activation {
   }
 
   deserializeFileTreeSidebarComponent() {
-    return this._fileTreeComponent || this._createView();
+    return this._viewModel || this._createView();
   } // Exported for testing
 
 

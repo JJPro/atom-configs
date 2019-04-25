@@ -40,16 +40,6 @@ function _analytics() {
   return data;
 }
 
-function _idbKeyval() {
-  const data = _interopRequireDefault(require("idb-keyval"));
-
-  _idbKeyval = function () {
-    return data;
-  };
-
-  return data;
-}
-
 function _createPackage() {
   const data = _interopRequireDefault(require("../../../../nuclide-commons-atom/createPackage"));
 
@@ -204,6 +194,16 @@ function _StatusBarTile() {
 
 var _reactDom = _interopRequireDefault(require("react-dom"));
 
+function _utils() {
+  const data = require("./utils");
+
+  _utils = function () {
+    return data;
+  };
+
+  return data;
+}
+
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 /**
@@ -219,27 +219,19 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  */
 const MAX_OPEN_ALL_FILES = 20;
 const SHOW_TRACES_SETTING = 'atom-ide-diagnostics-ui.showDiagnosticTraces';
-const NUX_ASYNC_STORAGE_KEY = 'nuclide_diagnostics_nux_shown';
+const NUCLIDE_DIAGNOSTICS_STALE_GK = 'nuclide_diagnostics_stale';
 
 class Activation {
   constructor(state) {
     var _ref;
 
     this._gatekeeperServices = new _RxMin.BehaviorSubject();
-
-    this._dismissNux = () => {
-      this._model.setState({
-        showNuxContent: false
-      });
-    };
-
     this._model = new (_Model().default)({
-      showNuxContent: false,
       filterByActiveTextEditor: ((_ref = state) != null ? _ref.filterByActiveTextEditor : _ref) === true,
       diagnosticUpdater: null,
       openedMessageIds: new Set()
     });
-    this._subscriptions = new (_UniversalDisposable().default)(this.registerOpenerAndCommand(), this._registerActionsMenu(), this._observeDiagnosticsAndOfferTable(), (0, _showAtomLinterWarning().default)());
+    this._subscriptions = new (_UniversalDisposable().default)(this.registerOpenerAndCommand(), this._registerActionsMenu(), (0, _showAtomLinterWarning().default)());
     this._fileDiagnostics = new WeakMap();
   }
 
@@ -271,7 +263,7 @@ class Activation {
   }
 
   consumeDiagnosticUpdates(diagnosticUpdater) {
-    this._getStatusBarTile().consumeDiagnosticUpdates(diagnosticUpdater);
+    this._getStatusBarTile().consumeDiagnosticUpdates(diagnosticUpdater, this._getIsStaleMessageEnabledStream());
 
     this._subscriptions.add(this._gutterConsumeDiagnosticUpdates(diagnosticUpdater)); // Currently, the DiagnosticsView is designed to work with only one DiagnosticUpdater.
 
@@ -297,12 +289,12 @@ class Activation {
       // We should merge the store and UI packages to get direct access.
 
 
-      const subscription = getEditorDiagnosticUpdates(editor, diagnosticUpdater).finally(() => {
+      const subscription = getEditorDiagnosticUpdates(editor, diagnosticUpdater, this._getIsStaleMessageEnabledStream()).finally(() => {
         this._subscriptions.remove(subscription);
 
         this._fileDiagnostics.delete(editor);
-      }).subscribe(update => {
-        this._fileDiagnostics.set(editor, update.messages);
+      }).subscribe(providerToMessages => {
+        this._fileDiagnostics.set(editor, providerToMessages);
       });
 
       this._subscriptions.add(subscription);
@@ -379,73 +371,43 @@ class Activation {
     }));
   }
 
-  _observeDiagnosticsAndOfferTable() {
-    return new (_UniversalDisposable().default)(this._gatekeeperServices.switchMap(gatekeeperService => {
-      if (gatekeeperService == null) {
-        return _RxMin.Observable.of(null);
-      }
-
-      return gatekeeperService.passesGK('nuclide_diagnostics_nux');
-    }).filter(Boolean).take(1) // Don't show it to the user if they've seen it before
-    .switchMap(() => _idbKeyval().default.get(NUX_ASYNC_STORAGE_KEY)).filter(seen => !seen).switchMap(() => // Only display once there are errors originating from multiple files
-    this._getGlobalViewStates().debounceTime(500).map(state => state.diagnostics).filter(diags => {
-      // make sure there are diagnostics from at least two different uris
-      // and that those diagnostics are errors
-      const firstErrorDiagIndex = diags.findIndex(diag => diag.type === 'Error');
-
-      if (firstErrorDiagIndex === -1) {
-        return false;
-      }
-
-      const firstUri = diags[firstErrorDiagIndex].filePath;
-
-      for (let i = firstErrorDiagIndex + 1; i < diags.length; i++) {
-        if (diags[i].type === 'Error' && diags[i].filePath !== firstUri) {
-          return true;
-        }
-      }
-
-      return false;
-    }).take(1)).subscribe(async () => {
-      // capture the current focus since opening diagnostics will change it
-      const previouslyFocusedElement = document.activeElement;
-
-      this._model.setState({
-        showNuxContent: true
-      }); // we need to await this as we must wait for the panel to activate to
-      // change the focus back
-
-
-      await (0, _goToLocation().goToLocation)(_DiagnosticsViewModel().WORKSPACE_VIEW_URI);
-
-      _idbKeyval().default.set(NUX_ASYNC_STORAGE_KEY, true);
-
-      _analytics().default.track('diagnostics-table-nux-shown'); // and then restore the focus if it existed before
-
-
-      if (previouslyFocusedElement != null) {
-        previouslyFocusedElement.focus();
-      }
-    }));
-  }
-
   _createDiagnosticsViewModel() {
     return new (_DiagnosticsViewModel().DiagnosticsViewModel)(this._getGlobalViewStates());
   }
 
+  _getIsStaleMessageEnabledStream() {
+    return this._gatekeeperServices.switchMap(gkService => {
+      if (gkService != null) {
+        return gkService.passesGK(NUCLIDE_DIAGNOSTICS_STALE_GK);
+      }
+
+      return _RxMin.Observable.of(false);
+    }).distinctUntilChanged();
+  }
   /**
    * An observable of the state that's shared between all panel copies. State that's unique to a
    * single copy of the diagnostics panel is managed in DiagnosticsViewModel. Generally, users will
    * only have one copy of the diagnostics panel so this is mostly a theoretical distinction,
    * however, each copy should have its own sorting, filtering, etc.
    */
+
+
   _getGlobalViewStates() {
     if (this._globalViewStates == null) {
       const packageStates = this._model.toObservable();
 
       const updaters = packageStates.map(state => state.diagnosticUpdater).distinctUntilChanged();
-      const showNuxContentStream = packageStates.map(state => state.showNuxContent);
-      const diagnosticsStream = updaters.switchMap(updater => updater == null ? _RxMin.Observable.of([]) : (0, _event().observableFromSubscribeFunction)(updater.observeMessages)).map(diagnostics => diagnostics.filter(d => d.type !== 'Hint')).let((0, _observable().fastDebounce)(100)).startWith([]);
+      const diagnosticsStream = updaters.switchMap(updater => updater == null ? _RxMin.Observable.of([]) : (0, _event().observableFromSubscribeFunction)(updater.observeMessages)).combineLatest(this._getIsStaleMessageEnabledStream()).let((0, _observable().throttle)(([, isStaleMessageEnabled]) => _RxMin.Observable.interval(isStaleMessageEnabled ? _utils().STALE_MESSAGE_UPDATE_THROTTLE_TIME : 0))).map(([diagnostics, isStaleMessageEnabled]) => diagnostics.filter(d => d.type !== 'Hint').map(diagnostic => {
+        if (!isStaleMessageEnabled) {
+          // Note: reason of doing this is currently Flow is sending message
+          // marked as stale sometimes(on user type or immediately on save).
+          // Until we turn on the gk, we don't want user to see the Stale
+          // style/behavior just yet. so here we mark them as not stale.
+          diagnostic.stale = false;
+        }
+
+        return diagnostic;
+      })).let((0, _observable().throttle)(300)).startWith([]);
 
       const showTracesStream = _featureConfig().default.observeAsStream(SHOW_TRACES_SETTING);
 
@@ -468,8 +430,8 @@ class Activation {
 
       const supportedMessageKindsStream = updaters.switchMap(updater => updater == null ? _RxMin.Observable.of(new Set(['lint'])) : (0, _event().observableFromSubscribeFunction)(updater.observeSupportedMessageKinds.bind(updater))).distinctUntilChanged(_collection().areSetsEqual);
       const uiConfigStream = updaters.switchMap(updater => updater == null ? _RxMin.Observable.of([]) : (0, _event().observableFromSubscribeFunction)(updater.observeUiConfig.bind(updater)));
-      this._globalViewStates = _RxMin.Observable.combineLatest(diagnosticsStream, filterByActiveTextEditorStream, pathToActiveTextEditorStream, showTracesStream, showDirectoryColumnStream, autoVisibilityStream, supportedMessageKindsStream, showNuxContentStream, uiConfigStream, // $FlowFixMe
-      (diagnostics, filterByActiveTextEditor, pathToActiveTextEditor, showTraces, showDirectoryColumn, autoVisibility, supportedMessageKinds, showNuxContent, uiConfig) => ({
+      this._globalViewStates = _RxMin.Observable.combineLatest(diagnosticsStream, filterByActiveTextEditorStream, pathToActiveTextEditorStream, showTracesStream, showDirectoryColumnStream, autoVisibilityStream, supportedMessageKindsStream, uiConfigStream, // $FlowFixMe
+      (diagnostics, filterByActiveTextEditor, pathToActiveTextEditor, showTraces, showDirectoryColumn, autoVisibility, supportedMessageKinds, uiConfig) => ({
         diagnostics,
         filterByActiveTextEditor,
         pathToActiveTextEditor,
@@ -478,9 +440,7 @@ class Activation {
         autoVisibility,
         onShowTracesChange: setShowTraces,
         onFilterByActiveTextEditorChange: setFilterByActiveTextEditor,
-        onDismissNux: this._dismissNux,
         supportedMessageKinds,
-        showNuxContent,
         uiConfig
       }));
     }
@@ -533,13 +493,25 @@ class Activation {
   }
 
   _getMessagesAtPosition(editor, position) {
-    const messagesForFile = this._fileDiagnostics.get(editor);
+    const messages = this._fileDiagnostics.get(editor);
 
-    if (messagesForFile == null) {
+    if (messages == null) {
       return [];
     }
 
-    return messagesForFile.filter(message => message.range != null && message.range.containsPoint(position));
+    const messagesAtPosition = [];
+
+    for (const message of messages) {
+      if (message.range && message.range.end.row > position.row) {
+        break;
+      }
+
+      if (message.range != null && message.range.containsPoint(position)) {
+        messagesAtPosition.push(message);
+      }
+    }
+
+    return messagesAtPosition;
   }
 
   _gutterConsumeDiagnosticUpdates(diagnosticUpdater) {
@@ -566,7 +538,7 @@ class Activation {
         _reactDom.default.unmountComponentAtNode(blockDecorationContainer);
       });
 
-      const subscription = _RxMin.Observable.combineLatest(updateOpenedMessageIds, getEditorDiagnosticUpdates(editor, diagnosticUpdater)).finally(() => {
+      const subscription = _RxMin.Observable.combineLatest(updateOpenedMessageIds, getEditorDiagnosticUpdates(editor, diagnosticUpdater, this._getIsStaleMessageEnabledStream())).finally(() => {
         subscriptions.remove(subscription);
       }).subscribe(([openedMessageIds, update]) => {
         // Although the subscription should be cleaned up on editor destroy,
@@ -604,7 +576,8 @@ function addAtomCommands(diagnosticUpdater) {
   };
 
   const openAllFilesWithErrors = () => {
-    _analytics().default.track('diagnostics-panel-open-all-files-with-errors');
+    _analytics().default.track('diagnostics-panel-open-all-files-with-errors'); // eslint-disable-next-line nuclide-internal/unused-subscription
+
 
     (0, _event().observableFromSubscribeFunction)(diagnosticUpdater.observeMessages).first().subscribe(messages => {
       const errorsToOpen = getTopMostErrorLocationsByFilePath(messages);
@@ -664,12 +637,19 @@ function getActiveEditorPaths() {
   }).distinctUntilChanged();
 }
 
-function getEditorDiagnosticUpdates(editor, diagnosticUpdater) {
-  return (0, _event().observableFromSubscribeFunction)(editor.onDidChangePath.bind(editor)).startWith(editor.getPath()).switchMap(filePath => filePath != null ? (0, _event().observableFromSubscribeFunction)(cb => diagnosticUpdater.observeFileMessages(filePath, cb)) : _RxMin.Observable.empty()).map(diagnosticMessages => {
-    return Object.assign({}, diagnosticMessages, {
-      messages: diagnosticMessages.messages.filter(diagnostic => diagnostic.type !== 'Hint')
-    });
-  }).takeUntil((0, _event().observableFromSubscribeFunction)(editor.onDidDestroy.bind(editor)));
+function getEditorDiagnosticUpdates(editor, diagnosticUpdater, isStaleMessageEnabledStream) {
+  return (0, _event().observableFromSubscribeFunction)(editor.onDidChangePath.bind(editor)).startWith(editor.getPath()).switchMap(filePath => filePath != null ? (0, _event().observableFromSubscribeFunction)(cb => diagnosticUpdater.observeFileMessagesIterator(filePath, cb)) : _RxMin.Observable.empty()).combineLatest(isStaleMessageEnabledStream).let((0, _observable().throttle)(([_, isStaleMessageEnabled]) => _RxMin.Observable.interval(isStaleMessageEnabled ? _utils().STALE_MESSAGE_UPDATE_THROTTLE_TIME : 0))).map(([messages, isStaleMessageEnabled]) => // Flow and other providers have begun sending updates that mark prior
+  // messages as stale. For users outside the stale diagnostics GK,
+  // never show these messages as stale.
+  isStaleMessageEnabled ? messages : function* () {
+    for (const message of messages) {
+      if (message != null && message.type !== 'Hint') {
+        message.stale = false;
+      }
+
+      yield message;
+    }
+  }()).takeUntil((0, _event().observableFromSubscribeFunction)(editor.onDidDestroy.bind(editor)));
 }
 
 (0, _createPackage().default)(module.exports, Activation);

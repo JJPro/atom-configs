@@ -17,6 +17,26 @@ function _nullthrows() {
   return data;
 }
 
+function _analytics() {
+  const data = require("../nuclide-commons/analytics");
+
+  _analytics = function () {
+    return data;
+  };
+
+  return data;
+}
+
+function _promise() {
+  const data = require("../nuclide-commons/promise");
+
+  _promise = function () {
+    return data;
+  };
+
+  return data;
+}
+
 function _utils() {
   const data = require("../atom-ide-debugger-java/utils");
 
@@ -110,13 +130,27 @@ async function launchAndroidServiceOrActivity(adbServiceUri, service, activity, 
 
 async function getPidFromPackageName(adbServiceUri, deviceSerial, packageName) {
   const adbService = (0, _nuclideAdb().getAdbServiceByNuclideUri)(adbServiceUri);
-  const pid = await adbService.getPidFromPackageName(deviceSerial, packageName);
+  let pid = await adbService.getPidFromPackageName(deviceSerial, packageName);
+  const firstTryFails = !Number.isInteger(pid);
 
-  if (!Number.isInteger(pid)) {
-    throw new Error(`Fail to get pid for package: ${packageName}. Instead got: ${pid}`);
+  if (firstTryFails) {
+    // Try twice after a short delay because sometimes it works.
+    await (0, _promise().sleep)(300);
+    pid = await adbService.getPidFromPackageName(deviceSerial, packageName);
   }
 
-  return pid;
+  const success = Number.isInteger(pid);
+  (0, _analytics().track)('atom-ide-debugger-java-android-getPidFromPackageName', {
+    triedTwice: firstTryFails,
+    success,
+    pid
+  });
+
+  if (success) {
+    return pid;
+  } else {
+    throw new Error(`Fail to get pid for package: ${packageName}. Instead got: ${pid}`);
+  }
 }
 
 async function getAdbAttachPortTargetInfo(deviceSerial, adbServiceUri, targetUri, pid, subscriptions, packageName) {
@@ -160,12 +194,11 @@ async function getAdbAttachPortTargetInfo(deviceSerial, adbServiceUri, targetUri
         throw new Error("Invariant violation: \"tunnelService\"");
       }
 
-      const debuggerPort = await tunnelService.getAvailableServerPort(targetUri);
       const tunnel = {
         description: 'Java debugger',
         from: {
           host: _nuclideUri().default.getHostname(targetUri),
-          port: debuggerPort,
+          port: 'any_available',
           family: 4
         },
         to: {
@@ -176,8 +209,8 @@ async function getAdbAttachPortTargetInfo(deviceSerial, adbServiceUri, targetUri
       };
       const openTunnel = tunnelService.openTunnels([tunnel]).share();
       subscriptions.add(openTunnel.subscribe());
-      await openTunnel.take(1).toPromise();
-      resolve(debuggerPort);
+      const tunnels = await openTunnel.take(1).toPromise();
+      resolve(tunnels[0].from.port);
     } catch (e) {
       reject(e);
     }

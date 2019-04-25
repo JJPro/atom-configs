@@ -62,6 +62,10 @@ const mockPlatformService = {
 
 };
 const mockStore = {
+  subscribe() {
+    return () => {};
+  },
+
   dispatch(action) {},
 
   getState() {

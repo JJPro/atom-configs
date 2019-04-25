@@ -5,7 +5,19 @@ Object.defineProperty(exports, "__esModule", {
 });
 exports.getServerVersion = getServerVersion;
 exports.getServerPlatform = getServerPlatform;
+exports.getOriginalEnvironment = getOriginalEnvironment;
+exports.getServerEnvironment = getServerEnvironment;
 exports.closeConnection = closeConnection;
+
+function _process() {
+  const data = require("../../../../modules/nuclide-commons/process");
+
+  _process = function () {
+    return data;
+  };
+
+  return data;
+}
 
 function _nuclideVersion() {
   const data = require("../../../nuclide-version");
@@ -45,6 +57,14 @@ function getServerVersion() {
 
 async function getServerPlatform() {
   return process.platform;
+}
+
+async function getOriginalEnvironment() {
+  return (0, _process().getOriginalEnvironmentArray)();
+}
+
+async function getServerEnvironment() {
+  return (0, _process().getEnvironment)();
 } // Mark this as async so the client can wait for an acknowledgement.
 // However, we can't close the connection right away, as otherwise the response never gets sent!
 // Add a small delay to allow the return message to go through.

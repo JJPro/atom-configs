@@ -29,6 +29,16 @@ function _Encoder() {
 
 var _events = _interopRequireDefault(require("events"));
 
+function _ProxyConfigUtils() {
+  const data = require("./ProxyConfigUtils");
+
+  _ProxyConfigUtils = function () {
+    return data;
+  };
+
+  return data;
+}
+
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 /**
@@ -45,89 +55,171 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 const logger = (0, _log4js().getLogger)('tunnel-socket-manager');
 
 class SocketManager extends _events.default {
-  constructor(tunnelId, port, useIPv4, transport) {
+  constructor(tunnelId, proxyConfig, transport) {
     super();
     this._tunnelId = tunnelId;
-    this._port = port;
     this._transport = transport;
-    this._useIPv4 = useIPv4;
+    this._proxyConfig = proxyConfig;
     this._socketByClientId = new Map();
-  }
-
-  receive(message) {
-    this._handleMessage(message);
   }
 
   getId() {
     return this._tunnelId;
   }
 
-  _handleMessage(message) {
-    if (message.event === 'connection') {
-      this._createConnection(message);
-    } else if (message.event === 'data') {
-      this._forwardData(message);
-    } else if (message.event === 'error') {
-      this._handleError(message);
-    }
+  receive(msg) {
+    switch (msg.event) {
+      case 'connection':
+        this._createConnection(msg.clientId);
+
+        return;
+
+      case 'data':
+        this._forwardData(msg.clientId, msg.arg);
+
+        return;
+
+      case 'close':
+        this._ensureSocketClosed(msg.clientId);
+
+        return;
+
+      case 'error':
+        this._destroySocket(msg.clientId, msg.error);
+
+        return;
+
+      case 'end':
+        this._endSocket(msg.clientId);
+
+        return;
+
+      default:
+        throw new Error(`Invalid tunnel message: ${msg.event}`);
+    } // const {clientId} = msg;
+    // invariant(msg.clientId != null);
+
   }
 
-  _createConnection(message) {
-    const connectOptions = {
-      port: this._port,
-      family: this._useIPv4 ? 4 : 6
-    };
+  _createConnection(clientId) {
+    const connectOptions = (0, _ProxyConfigUtils().matchProxyConfig)({
+      tcp: c => ({
+        port: c.port,
+        family: c.useIPv4 ? 4 : 6
+      }),
+      ipcSocket: c => ({
+        path: c.path
+      })
+    }, this._proxyConfig);
     logger.info(`creating socket with ${JSON.stringify(connectOptions)}`);
 
-    const socket = _net.default.createConnection(connectOptions);
+    const socket = _net.default.createConnection(connectOptions); // forward events over the transport
+    // NOTE: Needs to be explicit otherwise Flow will complain about the
+    // type. We prefer this as opposed to using `any` types in such important infra code.
 
+
+    socket.on('timeout', arg => {
+      this._sendMessage({
+        event: 'timeout',
+        arg,
+        clientId,
+        tunnelId: this._tunnelId
+      });
+    });
+    socket.on('end', arg => {
+      this._sendMessage({
+        event: 'end',
+        arg,
+        clientId,
+        tunnelId: this._tunnelId
+      });
+    });
+    socket.on('close', arg => {
+      this._sendMessage({
+        event: 'close',
+        arg,
+        clientId,
+        tunnelId: this._tunnelId
+      });
+    });
+    socket.on('data', arg => {
+      this._sendMessage({
+        event: 'data',
+        arg,
+        clientId,
+        tunnelId: this._tunnelId
+      });
+    });
     socket.on('error', error => {
-      logger.error(error);
+      logger.error('error on socket: ', error);
 
       this._sendMessage({
         event: 'error',
-        error,
-        clientId: message.clientId,
-        tunnelId: this._tunnelId
+        tunnelId: this._tunnelId,
+        clientId,
+        error
       });
 
-      socket.end();
-    });
-    socket.on('data', data => {
-      this._sendMessage({
-        event: 'data',
-        arg: data,
-        clientId: message.clientId,
-        tunnelId: this._tunnelId
-      });
+      socket.destroy(error);
     });
     socket.on('close', () => {
-      logger.info(`received close event on socket ${message.clientId} in socketManager`);
-
-      this._sendMessage({
-        event: 'close',
-        clientId: message.clientId,
-        tunnelId: this._tunnelId
-      });
-
-      this._socketByClientId.delete(message.clientId);
+      this._deleteSocket(clientId);
     });
 
-    this._socketByClientId.set(message.clientId, socket);
+    this._socketByClientId.set(clientId, socket);
   }
 
-  _forwardData(message) {
-    const socket = this._socketByClientId.get(message.clientId);
+  _forwardData(id, data) {
+    const socket = this._socketByClientId.get(id);
 
     if (socket != null) {
-      socket.write(message.arg);
+      socket.write(data);
     } else {
-      logger.error('no socket found for this data: ', message);
+      logger.error(`data loss - socket already closed or nonexistent: ${id}`);
     }
   }
 
-  _handleError(message) {
-    this.emit('error', message.arg);
+  _deleteSocket(id) {
+    logger.info(`socket ${id} closed`);
+
+    const socket = this._socketByClientId.get(id);
+
+    if (!socket) {
+      throw new Error("Invariant violation: \"socket\"");
+    }
+
+    socket.removeAllListeners();
+
+    this._socketByClientId.delete(id);
+  }
+
+  _destroySocket(id, error) {
+    const socket = this._socketByClientId.get(id);
+
+    if (socket != null) {
+      socket.destroy(error);
+    } else {
+      logger.info(`no socket ${id} found for ${error.message}, this is expected if it was closed recently`);
+    }
+  }
+
+  _endSocket(id) {
+    const socket = this._socketByClientId.get(id);
+
+    if (socket != null) {
+      socket.end();
+    } else {
+      logger.info(`no socket ${id} found to be ended, this is expected if it was closed recently`);
+    }
+  }
+
+  _ensureSocketClosed(id) {
+    const socket = this._socketByClientId.get(id);
+
+    if (socket != null) {
+      logger.info(`socket ${id} wasn't closed in time, force closing it`);
+      socket.destroy();
+    }
   }
 
   _sendMessage(msg) {

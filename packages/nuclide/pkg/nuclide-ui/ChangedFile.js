@@ -15,16 +15,6 @@ function _log4js() {
   return data;
 }
 
-function _goToLocation() {
-  const data = require("../../modules/nuclide-commons-atom/go-to-location");
-
-  _goToLocation = function () {
-    return data;
-  };
-
-  return data;
-}
-
 function _addTooltip() {
   const data = _interopRequireDefault(require("../../modules/nuclide-commons-ui/addTooltip"));
 
@@ -39,6 +29,16 @@ function _classnames() {
   const data = _interopRequireDefault(require("classnames"));
 
   _classnames = function () {
+    return data;
+  };
+
+  return data;
+}
+
+function _DraggableFile() {
+  const data = _interopRequireDefault(require("../../modules/nuclide-commons-ui/DraggableFile"));
+
+  _DraggableFile = function () {
     return data;
   };
 
@@ -151,7 +151,11 @@ class ChangedFile extends React.Component {
     const node = _reactDom.default.findDOMNode(this);
 
     this._disposables = new (_UniversalDisposable().default)(atom.commands.add(node, `${COMMAND_PREFIX}:goto-file`, event => {
-      (0, _goToLocation().goToLocation)(this.props.filePath);
+      const {
+        filePath,
+        onFileChosen
+      } = this.props;
+      onFileChosen(filePath);
     }), atom.commands.add(node, `${COMMAND_PREFIX}:copy-full-path`, event => {
       atom.clipboard.write(_nuclideUri().default.getPath(this.props.filePath || ''));
     }), atom.commands.add(node, `${COMMAND_PREFIX}:delete-file`, event => {
@@ -366,7 +370,7 @@ class ChangedFile extends React.Component {
 
     const enableMarkDeleted = onForgetFile != null && fileStatus === _nuclideVcsBase().FileChangeStatus.MISSING;
 
-    const enableResolve = onMarkFileResolved != null && fileStatus === _nuclideVcsBase().FileChangeStatus.CHANGE_DELETE;
+    const enableResolve = onMarkFileResolved != null && (fileStatus === _nuclideVcsBase().FileChangeStatus.CHANGE_DELETE || fileStatus === _nuclideVcsBase().FileChangeStatus.BOTH_CHANGED);
 
     const eligibleActions = [];
 
@@ -418,6 +422,7 @@ class ChangedFile extends React.Component {
       (0, _log4js().getLogger)('nuclide-ui').error('ChangedFile failed to get relative path for %s, %s\nDid the cwd change? ', rootPath, filePath, err);
     }
 
+    const draggable = !(fileStatus === _nuclideVcsBase().FileChangeStatus.MISSING || fileStatus === _nuclideVcsBase().FileChangeStatus.REMOVED);
     return React.createElement("li", {
       "data-name": displayPath,
       "data-path": filePath,
@@ -429,7 +434,10 @@ class ChangedFile extends React.Component {
       "data-enable-revert": enableRestore || null,
       className: this._getFileClassname(),
       key: filePath
-    }, checkbox, React.createElement("span", {
+    }, checkbox, React.createElement(_DraggableFile().default, {
+      draggable: draggable,
+      trackingSource: 'changed-file',
+      uri: filePath,
       className: "nuclide-changed-file-name",
       onClick: handleFileChosen
     }, React.createElement(_Icon().Icon, {
@@ -437,7 +445,7 @@ class ChangedFile extends React.Component {
       icon: _nuclideVcsBase().FileChangeStatusToIcon[fileStatus]
     }), React.createElement(_PathWithFileIcon().default, {
       path: displayPath,
-      title: `${statusName}:${LF}${relativePath}${LF}(Click to open in Nuclide)`
+      title: `${statusName}:${LF}${relativePath}${LF}(Click to open)`
     })), actions);
   }
 

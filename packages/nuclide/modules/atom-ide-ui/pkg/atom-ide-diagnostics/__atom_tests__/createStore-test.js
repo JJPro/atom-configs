@@ -2,6 +2,16 @@
 
 var _atom = require("atom");
 
+function _promise() {
+  const data = require("../../../../nuclide-commons/promise");
+
+  _promise = function () {
+    return data;
+  };
+
+  return data;
+}
+
 function _createStore() {
   const data = _interopRequireDefault(require("../lib/redux/createStore"));
 
@@ -136,9 +146,8 @@ describe('createStore', () => {
   };
 
   beforeEach(() => {
-    const messageRangeTracker = new (_MessageRangeTracker().default)();
-    store = (0, _createStore().default)(messageRangeTracker);
-    updater = new (_DiagnosticUpdater().default)(store, messageRangeTracker);
+    store = (0, _createStore().default)(new (_MessageRangeTracker().default)());
+    updater = new (_DiagnosticUpdater().default)(store);
   });
   afterEach(() => {
     disposeSpies();
@@ -152,20 +161,22 @@ describe('createStore', () => {
     state = store.getState();
     expect(state.messages.size).toBe(1);
   });
-  it('An updates only notifies listeners for the scope(s) of the update.', () => {
+  it('An updates only notifies listeners for the scope(s) of the update.', async () => {
     // Register spies. Spies should be called with the initial data.
     setSpies();
     expect(spy_fileA.mock.calls.length).toBe(1);
     expect(spy_fileB.mock.calls.length).toBe(1);
     expect(spy_allMessages.mock.calls.length).toBe(1); // Test 1. Add file messages from one provider.
 
-    addUpdateA(); // Expect all spies except spy_fileB to have been called.
+    addUpdateA();
+    await (0, _promise().sleep)(100); // Expect all spies except spy_fileB to have been called.
 
     expect(spy_fileB.mock.calls.length).toBe(1);
     expect(spy_fileA.mock.calls.length).toBe(2);
     expect(spy_fileA.mock.calls[spy_fileA.mock.calls.length - 1]).toEqual([{
       filePath: 'fileA',
-      messages: [fileMessageA]
+      messages: [fileMessageA],
+      totalMessages: 1
     }]);
     expect(spy_allMessages.mock.calls.length).toBe(2);
     expect(spy_allMessages.mock.calls[spy_allMessages.mock.calls.length - 1][0]).toEqual([fileMessageA]); // Expect the getter methods on DiagnosticStore to return correct info.
@@ -174,7 +185,7 @@ describe('createStore', () => {
     const allMessages = Selectors().getMessages(store.getState());
     expect(allMessages).toEqual([fileMessageA]);
   });
-  it('An update should notify listeners for the scope(s) of the update, and not affect other' + ' listeners.', () => {
+  it('An update should notify listeners for the scope(s) of the update, and not affect other' + ' listeners.', async () => {
     // Set the initial state of the store.
     addUpdateA(); // Register spies. Some spies should be called immediately because there is
     // data in the store.
@@ -183,25 +194,29 @@ describe('createStore', () => {
     expect(spy_fileA.mock.calls.length).toBe(1);
     expect(spy_fileA).toHaveBeenCalledWith({
       filePath: 'fileA',
-      messages: [fileMessageA]
+      messages: [fileMessageA],
+      totalMessages: 1
     });
     expect(spy_fileB.mock.calls.length).toBe(1);
     expect(spy_fileB).toHaveBeenCalledWith({
       filePath: 'fileB',
-      messages: []
+      messages: [],
+      totalMessages: 0
     });
     expect(spy_allMessages.mock.calls.length).toBe(1);
     expect(spy_allMessages.mock.calls[spy_allMessages.mock.calls.length - 1][0]).toEqual([fileMessageA]); // Test 2. Add file messages from a second provider.
     // They should not interfere with messages from the first provider.
 
-    addUpdateB(); // spy_fileA experiences no change.
+    addUpdateB();
+    await (0, _promise().sleep)(100); // spy_fileA experiences no change.
 
     expect(spy_fileA.mock.calls.length).toBe(1); // spy_fileB is called from updateB.
 
     expect(spy_fileB.mock.calls.length).toBe(2);
     expect(spy_fileB.mock.calls[spy_fileB.mock.calls.length - 1]).toEqual([{
       filePath: 'fileB',
-      messages: [fileMessageB]
+      messages: [fileMessageB],
+      totalMessages: 1
     }]); // spy_allMessages is called from data from the initial state and from updateB.
 
     expect(spy_allMessages.mock.calls.length).toBe(2);
@@ -212,7 +227,7 @@ describe('createStore', () => {
     const allMessages = Selectors().getMessages(store.getState());
     expect(allMessages).toEqual([fileMessageA, fileMessageB]);
   });
-  it('An update from the same provider should overwrite previous messages from that' + ' provider.', () => {
+  it('An update from the same provider should overwrite previous messages from that' + ' provider.', async () => {
     // Set the initial state of the store.
     addUpdateA();
     addUpdateB(); // Register spies. All spies should be called immediately because there is
@@ -222,7 +237,8 @@ describe('createStore', () => {
     // messages from ProviderA at the same scope.
     // ProviderB messages should remain the same.
 
-    addUpdateA2(); // spy_fileB is called with data from the initial state.
+    addUpdateA2();
+    await (0, _promise().sleep)(100); // spy_fileB is called with data from the initial state.
 
     expect(spy_fileB.mock.calls.length).toBe(1); // spy_fileA and spy_allMessages are called with data from the
     // initial state and updateA2.
@@ -230,7 +246,8 @@ describe('createStore', () => {
     expect(spy_fileA.mock.calls.length).toBe(2);
     expect(spy_fileA.mock.calls[spy_fileA.mock.calls.length - 1]).toEqual([{
       filePath: 'fileA',
-      messages: [fileMessageA2]
+      messages: [fileMessageA2],
+      totalMessages: 1
     }]);
     expect(spy_allMessages.mock.calls.length).toBe(2);
     expect(spy_allMessages.mock.calls[spy_allMessages.mock.calls.length - 1][0]).toEqual([fileMessageA2, fileMessageB]); // Expect the getter methods on DiagnosticStore to return the correct info.
@@ -241,7 +258,7 @@ describe('createStore', () => {
     expect(allMessages).toEqual([fileMessageA2, fileMessageB]);
   });
   describe('When an invalidation message is sent from one provider, ', () => {
-    it('if specifying file scope, it should only invalidate messages from that provider for that' + ' file.', () => {
+    it('if specifying file scope, it should only invalidate messages from that provider for that' + ' file.', async () => {
       // Set up the state of the store.
       addUpdateB();
       addUpdateA2(); // Register spies. All spies should be called immediately because there is
@@ -253,7 +270,8 @@ describe('createStore', () => {
         scope: 'file',
         filePaths: ['fileA']
       };
-      store.dispatch(Actions().invalidateMessages(dummyProviderA, fileInvalidationMessage)); // Expect spy_fileA and spy_allMessages to have been called from the
+      store.dispatch(Actions().invalidateMessages(dummyProviderA, fileInvalidationMessage));
+      await (0, _promise().sleep)(100); // Expect spy_fileA and spy_allMessages to have been called from the
       // invalidation message.
       // File messages from ProviderA should be gone, but no other changes.
       // At this point, there should only be ProviderB file messages.
@@ -262,7 +280,8 @@ describe('createStore', () => {
       expect(spy_fileA.mock.calls.length).toBe(2);
       expect(spy_fileA.mock.calls[spy_fileA.mock.calls.length - 1]).toEqual([{
         filePath: 'fileA',
-        messages: []
+        messages: [],
+        totalMessages: 0
       }]);
       expect(spy_allMessages.mock.calls.length).toBe(2);
       expect(spy_allMessages.mock.calls[spy_allMessages.mock.calls.length - 1][0]).toEqual([fileMessageB]); // Expect the getter methods on DiagnosticStore to return the correct info.

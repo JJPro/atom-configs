@@ -90,6 +90,30 @@ function _yargs() {
   return data;
 }
 
+function _analytics() {
+  const data = require("../../nuclide-commons/analytics");
+
+  _analytics = function () {
+    return data;
+  };
+
+  return data;
+}
+
+function rawAnalyticsService() {
+  const data = _interopRequireWildcard(require("../../nuclide-analytics/lib/track"));
+
+  rawAnalyticsService = function () {
+    return data;
+  };
+
+  return data;
+}
+
+var _RxMin = require("rxjs/bundles/Rx.min.js");
+
+function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) { var desc = Object.defineProperty && Object.getOwnPropertyDescriptor ? Object.getOwnPropertyDescriptor(obj, key) : {}; if (desc.get || desc.set) { Object.defineProperty(newObj, key, desc); } else { newObj[key] = obj[key]; } } } } newObj.default = obj; return newObj; } }
+
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 /**
@@ -131,6 +155,7 @@ function buildLogger() {
       }
     }],
     levels: {
+      'nuclide-commons/process': 'FATAL',
       '[all]': 'DEBUG'
     }
   };
@@ -176,15 +201,17 @@ async function main() {
       process.exit(0);
     }
 
+    (0, _analytics().setRawAnalyticsService)(rawAnalyticsService(), _RxMin.Observable.from([]));
+    const logger = buildLogger();
     const aliases = configFile.resolveAliasesForPreset(preset);
     const dispatcher = new (_CommandDispatcher().default)(aliases);
-    const cli = new (_CommandLine().default)(dispatcher, args.plain);
+    const cli = new (_CommandLine().default)(dispatcher, args.plain, logger);
     dispatcher.registerCommand(new (_HelpCommand().default)(cli, dispatcher));
     dispatcher.registerCommand(new (_QuitCommand().default)(() => cli.close()));
     let adapter;
 
     try {
-      adapter = debuggerAdapterFactory.adapterFromArguments(args);
+      adapter = await debuggerAdapterFactory.adapterFromArguments(args);
     } catch (error) {
       cli.outputLine(error.message);
       cli.outputLine();
@@ -193,17 +220,18 @@ async function main() {
     }
 
     const muteOutputCategories = args.dvsp || adapter == null ? new Set() : adapter.adapter.muteOutputCategories;
-    const logger = buildLogger();
     const debuggerInstance = new (_Debugger().default)(logger, cli, preset, muteOutputCategories);
 
     if (adapter != null) {
       await debuggerInstance.launch(adapter);
     }
 
-    debuggerInstance.registerCommands(dispatcher);
+    debuggerInstance.registerCommands(dispatcher); // eslint-disable-next-line nuclide-internal/unused-subscription
+
     cli.observeInterrupts().subscribe(_ => {
       debuggerInstance.breakInto();
-    });
+    }); // eslint-disable-next-line nuclide-internal/unused-subscription
+
     cli.observeLines().subscribe(_ => {}, _ => {}, _ => {
       debuggerInstance.closeSession().then(x => {
         cli.outputLine();

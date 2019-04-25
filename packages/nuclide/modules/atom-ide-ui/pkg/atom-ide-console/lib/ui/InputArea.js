@@ -192,7 +192,10 @@ class InputArea extends React.Component {
   render() {
     const grammar = this.props.scopeName == null ? null : atom.grammars.grammarForScopeName(this.props.scopeName);
     return React.createElement("div", {
-      className: "console-input-wrapper"
+      className: "console-input-wrapper",
+      style: {
+        fontSize: `${this.props.fontSize}px`
+      }
     }, React.createElement(_AtomTextEditor().AtomTextEditor, {
       ref: this._handleTextEditor,
       grammar: grammar,

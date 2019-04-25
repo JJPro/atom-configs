@@ -163,17 +163,8 @@ function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj;
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-/**
- * Copyright (c) 2017-present, Facebook, Inc.
- * All rights reserved.
- *
- * This source code is licensed under the BSD-style license found in the
- * LICENSE file in the root directory of this source tree. An additional grant
- * of patent rights can be found in the PATENTS file in the same directory.
- *
- * 
- * @format
- */
+function _objectWithoutProperties(source, excluded) { if (source == null) return {}; var target = {}; var sourceKeys = Object.keys(source); var key, i; for (i = 0; i < sourceKeys.length; i++) { key = sourceKeys[i]; if (excluded.indexOf(key) >= 0) continue; target[key] = source[key]; } if (Object.getOwnPropertySymbols) { var sourceSymbolKeys = Object.getOwnPropertySymbols(source); for (i = 0; i < sourceSymbolKeys.length; i++) { key = sourceSymbolKeys[i]; if (excluded.indexOf(key) >= 0) continue; if (!Object.prototype.propertyIsEnumerable.call(source, key)) continue; target[key] = source[key]; } } return target; }
+
 const WORKSPACE_VIEW_URI = 'atom://nuclide/diagnostics';
 exports.WORKSPACE_VIEW_URI = WORKSPACE_VIEW_URI;
 
@@ -182,12 +173,13 @@ class DiagnosticsViewModel {
     _initialiseProps.call(this);
 
     // Memoize `_filterDiagnostics()`
-    this._filterDiagnostics = (0, _memoizeUntilChanged().default)(this._filterDiagnostics, (diagnostics, pattern, hiddenGroups, filterPath) => ({
+    this._filterDiagnostics = (0, _memoizeUntilChanged().default)(this._filterDiagnostics, (diagnostics, pattern, hiddenGroups, filterByActiveTextEditor, filterPath) => ({
       diagnostics,
       pattern,
       hiddenGroups,
+      filterByActiveTextEditor,
       filterPath
-    }), (a, b) => patternsAreEqual(a.pattern, b.pattern) && (0, _collection().areSetsEqual)(a.hiddenGroups, b.hiddenGroups) && (0, _collection().arrayEqual)(a.diagnostics, b.diagnostics) && a.filterPath === b.filterPath);
+    }), (a, b) => patternsAreEqual(a.pattern, b.pattern) && (0, _collection().areSetsEqual)(a.hiddenGroups, b.hiddenGroups) && (0, _collection().arrayEqual)(a.diagnostics, b.diagnostics) && a.filterByActiveTextEditor === b.filterByActiveTextEditor && a.filterPath === b.filterPath);
     const {
       pattern,
       invalid
@@ -231,15 +223,22 @@ class DiagnosticsViewModel {
     })); // Combine the state that's shared between instances, the state that's unique to this instance,
     // and unchanging callbacks, to get the props for our component.
 
-    const props = _RxMin.Observable.combineLatest(globalStates, this._model.toObservable(), visibility, (globalState, instanceState, isVisible) => Object.assign({}, globalState, instanceState, {
-      isVisible,
-      diagnostics: this._filterDiagnostics(globalState.diagnostics, instanceState.textFilter.pattern, instanceState.hiddenGroups, globalState.filterByActiveTextEditor ? globalState.pathToActiveTextEditor : null),
-      onTypeFilterChange: this._handleTypeFilterChange,
-      onTextFilterChange: this._handleTextFilterChange,
-      selectMessage: this._selectMessage,
-      gotoMessageLocation: goToDiagnosticLocation,
-      supportedMessageKinds: globalState.supportedMessageKinds
-    }));
+    const props = _RxMin.Observable.combineLatest(globalStates, this._model.toObservable(), visibility, (globalState, instanceState, isVisible) => {
+      const {
+        pathToActiveTextEditor
+      } = globalState,
+            globalStateWithoutPathToActiveTextEditor = _objectWithoutProperties(globalState, ["pathToActiveTextEditor"]);
+
+      return Object.assign({}, globalStateWithoutPathToActiveTextEditor, instanceState, {
+        isVisible,
+        diagnostics: this._filterDiagnostics(globalState.diagnostics, instanceState.textFilter.pattern, instanceState.hiddenGroups, globalState.filterByActiveTextEditor, pathToActiveTextEditor),
+        onTypeFilterChange: this._handleTypeFilterChange,
+        onTextFilterChange: this._handleTextFilterChange,
+        selectMessage: this._selectMessage,
+        gotoMessageLocation: goToDiagnosticLocation,
+        supportedMessageKinds: globalState.supportedMessageKinds
+      });
+    });
 
     this._props = this._trackVisibility(props);
   } // If autoVisibility setting is on, then automatically show/hide on changes.
@@ -315,7 +314,7 @@ class DiagnosticsViewModel {
   getElement() {
     if (this._element == null) {
       const Component = (0, _bindObservableAsProps().bindObservableAsProps)(this._props, _DiagnosticsView().default);
-      const element = (0, _renderReactRoot().renderReactRoot)(_react.default.createElement(Component, null));
+      const element = (0, _renderReactRoot().renderReactRoot)(_react.default.createElement(Component, null), 'DiagnosticsRoot');
       element.classList.add('diagnostics-ui');
       this._element = element;
     }
@@ -327,13 +326,13 @@ class DiagnosticsViewModel {
    */
 
 
-  _filterDiagnostics(diagnostics, pattern, hiddenGroups, filterByPath) {
+  _filterDiagnostics(diagnostics, pattern, hiddenGroups, filterByActiveTextEditor, filterByPath) {
     return diagnostics.filter(message => {
       if (hiddenGroups.has(GroupUtils().getGroup(message))) {
         return false;
       }
 
-      if (filterByPath != null && message.filePath !== filterByPath) {
+      if (filterByActiveTextEditor && message.filePath !== filterByPath) {
         return false;
       }
 
@@ -417,7 +416,7 @@ function goToDiagnosticLocation(message, options) {
     line,
     column,
     activatePane: options.focusEditor,
-    pending: true
+    pending: options.pendingPane
   });
 }
 

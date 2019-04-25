@@ -30,6 +30,16 @@ function _featureConfig() {
   return data;
 }
 
+function _nuclideClangBase() {
+  const data = require("../../nuclide-clang-base");
+
+  _nuclideClangBase = function () {
+    return data;
+  };
+
+  return data;
+}
+
 function _utils() {
   const data = require("../../nuclide-clang-rpc/lib/utils");
 
@@ -62,20 +72,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  * 
  * @format
  */
-const clangProviders = new Set(); // Matches string defined in fb-cquery/lib/main.js.
-
-const USE_CQUERY_CONFIG = 'fb-cquery.use-cquery'; // If true, skip calling to clang service for given path.
-
-async function checkCqueryOverride(path) {
-  let cqueryBlacklist = async _ => false;
-
-  try {
-    // $FlowFB
-    cqueryBlacklist = require("./fb-cquery-blacklist").default;
-  } catch (exc) {}
-
-  return _featureConfig().default.get(USE_CQUERY_CONFIG) === true && !(await cqueryBlacklist(path));
-}
+const clangProviders = new Set();
 
 function getServerSettings() {
   const config = _featureConfig().default.get('nuclide-clang');
@@ -130,7 +127,7 @@ async function getClangProvidersForSource(_src) {
 async function getClangRequestSettings(src) {
   const provider = (await getClangProvidersForSource(src))[0];
 
-  if (provider != null) {
+  if (provider != null && !(await (0, _nuclideClangBase().checkCqueryOverride)(src))) {
     return provider.getSettings(src);
   }
 }
@@ -144,13 +141,17 @@ module.exports = {
   },
 
   async getRelatedSourceOrHeader(src) {
+    if (await (0, _nuclideClangBase().checkCqueryOverride)(src)) {
+      return null;
+    }
+
     return (0, _nuclideRemoteConnection().getClangServiceByNuclideUri)(src).getRelatedSourceOrHeader(src, (await getClangRequestSettings(src)));
   },
 
   async getDiagnostics(editor) {
     const src = editor.getPath();
 
-    if (src == null || (await checkCqueryOverride(src))) {
+    if (src == null || (await (0, _nuclideClangBase().checkCqueryOverride)(src))) {
       return null;
     }
 
@@ -174,7 +175,7 @@ module.exports = {
   async getCompletions(editor, prefix) {
     const src = editor.getPath();
 
-    if (src == null || (await checkCqueryOverride(src))) {
+    if (src == null || (await (0, _nuclideClangBase().checkCqueryOverride)(src))) {
       return null;
     }
 
@@ -194,7 +195,7 @@ module.exports = {
   async getDeclaration(editor, line, column) {
     const src = editor.getPath();
 
-    if (src == null || (await checkCqueryOverride(src))) {
+    if (src == null || (await (0, _nuclideClangBase().checkCqueryOverride)(src))) {
       return null;
     }
 
@@ -206,7 +207,7 @@ module.exports = {
   async getDeclarationInfo(editor, line, column) {
     const src = editor.getPath();
 
-    if (src == null || (await checkCqueryOverride(src))) {
+    if (src == null || (await (0, _nuclideClangBase().checkCqueryOverride)(src))) {
       return Promise.resolve(null);
     }
 
@@ -223,7 +224,7 @@ module.exports = {
   async getOutline(editor) {
     const src = editor.getPath();
 
-    if (src == null || (await checkCqueryOverride(src))) {
+    if (src == null || (await (0, _nuclideClangBase().checkCqueryOverride)(src))) {
       return Promise.resolve();
     }
 
@@ -235,7 +236,7 @@ module.exports = {
   async getLocalReferences(editor, line, column) {
     const src = editor.getPath();
 
-    if (src == null || (await checkCqueryOverride(src))) {
+    if (src == null || (await (0, _nuclideClangBase().checkCqueryOverride)(src))) {
       return Promise.resolve(null);
     }
 

@@ -66,11 +66,23 @@ module.exports = _client => {
     });
   };
 
-  remoteModule.getSdkVersionSourcePath = function (arg0) {
+  remoteModule.getSdkVersionSourcePath = function (arg0, arg1) {
     return _client.callRemoteFunction("JavaDebuggerHelpersService/getSdkVersionSourcePath", "promise", _client.marshalArguments(Array.from(arguments), [{
       name: "sdkVersion",
       type: {
         kind: "string"
+      }
+    }, {
+      name: "options",
+      type: {
+        kind: "object",
+        fields: [{
+          name: "useSdkManager",
+          type: {
+            kind: "boolean"
+          },
+          optional: false
+        }]
       }
     }])).then(value => {
       return _client.unmarshal(value, {
@@ -149,7 +161,7 @@ Object.defineProperty(module.exports, "defs", {
       location: {
         type: "source",
         fileName: "JavaDebuggerHelpersService.js",
-        line: 24
+        line: 25
       },
       name: "JavaLaunchTargetConfig",
       definition: {
@@ -193,7 +205,7 @@ Object.defineProperty(module.exports, "defs", {
       location: {
         type: "source",
         fileName: "JavaDebuggerHelpersService.js",
-        line: 31
+        line: 32
       },
       name: "JavaAttachPortTargetConfig",
       definition: {
@@ -237,7 +249,7 @@ Object.defineProperty(module.exports, "defs", {
       location: {
         type: "source",
         fileName: "JavaDebuggerHelpersService.js",
-        line: 39
+        line: 40
       },
       name: "JavaTargetConfig",
       definition: {
@@ -319,7 +331,7 @@ Object.defineProperty(module.exports, "defs", {
       location: {
         type: "source",
         fileName: "JavaDebuggerHelpersService.js",
-        line: 43
+        line: 44
       },
       name: "TerminalLaunchInfo",
       definition: {
@@ -374,13 +386,13 @@ Object.defineProperty(module.exports, "defs", {
       location: {
         type: "source",
         fileName: "JavaDebuggerHelpersService.js",
-        line: 58
+        line: 55
       },
       type: {
         location: {
           type: "source",
           fileName: "JavaDebuggerHelpersService.js",
-          line: 58
+          line: 55
         },
         kind: "function",
         argumentTypes: [],
@@ -417,6 +429,19 @@ Object.defineProperty(module.exports, "defs", {
             }
           },
           optional: false
+        }, {
+          name: "cwd",
+          type: {
+            kind: "string"
+          },
+          optional: true
+        }, {
+          name: "env",
+          type: {
+            kind: "object",
+            fields: []
+          },
+          optional: true
         }]
       }
     },
@@ -426,13 +451,13 @@ Object.defineProperty(module.exports, "defs", {
       location: {
         type: "source",
         fileName: "JavaDebuggerHelpersService.js",
-        line: 62
+        line: 59
       },
       type: {
         location: {
           type: "source",
           fileName: "JavaDebuggerHelpersService.js",
-          line: 62
+          line: 59
         },
         kind: "function",
         argumentTypes: [{
@@ -456,13 +481,13 @@ Object.defineProperty(module.exports, "defs", {
       location: {
         type: "source",
         fileName: "JavaDebuggerHelpersService.js",
-        line: 71
+        line: 68
       },
       type: {
         location: {
           type: "source",
           fileName: "JavaDebuggerHelpersService.js",
-          line: 71
+          line: 68
         },
         kind: "function",
         argumentTypes: [{
@@ -487,13 +512,13 @@ Object.defineProperty(module.exports, "defs", {
       location: {
         type: "source",
         fileName: "JavaDebuggerHelpersService.js",
-        line: 99
+        line: 96
       },
       type: {
         location: {
           type: "source",
           fileName: "JavaDebuggerHelpersService.js",
-          line: 99
+          line: 96
         },
         kind: "function",
         argumentTypes: [{
@@ -516,13 +541,13 @@ Object.defineProperty(module.exports, "defs", {
       location: {
         type: "source",
         fileName: "JavaDebuggerHelpersService.js",
-        line: 119
+        line: 116
       },
       type: {
         location: {
           type: "source",
           fileName: "JavaDebuggerHelpersService.js",
-          line: 119
+          line: 116
         },
         kind: "function",
         argumentTypes: [{
@@ -545,19 +570,31 @@ Object.defineProperty(module.exports, "defs", {
       location: {
         type: "source",
         fileName: "JavaDebuggerHelpersService.js",
-        line: 228
+        line: 224
       },
       type: {
         location: {
           type: "source",
           fileName: "JavaDebuggerHelpersService.js",
-          line: 228
+          line: 224
         },
         kind: "function",
         argumentTypes: [{
           name: "sdkVersion",
           type: {
             kind: "string"
+          }
+        }, {
+          name: "options",
+          type: {
+            kind: "object",
+            fields: [{
+              name: "useSdkManager",
+              type: {
+                kind: "boolean"
+              },
+              optional: false
+            }]
           }
         }],
         returnType: {

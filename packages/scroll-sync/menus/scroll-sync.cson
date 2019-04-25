@@ -1,0 +1,14 @@
+
+menu: [
+  label: 'Packages'
+  submenu: [
+     label: 'Toggle Scroll Sync'
+     command: 'scroll-sync:toggle' 
+  ]
+]
+
+'context-menu':
+  'atom-workspace': [
+     label: 'Toggle Scroll Sync'
+     command: 'scroll-sync:toggle'
+  ]

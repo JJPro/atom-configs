@@ -125,14 +125,11 @@ class CodeHighlightManager {
   }
 
   async _getHighlightedRanges(editor, position) {
-    const provider = this._providers.getProviderForEditor(editor);
-
-    if (!provider) {
-      return null;
-    }
+    const providers = Array.from(this._providers.getAllProvidersForEditor(editor));
 
     try {
-      return await provider.highlight(editor, position);
+      const highlights = await Promise.all(providers.map(p => p.highlight(editor, position)));
+      return highlights.find(h => h != null && h.length > 0);
     } catch (e) {
       (0, _log4js().getLogger)('code-highlight').error('Error getting code highlights', e);
       return null;

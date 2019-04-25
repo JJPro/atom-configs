@@ -56,6 +56,7 @@ function createEpicMiddleware(rootEpic) {
   const actionsObs = new ActionsObservable(actions);
   return store => next => {
     if (rootEpic != null) {
+      // eslint-disable-next-line nuclide-internal/unused-subscription
       rootEpic(actionsObs, store).subscribe(store.dispatch);
     }
 

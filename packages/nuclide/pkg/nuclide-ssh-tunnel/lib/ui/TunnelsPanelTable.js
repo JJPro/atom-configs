@@ -5,10 +5,10 @@ Object.defineProperty(exports, "__esModule", {
 });
 exports.TunnelsPanelTable = void 0;
 
-function _Tunnel() {
-  const data = require("../../../nuclide-socket-rpc/lib/Tunnel");
+function _nuclideUri() {
+  const data = _interopRequireDefault(require("../../../../modules/nuclide-commons/nuclideUri"));
 
-  _Tunnel = function () {
+  _nuclideUri = function () {
     return data;
   };
 
@@ -91,8 +91,8 @@ class TunnelsPanelTable extends React.Component {
         className: 'nuclide-ssh-tunnels-table-row',
         data: {
           description: Array.from(descriptions).join(', '),
-          from: `${(0, _Tunnel().shortenHostname)(from.host)}:${from.port}`,
-          to: `${(0, _Tunnel().shortenHostname)(to.host)}:${to.port}`,
+          from: `${_nuclideUri().default.nuclideUriToDisplayHostname(from.host)}:${from.port}`,
+          to: `${_nuclideUri().default.nuclideUriToDisplayHostname(to.host)}:${to.port}`,
           status: active.state,
           close: React.createElement(_TunnelCloseButton().default, {
             tunnel: active.tunnel,

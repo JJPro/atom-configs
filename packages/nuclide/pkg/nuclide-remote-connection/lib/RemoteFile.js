@@ -25,16 +25,6 @@ function _loadingNotification() {
   return data;
 }
 
-function _passesGK() {
-  const data = _interopRequireDefault(require("../../commons-node/passesGK"));
-
-  _passesGK = function () {
-    return data;
-  };
-
-  return data;
-}
-
 function _nuclideUri() {
   const data = _interopRequireDefault(require("../../../modules/nuclide-commons/nuclideUri"));
 
@@ -165,20 +155,7 @@ class RemoteFile {
       // Nothing needs to be done if the root directory watch has ended.
       logger.debug(`watchFile ended: ${this._path}`);
       this._watchSubscription = null;
-    }); // No need to wait for that async check.
-
-    this._checkWatchOutOfOpenDirectories();
-  }
-
-  async _checkWatchOutOfOpenDirectories() {
-    const isPathInOpenDirectories = atom.project.contains(this._path);
-
-    if (!isPathInOpenDirectories && (await (0, _passesGK().default)('nuclide_watch_warn_unmanaged_file'))) {
-      atom.notifications.addWarning(`Couldn't watch remote file \`${_nuclideUri().default.basename(this._path)}\` for changes!`, {
-        detail: "Updates to the file outside Nuclide won't reload automatically\n" + "Please add the file's project directory to Nuclide\n",
-        dismissable: true
-      });
-    }
+    });
   }
 
   _handleNativeChangeEvent() {
@@ -465,25 +442,12 @@ class RemoteFile {
         writeData.push(Buffer.from(chunk));
         writeLength += chunk.length;
         next();
-      }
+      },
 
+      final: callback => {
+        (0, _loadingNotification().default)(this._getFileSystemService().writeFileBuffer(this._path, Buffer.concat(writeData, writeLength)), `File ${_nuclideUri().default.nuclideUriToDisplayString(this._path)} ` + 'is taking an unexpectedly long time to save, please be patient...', LONG_FILE_WRITE_MS).then(callback, callback);
+      }
     });
-    const originalEnd = stream.end; // TODO: (hansonw) T20364274 Override final() in Node 8 and above.
-    // For now, we'll overwrite the end function manually.
-    // $FlowIgnore
-
-    stream.end = cb => {
-      if (!(cb instanceof Function)) {
-        throw new Error('end() called without a callback');
-      }
-
-      (0, _loadingNotification().default)(this._getFileSystemService().writeFileBuffer(this._path, Buffer.concat(writeData, writeLength)), `File ${_nuclideUri().default.nuclideUriToDisplayString(this._path)} ` + 'is taking an unexpectedly long time to save, please be patient...', LONG_FILE_WRITE_MS).then(() => cb(), err => {
-        stream.emit('error', err);
-        cb();
-      });
-      originalEnd.call(stream);
-    };
-
     return stream;
   }
 

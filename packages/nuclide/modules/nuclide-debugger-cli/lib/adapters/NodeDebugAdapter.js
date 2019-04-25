@@ -102,6 +102,15 @@ class NodeDebugAdapter {
     return args || {};
   }
 
+  transformExpression(exp, isCodeBlock) {
+    return exp;
+  }
+
+  async canDebugFile(file) {
+    // no special cases, just use file extension
+    return false;
+  }
+
 }
 
 exports.default = NodeDebugAdapter;

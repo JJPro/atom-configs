@@ -30,6 +30,16 @@ function _renderReactRoot() {
   return data;
 }
 
+function _epicHelpers() {
+  const data = require("../../../modules/nuclide-commons/epicHelpers");
+
+  _epicHelpers = function () {
+    return data;
+  };
+
+  return data;
+}
+
 function _syncAtomCommands() {
   const data = _interopRequireDefault(require("../../commons-atom/sync-atom-commands"));
 
@@ -41,7 +51,7 @@ function _syncAtomCommands() {
 }
 
 function _nuclideAnalytics() {
-  const data = require("../../nuclide-analytics");
+  const data = require("../../../modules/nuclide-analytics");
 
   _nuclideAnalytics = function () {
     return data;
@@ -94,6 +104,16 @@ function _reduxObservable() {
   const data = require("../../../modules/nuclide-commons/redux-observable");
 
   _reduxObservable = function () {
+    return data;
+  };
+
+  return data;
+}
+
+function _observableFromReduxStore() {
+  const data = _interopRequireDefault(require("../../../modules/nuclide-commons/observableFromReduxStore"));
+
+  _observableFromReduxStore = function () {
     return data;
   };
 
@@ -212,26 +232,23 @@ class Activation {
     (0, _nuclideAnalytics().track)('nuclide-task-runner:initialized', {
       visible: initialVisibility
     });
-    const epics = Object.keys(Epics()).map(k => Epics()[k]).filter(epic => typeof epic === 'function');
     const epicOptions = {
       preferencesForWorkingRoots
     };
 
-    const rootEpic = (actions, store) => (0, _reduxObservable().combineEpics)(...epics)(actions, store, epicOptions);
+    const rootEpic = (actions, store) => (0, _epicHelpers().combineEpicsFromImports)(Epics(), 'nuclide-task-runner')(actions, store, epicOptions);
 
     this._store = (0, _reduxMin().createStore)((0, _reduxMin().combineReducers)(Reducers()), {
       visible: initialVisibility
     }, (0, _reduxMin().applyMiddleware)((0, _reduxObservable().createEpicMiddleware)(rootEpic)));
-
-    const states = _RxMin.Observable.from(this._store).filter(state => state.initialPackagesActivated).distinctUntilChanged().share();
-
+    const states = (0, _observableFromReduxStore().default)(this._store).filter(state => state.initialPackagesActivated).distinctUntilChanged().share();
     this._actionCreators = (0, _reduxMin().bindActionCreators)(Actions(), this._store.dispatch);
     this._panel = atom.workspace.addTopPanel({
       item: {
         getElement: (0, _memoize2().default)(() => {
           const props = (0, _getToolbarProps().default)(this._store);
           const StatefulToolbar = (0, _bindObservableAsProps().bindObservableAsProps)(props, _Toolbar().default);
-          return (0, _renderReactRoot().renderReactRoot)(React.createElement(StatefulToolbar, null));
+          return (0, _renderReactRoot().renderReactRoot)(React.createElement(StatefulToolbar, null), 'TaskRunnerToolbarRoot');
         })
       },
       visible: false
@@ -362,8 +379,7 @@ class Activation {
       priority: 401
     });
     element.className += ' nuclide-task-runner-tool-bar-button';
-    const buttonUpdatesDisposable = new (_UniversalDisposable().default)( // $FlowFixMe: Update rx defs to accept ish with Symbol.observable
-    _RxMin.Observable.from(this._store).subscribe(state => {
+    const buttonUpdatesDisposable = new (_UniversalDisposable().default)((0, _observableFromReduxStore().default)(this._store).subscribe(state => {
       if (state.taskRunners.count() > 0) {
         element.removeAttribute('hidden');
       } else {

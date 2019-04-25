@@ -91,7 +91,13 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  * @format
  */
 async function getDevices() {
-  const output = await (0, _process().runCommand)('fbsimctl', ['--json', '--format=%n%u%s%o%a', 'list']).toPromise();
+  const output = await (0, _process().runCommand)('fbsimctl', ['--json', '--format=%n%u%s%o%a', 'list']).catch(e => {
+    if (e.stdout != null) {
+      e.message += `\n\n${e.stdout}`;
+    }
+
+    throw e;
+  }).timeout(5000).toPromise();
   return (0, _Parsing().parseFbsimctlJsonOutput)(output);
 }
 
@@ -116,16 +122,25 @@ async function relaunch(port, bundleId) {
 }
 
 async function getBundleIdOfBundleAtPath(bundlePath) {
-  const bundle = await _fsPromise().default.readFile(_nuclideUri().default.getPath(bundlePath));
-  const infoPlist = new (_admZip().default)(bundle).getEntries().find(entry => entry.entryName.match(/.app\/Info.plist$/));
+  let plistData = null;
+  const stat = await _fsPromise().default.stat(_nuclideUri().default.getPath(bundlePath));
 
-  if (!infoPlist) {
-    throw new Error("App bundle doesn't contain Info.plist");
+  if (stat.isFile()) {
+    const bundle = await _fsPromise().default.readFile(_nuclideUri().default.getPath(bundlePath));
+    const infoPlist = new (_admZip().default)(bundle).getEntries().find(entry => entry.entryName.match(/.app\/Info.plist$/));
+
+    if (!infoPlist) {
+      throw new Error("App bundle doesn't contain Info.plist");
+    }
+
+    plistData = infoPlist.getData();
+  } else {
+    plistData = await _fsPromise().default.readFile(_nuclideUri().default.getPath(_nuclideUri().default.join(bundlePath, 'Info.plist')));
   }
 
   let CFBundleIdentifier;
 
-  _bplistParser().default.parseFile(infoPlist.getData(), (error, parsed) => {
+  _bplistParser().default.parseFile(plistData, (error, parsed) => {
     if (parsed && parsed.length > 0) {
       CFBundleIdentifier = parsed[0].CFBundleIdentifier;
     }

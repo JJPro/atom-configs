@@ -91,7 +91,7 @@ function showModal(contentFactory, options = defaults) {
     if (!visible) {
       disposable.dispose();
     }
-  }), atom.commands.add('atom-workspace', 'core:cancel', () => {
+  }), atom.commands.add('body', 'core:cancel', () => {
     if (shouldDismissOnPressEscape()) {
       disposable.dispose();
     }

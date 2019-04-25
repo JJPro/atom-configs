@@ -103,21 +103,21 @@ class Activation {
 function getPythonAutoGenConfig() {
   const program = {
     name: 'program',
-    type: 'string',
+    type: 'path',
     description: 'Absolute path to the program.',
     required: true,
     visible: true
   };
   const pythonPath = {
     name: 'pythonPath',
-    type: 'string',
+    type: 'path',
     description: 'Path to python executable.',
     required: true,
     visible: true
   };
   const cwd = {
     name: 'cwd',
-    type: 'string',
+    type: 'path',
     description: '(Optional) Absolute path to the working directory of the program being debugged. Default is the root directory of the file.',
     required: true,
     visible: true
@@ -156,12 +156,20 @@ function getPythonAutoGenConfig() {
     required: false,
     visible: true
   };
+  const consoleEnum = {
+    name: 'console',
+    type: 'enum',
+    enums: ['internalConsole', 'integratedTerminal'],
+    description: '',
+    defaultValue: 'internalConsole',
+    required: true,
+    visible: true
+  };
   return {
     launch: {
       launch: true,
       vsAdapterType: _nuclideDebuggerCommon().VsAdapterTypes.PYTHON,
-      threads: true,
-      properties: [program, pythonPath, cwd, args, stopOnEntry, debugOptions, env],
+      properties: [program, pythonPath, cwd, args, stopOnEntry, debugOptions, env, consoleEnum],
       scriptPropertyName: 'program',
       scriptExtension: '.py',
       cwdPropertyName: 'cwd',

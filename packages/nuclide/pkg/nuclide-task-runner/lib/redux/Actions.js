@@ -19,7 +19,7 @@ exports.stopTask = stopTask;
 exports.requestToggleToolbarVisibility = requestToggleToolbarVisibility;
 exports.toggleToolbarVisibility = toggleToolbarVisibility;
 exports.unregisterTaskRunner = unregisterTaskRunner;
-exports.UNREGISTER_TASK_RUNNER = exports.TOGGLE_TOOLBAR_VISIBILITY = exports.TASK_ERRORED = exports.TASK_STOPPED = exports.TASK_STARTED = exports.TASK_MESSAGE = exports.TASK_PROGRESS = exports.TASK_COMPLETED = exports.TASKS_READY = exports.STOP_TASK = exports.SET_TOOLBAR_VISIBILITY = exports.REMOVE_CONSOLE_FOR_TASK_RUNNER = exports.ADD_CONSOLE_FOR_TASK_RUNNER = exports.SET_CONSOLES_FOR_TASK_RUNNERS = exports.SET_CONSOLE_SERVICE = exports.SET_PROJECT_ROOT = exports.SET_STATES_FOR_TASK_RUNNERS = exports.SET_STATE_FOR_TASK_RUNNER = exports.SELECT_TASK_RUNNER = exports.RUN_TASK = exports.REQUEST_TOGGLE_TOOLBAR_VISIBILITY = exports.REGISTER_TASK_RUNNER = exports.DID_ACTIVATE_INITIAL_PACKAGES = void 0;
+exports.UNREGISTER_TASK_RUNNER = exports.TOGGLE_TOOLBAR_VISIBILITY = exports.TASK_ERRORED = exports.TASK_STOPPED = exports.TASK_STARTED = exports.TASK_MESSAGE = exports.TASK_STATUS = exports.TASK_PROGRESS = exports.TASK_COMPLETED = exports.TASKS_READY = exports.STOP_TASK = exports.SET_TOOLBAR_VISIBILITY = exports.REMOVE_CONSOLE_FOR_TASK_RUNNER = exports.ADD_CONSOLE_FOR_TASK_RUNNER = exports.SET_CONSOLES_FOR_TASK_RUNNERS = exports.SET_CONSOLE_SERVICE = exports.SET_PROJECT_ROOT = exports.SET_STATES_FOR_TASK_RUNNERS = exports.SET_STATE_FOR_TASK_RUNNER = exports.SELECT_TASK_RUNNER = exports.RUN_TASK = exports.REQUEST_TOGGLE_TOOLBAR_VISIBILITY = exports.REGISTER_TASK_RUNNER = exports.DID_ACTIVATE_INITIAL_PACKAGES = void 0;
 
 function Immutable() {
   const data = _interopRequireWildcard(require("immutable"));
@@ -77,6 +77,8 @@ const TASK_COMPLETED = 'TASK_COMPLETED';
 exports.TASK_COMPLETED = TASK_COMPLETED;
 const TASK_PROGRESS = 'TASK_PROGRESS';
 exports.TASK_PROGRESS = TASK_PROGRESS;
+const TASK_STATUS = 'TASK_STATUS';
+exports.TASK_STATUS = TASK_STATUS;
 const TASK_MESSAGE = 'TASK_MESSAGE';
 exports.TASK_MESSAGE = TASK_MESSAGE;
 const TASK_STARTED = 'TASK_STARTED';

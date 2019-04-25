@@ -20,6 +20,16 @@ function _textEditor() {
   return data;
 }
 
+function _event() {
+  const data = require("../../../modules/nuclide-commons/event");
+
+  _event = function () {
+    return data;
+  };
+
+  return data;
+}
+
 function _nuclideRemoteConnection() {
   const data = require("../../nuclide-remote-connection");
 
@@ -93,7 +103,7 @@ function _UniversalDisposable() {
 }
 
 function _nuclideAnalytics() {
-  const data = require("../../nuclide-analytics");
+  const data = require("../../../modules/nuclide-analytics");
 
   _nuclideAnalytics = function () {
     return data;
@@ -102,10 +112,10 @@ function _nuclideAnalytics() {
   return data;
 }
 
-function _openConnection() {
-  const data = require("./open-connection");
+function _startConnectFlow() {
+  const data = _interopRequireDefault(require("./startConnectFlow"));
 
-  _openConnection = function () {
+  _startConnectFlow = function () {
     return data;
   };
 
@@ -269,15 +279,15 @@ class Activation {
     this._subscriptions.add(_nuclideRemoteConnection().RemoteConnection.onDidAddRemoteConnection(connection => {
       this._subscriptions.add(addRemoteFolderToProject(connection));
 
-      replaceRemoteEditorPlaceholders(connection);
-    }));
+      replaceRemoteEditorPlaceholders();
+    }), (0, _event().observableFromSubscribeFunction)(atom.workspace.onDidAddPaneItem.bind(atom.workspace)).subscribe(replaceRemoteEditorPlaceholders));
 
     this._subscriptions.add(atom.commands.add('atom-workspace', 'nuclide-remote-projects:connect', event => {
       const {
         initialCwd,
         project
       } = event.detail || {};
-      (0, _openConnection().openConnectionDialog)({
+      (0, _startConnectFlow().default)({
         initialCwd,
         project
       });
@@ -534,8 +544,7 @@ function addRemoteFolderToProject(connection) {
 }
 
 function closeOpenFilesForRemoteProject(connection) {
-  const remoteProjectConfig = connection.getConfig();
-  const openInstances = (0, _utils().getOpenFileEditorForRemoteProject)(remoteProjectConfig);
+  const openInstances = (0, _utils().getOpenFileEditorForRemoteProject)();
 
   for (const openInstance of openInstances) {
     const {
@@ -724,11 +733,10 @@ function shutdownServersAndRestartNuclide() {
   });
 }
 
-function replaceRemoteEditorPlaceholders(connection) {
+function replaceRemoteEditorPlaceholders() {
   // On Atom restart, it tries to open uri paths as local `TextEditor` pane items.
   // Here, Nuclide reloads the remote project files that have empty text editors open.
-  const config = connection.getConfig();
-  const openInstances = (0, _utils().getOpenFileEditorForRemoteProject)(config);
+  const openInstances = (0, _utils().getOpenFileEditorForRemoteProject)();
 
   for (const openInstance of openInstances) {
     // Keep the original open editor item with a unique name until the remote buffer is loaded,
@@ -738,7 +746,15 @@ function replaceRemoteEditorPlaceholders(connection) {
       editor,
       uri,
       filePath
-    } = openInstance; // Skip restoring the editor who has remote content loaded.
+    } = openInstance;
+
+    const connection = _nuclideRemoteConnection().RemoteConnection.getForUri(uri);
+
+    if (connection == null) {
+      continue;
+    }
+
+    const config = connection.getConfig(); // Skip restoring the editor who has remote content loaded.
 
     if (editor instanceof _atom.TextEditor && editor.getBuffer().file instanceof _nuclideRemoteConnection().RemoteFile) {
       continue;

@@ -74,11 +74,7 @@ class SettingsInput extends React.Component {
       const keyPath = this.props.keyPath;
       const input = this._input;
 
-      if (!(input != null)) {
-        throw new Error("Invariant violation: \"input != null\"");
-      }
-
-      if ((0, _SettingsUtils().isDefaultConfigValue)(keyPath, input.getText())) {
+      if (input != null && (0, _SettingsUtils().isDefaultConfigValue)(keyPath, input.getText())) {
         this._updateInput(input, '');
       }
     };

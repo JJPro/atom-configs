@@ -10,6 +10,26 @@ function _createPackage() {
   return data;
 }
 
+function _UniversalDisposable() {
+  const data = _interopRequireDefault(require("../../../modules/nuclide-commons/UniversalDisposable"));
+
+  _UniversalDisposable = function () {
+    return data;
+  };
+
+  return data;
+}
+
+function _passesGK() {
+  const data = _interopRequireDefault(require("../../../modules/nuclide-commons/passesGK"));
+
+  _passesGK = function () {
+    return data;
+  };
+
+  return data;
+}
+
 function _nuclideLanguageService() {
   const data = require("../../nuclide-language-service");
 
@@ -82,7 +102,6 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  * 
  * @format
  */
-// $FlowFB
 async function connectToService(connection) {
   const [fileNotifier, host] = await Promise.all([(0, _nuclideOpenFiles().getNotifierByConnection)(connection), (0, _nuclideLanguageService().getHostServices)()]);
   const lspService = await (0, _nuclideRemoteConnection().getVSCodeLanguageServiceByConnection)(connection).createMultiLspLanguageService('css', 'vscode-css-languageserver-bin/cssServerMain', ['--stdio'], {
@@ -148,17 +167,24 @@ function createLanguageService() {
 
 class Activation {
   constructor() {
-    this._languageService = createLanguageService();
+    this._disposables = new (_UniversalDisposable().default)();
 
-    this._languageService.activate();
+    this._init();
   }
 
-  provideProjectSymbolSearch() {
-    return new (_DashProjectSymbolProvider().default)(this._languageService);
+  async _init() {
+    if (await (0, _passesGK().default)('nuclide_fb_css_vscode_ext')) {
+      return;
+    }
+
+    const languageService = createLanguageService();
+    languageService.activate();
+
+    this._disposables.add(languageService, atom.packages.serviceHub.provide('nuclide-project-symbol-search-service', '0.0.0', new (_DashProjectSymbolProvider().default)(languageService)));
   }
 
   dispose() {
-    this._languageService.dispose();
+    this._disposables.dispose();
   }
 
 }

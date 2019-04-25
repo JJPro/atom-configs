@@ -1,0 +1,65 @@
+{
+  "_from": "https://www.atom.io/api/packages/dbg/versions/1.6.3/tarball",
+  "_id": "dbg@1.6.3",
+  "_inBundle": false,
+  "_integrity": "sha512-iWGbuTngodBOjFKpwyywfPonQeuxyPmlsxCz47DTpKWikFl9KD/xA6VxdR8YQ31dsAV4mrFbLhf3m6vXOp267A==",
+  "_location": "/dbg",
+  "_phantomChildren": {},
+  "_requested": {
+    "type": "remote",
+    "raw": "https://www.atom.io/api/packages/dbg/versions/1.6.3/tarball",
+    "rawSpec": "https://www.atom.io/api/packages/dbg/versions/1.6.3/tarball",
+    "saveSpec": "https://www.atom.io/api/packages/dbg/versions/1.6.3/tarball",
+    "fetchSpec": "https://www.atom.io/api/packages/dbg/versions/1.6.3/tarball"
+  },
+  "_requiredBy": [
+    "#USER",
+    "/"
+  ],
+  "_resolved": "https://www.atom.io/api/packages/dbg/versions/1.6.3/tarball",
+  "_shasum": "66d22fee740e3a2655bc6c7ac818971856a70fdf",
+  "_spec": "https://www.atom.io/api/packages/dbg/versions/1.6.3/tarball",
+  "_where": "/private/var/folders/v6/2396r3r94fq_jdzvfqzs9zx40000gn/T/apm-install-dir-118829-29077-1q49m40.tiwd",
+  "bugs": {
+    "url": "https://github.com/31i73/atom-dbg/issues"
+  },
+  "bundleDependencies": false,
+  "consumedServices": {
+    "dbgProvider": {
+      "versions": {
+        "^1.1.0": "consumeDbgProvider"
+      }
+    }
+  },
+  "dependencies": {
+    "atom-select-list": "^0.0.16",
+    "chokidar": "^1.6.0",
+    "cson-parser": "^1.3.0"
+  },
+  "deprecated": false,
+  "description": "An interactive debugger frontend",
+  "engines": {
+    "atom": ">=1.17.0 <2.0.0"
+  },
+  "homepage": "https://github.com/31i73/atom-dbg#readme",
+  "keywords": [
+    "debug",
+    "debugger"
+  ],
+  "license": "MIT",
+  "main": "./lib/main",
+  "name": "dbg",
+  "providedServices": {
+    "dbg": {
+      "description": "Provides debug support in Atom",
+      "versions": {
+        "1.1.0": "provideDbg"
+      }
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/31i73/atom-dbg.git"
+  },
+  "version": "1.6.3"
+}

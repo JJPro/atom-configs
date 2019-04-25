@@ -138,7 +138,7 @@ class NullLanguageService {
 
   async sendLspRequest(filePath, method, params) {}
 
-  async sendLspNotification(filePath, method, params) {}
+  async sendLspNotification(method, params) {}
 
   observeLspNotifications(notificationMethod) {
     return _RxMin.Observable.empty().publish();

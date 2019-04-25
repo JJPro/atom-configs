@@ -208,8 +208,13 @@ module.exports = _client => {
     });
   };
 
-  remoteModule.terminateHhvmWrapperProcesses = function () {
-    return _client.callRemoteFunction("HhvmDebuggerService/terminateHhvmWrapperProcesses", "promise", _client.marshalArguments(Array.from(arguments), [])).then(value => {
+  remoteModule.terminateHhvmWrapperProcesses = function (arg0) {
+    return _client.callRemoteFunction("HhvmDebuggerService/terminateHhvmWrapperProcesses", "promise", _client.marshalArguments(Array.from(arguments), [{
+      name: "pid",
+      type: {
+        kind: "number"
+      }
+    }])).then(value => {
       return _client.unmarshal(value, {
         kind: "void"
       });
@@ -679,13 +684,13 @@ Object.defineProperty(module.exports, "defs", {
       location: {
         type: "source",
         fileName: "main.js",
-        line: 282
+        line: 290
       },
       type: {
         location: {
           type: "source",
           fileName: "main.js",
-          line: 282
+          line: 290
         },
         kind: "function",
         argumentTypes: [],
@@ -719,16 +724,21 @@ Object.defineProperty(module.exports, "defs", {
       location: {
         type: "source",
         fileName: "main.js",
-        line: 305
+        line: 313
       },
       type: {
         location: {
           type: "source",
           fileName: "main.js",
-          line: 305
+          line: 313
         },
         kind: "function",
-        argumentTypes: [],
+        argumentTypes: [{
+          name: "pid",
+          type: {
+            kind: "number"
+          }
+        }],
         returnType: {
           kind: "promise",
           type: {

@@ -5,23 +5,22 @@ Object.defineProperty(exports, "__esModule", {
 });
 exports.createTunnel = createTunnel;
 exports.tunnelDescription = tunnelDescription;
-exports.shortenHostname = shortenHostname;
 exports.RemoteSocket = void 0;
 
-function _log4js() {
-  const data = require("log4js");
+function _nuclideUri() {
+  const data = _interopRequireDefault(require("../../../modules/nuclide-commons/nuclideUri"));
 
-  _log4js = function () {
+  _nuclideUri = function () {
     return data;
   };
 
   return data;
 }
 
-function _nuclideUri() {
-  const data = _interopRequireDefault(require("../../../modules/nuclide-commons/nuclideUri"));
+function _log4js() {
+  const data = require("log4js");
 
-  _nuclideUri = function () {
+  _log4js = function () {
     return data;
   };
 
@@ -57,7 +56,7 @@ function createTunnel(t, cf) {
   // this (not creating a tunnel if there's already one on this port) should be
   // on the consumer of this service.
 
-  const tunnelKey = `${shortenHostname(t.from.host)}:${t.from.port}`;
+  const tunnelKey = `${_nuclideUri().default.nuclideUriToDisplayHostname(t.from.host)}:${t.from.port}`;
   const existingTunnel = activeTunnels.get(tunnelKey);
 
   if (existingTunnel) {
@@ -174,29 +173,7 @@ function createTunnel(t, cf) {
 }
 
 function tunnelDescription(tunnel) {
-  return `${shortenHostname(tunnel.from.host)}:${tunnel.from.port}->${shortenHostname(tunnel.to.host)}:${tunnel.to.port}`;
-}
-
-function shortenHostname(host) {
-  let result = host;
-
-  if (_nuclideUri().default.isRemote(result)) {
-    result = _nuclideUri().default.getHostname(result);
-  }
-
-  if (result.endsWith('.facebook.com')) {
-    result = result.slice(0, result.length - '.facebook.com'.length);
-  }
-
-  if (result.startsWith('our.')) {
-    result = result.slice('our.'.length, result.length);
-  }
-
-  if (result.startsWith('twsvcscm.')) {
-    result = result.slice('twsvcscm.'.length, result.length);
-  }
-
-  return result;
+  return `${_nuclideUri().default.nuclideUriToDisplayHostname(tunnel.from.host)}:${tunnel.from.port}->${_nuclideUri().default.nuclideUriToDisplayHostname(tunnel.to.host)}:${tunnel.to.port}`;
 }
 
 class LocalSocket {

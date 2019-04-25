@@ -390,53 +390,6 @@ describe('nuclide-commons/observable', () => {
       expect(output).toEqual([[], [1], [1, 2], [1, 2, 3], [1, 2, 3, 4]]);
     });
   });
-  describe('throttle', () => {
-    it('emits the leading item immeditately by default', () => {
-      const source = _RxMin.Observable.of(1, 2).merge(_RxMin.Observable.never());
-
-      const spy = jest.fn();
-      source.let((0, _observable().throttle)(_RxMin.Observable.never())).subscribe(spy);
-      expect(spy).toHaveBeenCalledWith(1);
-    });
-    it("doesn't emit the leading item twice", () => {
-      const source = _RxMin.Observable.of(1).merge(_RxMin.Observable.never());
-
-      const notifier = _RxMin.Observable.of(null); // emits immediately on subscription.
-
-
-      const spy = jest.fn();
-      source.let((0, _observable().throttle)(notifier)).subscribe(spy);
-      expect(spy.mock.calls.length).toBe(1);
-    });
-    it('throttles', () => {
-      const source = new _RxMin.Subject();
-      const notifier = new _RxMin.Subject();
-      const spy = jest.fn();
-      source.let((0, _observable().throttle)(notifier)).subscribe(spy);
-      source.next(1);
-      spy.mockClear();
-      source.next(2);
-      expect(spy).not.toHaveBeenCalled();
-      notifier.next();
-      expect(spy).toHaveBeenCalledWith(2);
-      spy.mockClear();
-      source.next(3);
-      expect(spy).not.toHaveBeenCalled();
-      source.next(4);
-      expect(spy).not.toHaveBeenCalled();
-      notifier.next();
-      expect(spy).toHaveBeenCalledWith(4);
-      expect(spy.mock.calls.length).toBe(1);
-    });
-    it('subscribes to the source once per subscription', () => {
-      const spy = jest.fn();
-
-      const source = _RxMin.Observable.create(spy);
-
-      source.let((0, _observable().throttle)(_RxMin.Observable.of(null))).subscribe();
-      expect(spy.mock.calls.length).toBe(1);
-    });
-  });
   describe('nextAnimationFrame', () => {
     let oldRequestAnimationFrame;
     let oldCancelAnimationFrame;

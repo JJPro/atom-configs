@@ -202,8 +202,11 @@ class XhrConnectionHeartbeat {
           break;
 
         case 'CERT_HAS_EXPIRED':
-        case 'CERT_SIGNATURE_FAILURE':
           code = 'INVALID_CERTIFICATE';
+          break;
+
+        case 'CERT_SIGNATURE_FAILURE':
+          code = 'CERT_SIGNATURE_FAILURE';
           break;
 
         default:

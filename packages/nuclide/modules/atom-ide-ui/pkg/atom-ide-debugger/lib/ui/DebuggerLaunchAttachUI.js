@@ -203,7 +203,7 @@ class DebuggerLaunchAttachUI extends React.Component {
   _filterProviders(key) {
     this.setState({
       enabledProviders: []
-    });
+    }); // eslint-disable-next-line nuclide-internal/unused-subscription
 
     _RxMin.Observable.merge(...(this.props.providers.get(key) || []).map(provider => _RxMin.Observable.fromPromise(this._getProviderIfEnabled(provider)))).filter(provider => provider != null).map(provider => {
       if (!(provider != null)) {

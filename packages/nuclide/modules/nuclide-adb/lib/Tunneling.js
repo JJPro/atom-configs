@@ -85,15 +85,11 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  *  strict-local
  * @format
  */
-
-/* eslint
- no-console: 0,
-*/
 let passesGK = async _ => false;
 
 try {
   const fbPassesGK = // eslint-disable-next-line nuclide-internal/modules-dependencies
-  require("../../../pkg/commons-node/passesGK");
+  require("../../nuclide-commons/passesGK");
 
   passesGK = fbPassesGK.default;
 } catch (e) {}
@@ -159,37 +155,35 @@ function startTunnelingAdb(uri, options = {}) {
           host: uri,
           error: e
         });
+
+        if (e.name === MISSING_ADB_ERROR) {
+          return;
+        }
+
         let detail;
         const buttons = [];
 
-        if (e.name === MISSING_ADB_ERROR) {
-          // We shouldn't be prompting the user with error message for not
-          // having adb installed.
-          // TODO: log to the nuclide console. console.log in the meanwhile.
-          console.log(e);
-        } else {
-          if (e.name === VERSION_MISMATCH_ERROR) {
-            detail = e.message;
-            const {
-              adbUpgradeLink
-            } = options;
+        if (e.name === VERSION_MISMATCH_ERROR) {
+          detail = e.message;
+          const {
+            adbUpgradeLink
+          } = options;
 
-            if (e.name === VERSION_MISMATCH_ERROR && adbUpgradeLink != null) {
-              buttons.push({
-                text: 'View upgrade instructions',
-                onDidClick: () => _electron.shell.openExternal(adbUpgradeLink)
-              });
-            }
-          } else {
-            detail = "Your local devices won't be available on this host." + (e.name != null && e.name !== 'Error' ? `\n \n${e.name}` : '');
+          if (e.name === VERSION_MISMATCH_ERROR && adbUpgradeLink != null) {
+            buttons.push({
+              text: 'View upgrade instructions',
+              onDidClick: () => _electron.shell.openExternal(adbUpgradeLink)
+            });
           }
-
-          atom.notifications.addError('Failed to tunnel Android devices', {
-            dismissable: true,
-            detail,
-            buttons
-          });
+        } else {
+          detail = "Your local devices won't be available on this host." + (e.name != null && e.name !== 'Error' ? `\n \n${e.name}` : '');
         }
+
+        atom.notifications.addError('Failed to tunnel Android devices', {
+          dismissable: true,
+          detail,
+          buttons
+        });
       }
     }).add(() => {
       if (adbmuxPort != null) {
@@ -226,28 +220,26 @@ const changes = new _RxMin.Subject();
 
 function checkInToAdbmux(host) {
   return _RxMin.Observable.defer(async () => {
-    const [service, avoidPrecreatingExopackageTunnel] = await Promise.all([(0, _consumeFirstProvider().default)('nuclide.ssh-tunnel'), passesGK('nuclide_adb_exopackage_tunnel')]);
+    const getService = (0, _consumeFirstProvider().default)('nuclide.ssh-tunnel');
+    const [service, avoidPrecreatingExopackageTunnel] = await Promise.all([getService, passesGK('nuclide_adb_exopackage_tunnel')]);
 
     if (!service) {
       throw new Error("Invariant violation: \"service\"");
     }
 
-    const port = await service.getAvailableServerPort(host);
     return {
       service,
-      port,
       avoidPrecreatingExopackageTunnel
     };
   }).switchMap(({
     service,
-    port,
     avoidPrecreatingExopackageTunnel
   }) => {
     const tunnels = [{
       description: 'adbmux',
       from: {
         host,
-        port,
+        port: 'any_available',
         family: 4
       },
       to: {
@@ -273,7 +265,7 @@ function checkInToAdbmux(host) {
       });
     }
 
-    return service.openTunnels(tunnels).mapTo(port);
+    return service.openTunnels(tunnels).map(resolved => resolved[0].from.port);
   }).switchMap(async port => {
     const service = (0, _utils().getAdbServiceByNuclideUri)(host);
     await service.checkInMuxPort(port);

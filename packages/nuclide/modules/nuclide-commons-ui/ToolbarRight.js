@@ -7,6 +7,18 @@ exports.ToolbarRight = void 0;
 
 var React = _interopRequireWildcard(require("react"));
 
+function _classnames() {
+  const data = _interopRequireDefault(require("classnames"));
+
+  _classnames = function () {
+    return data;
+  };
+
+  return data;
+}
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
 function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) { var desc = Object.defineProperty && Object.getOwnPropertyDescriptor ? Object.getOwnPropertyDescriptor(obj, key) : {}; if (desc.get || desc.set) { Object.defineProperty(newObj, key, desc); } else { newObj[key] = obj[key]; } } } } newObj.default = obj; return newObj; } }
 
 /**
@@ -23,7 +35,7 @@ function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj;
 const ToolbarRight = props => {
   return (// $FlowFixMe(>=0.53.0) Flow suppress
     React.createElement("div", {
-      className: "nuclide-ui-toolbar__right"
+      className: (0, _classnames().default)('nuclide-ui-toolbar__right', props.className)
     }, props.children)
   );
 };

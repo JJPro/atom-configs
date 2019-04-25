@@ -9,7 +9,7 @@ exports.getDefaultConfig = getDefaultConfig;
 exports.LOG_FILE_PATH = void 0;
 
 function _systemInfo() {
-  const data = require("../../commons-node/system-info");
+  const data = require("../../../modules/nuclide-commons/system-info");
 
   _systemInfo = function () {
     return data;

@@ -1,9 +1,9 @@
 "use strict";
 
-function _OutlineViewSearch() {
-  const data = require("../lib/OutlineViewSearch");
+function _OutlineView() {
+  const data = require("../lib/OutlineView");
 
-  _OutlineViewSearch = function () {
+  _OutlineView = function () {
     return data;
   };
 
@@ -187,7 +187,7 @@ const sampleOutlineView = [{
 describe('OutlineViewSearchTest', () => {
   it('Map is filled for all elements', () => {
     const resultsMap = new Map();
-    sampleOutlineView.forEach(root => (0, _OutlineViewSearch().updateSearchSet)('query', root, resultsMap, new Map(), ''));
+    sampleOutlineView.forEach(root => (0, _OutlineView().updateSearchSet)('query', root, resultsMap, new Map(), ''));
     /* Check that every Node is in the Map */
 
     const checkDefined = root => {
@@ -201,7 +201,7 @@ describe('OutlineViewSearchTest', () => {
   });
   it('Prefix matching for results', () => {
     const resultsMap = new Map();
-    sampleOutlineView.forEach(root => (0, _OutlineViewSearch().updateSearchSet)('logge', root, resultsMap, new Map(), ''));
+    sampleOutlineView.forEach(root => (0, _OutlineView().updateSearchSet)('logge', root, resultsMap, new Map(), ''));
     /* Check that `const logger` element is correctly labeled in the Map. */
 
     const loggerElement = sampleOutlineView[0];
@@ -211,7 +211,7 @@ describe('OutlineViewSearchTest', () => {
   });
   it('Fuzzy search for results', () => {
     const resultsMap = new Map();
-    sampleOutlineView.forEach(root => (0, _OutlineViewSearch().updateSearchSet)('cdm', root, resultsMap, new Map(), ''));
+    sampleOutlineView.forEach(root => (0, _OutlineView().updateSearchSet)('cdm', root, resultsMap, new Map(), ''));
     /* "cdm" should match "componentDidMount" */
 
     const componentDidMountElement = sampleOutlineView[2].children[4];
@@ -221,7 +221,7 @@ describe('OutlineViewSearchTest', () => {
   });
   it('Parents are visible when child is visible', () => {
     const resultsMap = new Map();
-    sampleOutlineView.forEach(root => (0, _OutlineViewSearch().updateSearchSet)('cdm', root, resultsMap, new Map(), ''));
+    sampleOutlineView.forEach(root => (0, _OutlineView().updateSearchSet)('cdm', root, resultsMap, new Map(), ''));
     const componentDidMountElementParent = sampleOutlineView[2];
     const result = resultsMap.get(componentDidMountElementParent);
     /* Text doesn't match, but notVisible should be false because child is visible. */
@@ -231,7 +231,7 @@ describe('OutlineViewSearchTest', () => {
   });
   it('Child does not need to be visible when parent is', () => {
     const resultsMap = new Map();
-    sampleOutlineView.forEach(root => (0, _OutlineViewSearch().updateSearchSet)('OutlineView', root, resultsMap, new Map(), ''));
+    sampleOutlineView.forEach(root => (0, _OutlineView().updateSearchSet)('OutlineView', root, resultsMap, new Map(), ''));
     const outlineViewElement = sampleOutlineView[2];
     const result = resultsMap.get(outlineViewElement); // Parent
 
@@ -246,7 +246,7 @@ describe('OutlineViewSearchTest', () => {
   });
   it('Keywords are included in the search', () => {
     const resultsMap = new Map();
-    sampleOutlineView.forEach(root => (0, _OutlineViewSearch().updateSearchSet)('const', root, resultsMap, new Map(), '')); // `const logger` should be visible
+    sampleOutlineView.forEach(root => (0, _OutlineView().updateSearchSet)('const', root, resultsMap, new Map(), '')); // `const logger` should be visible
 
     const loggerElement = sampleOutlineView[0];
     const result = resultsMap.get(loggerElement);
@@ -256,14 +256,14 @@ describe('OutlineViewSearchTest', () => {
   it('Previous query optimization maintains functionality', () => {
     /* Test 1 repeated */
     const resultsMap = new Map();
-    sampleOutlineView.forEach(root => (0, _OutlineViewSearch().updateSearchSet)('logge', root, resultsMap, new Map(), ''));
+    sampleOutlineView.forEach(root => (0, _OutlineView().updateSearchSet)('logge', root, resultsMap, new Map(), ''));
     let loggerElement = sampleOutlineView[0];
     let result = resultsMap.get(loggerElement);
     expect(result && result.matches).toBe(true);
     expect(!result || result.visible).toBe(true);
     /* Update the set when query changed to 'logger' */
 
-    sampleOutlineView.forEach(root => (0, _OutlineViewSearch().updateSearchSet)('logge', root, resultsMap, resultsMap, 'logger'));
+    sampleOutlineView.forEach(root => (0, _OutlineView().updateSearchSet)('logge', root, resultsMap, resultsMap, 'logger'));
     /* Results should stay the same */
 
     loggerElement = sampleOutlineView[0];

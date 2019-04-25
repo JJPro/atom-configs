@@ -5,6 +5,18 @@ Object.defineProperty(exports, "__esModule", {
 });
 exports.default = void 0;
 
+function _TokenizedLine() {
+  const data = _interopRequireDefault(require("./TokenizedLine"));
+
+  _TokenizedLine = function () {
+    return data;
+  };
+
+  return data;
+}
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
 /**
  * Copyright (c) 2017-present, Facebook, Inc.
  * All rights reserved.
@@ -34,7 +46,9 @@ default number of frames to display is 100.
     this._debugger = debug;
   }
 
-  async execute(args) {
+  async execute(line) {
+    const args = line.stringTokens().slice(1);
+
     const activeThread = this._debugger.getActiveThread();
 
     const frameCount = args.length < 1 ? BackTraceCommand._defaultFrames : parseInt(args[0], 10);

@@ -1,5 +1,7 @@
 "use strict";
 
+var _electron = require("electron");
+
 var _querystring = _interopRequireDefault(require("querystring"));
 
 function _nuclideRemoteConnection() {
@@ -94,8 +96,6 @@ function _nuclideOpenFiles() {
   return data;
 }
 
-var _electron = require("electron");
-
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 /**
@@ -176,6 +176,20 @@ class Activation {
           dismissable
         };
         atom.notifications.add(type, message, options);
+        return Promise.resolve();
+      },
+
+      getClipboardContents() {
+        // $FlowFixMe missing flow def
+        const contents = _electron.clipboard.readText();
+
+        return Promise.resolve(contents.substring(0, 100 * 1024));
+      },
+
+      setClipboardContents(text) {
+        // $FlowFixMe missing flow def
+        _electron.clipboard.writeText(text);
+
         return Promise.resolve();
       },
 

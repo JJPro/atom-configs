@@ -3,7 +3,13 @@
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-exports.default = void 0;
+exports.getHgRepositoryForPath = getHgRepositoryForPath;
+exports.getHgRepositoryForNode = getHgRepositoryForNode;
+exports.isValidRename = isValidRename;
+exports.renameNode = renameNode;
+exports.moveNodes = moveNodes;
+exports.movePaths = movePaths;
+exports.deleteNodes = deleteNodes;
 
 var _electron = require("electron");
 
@@ -27,10 +33,20 @@ function _nuclideUri() {
   return data;
 }
 
-function _FileTreeHelpers() {
-  const data = _interopRequireDefault(require("./FileTreeHelpers"));
+function FileTreeHelpers() {
+  const data = _interopRequireWildcard(require("./FileTreeHelpers"));
 
-  _FileTreeHelpers = function () {
+  FileTreeHelpers = function () {
+    return data;
+  };
+
+  return data;
+}
+
+function _nuclideVcsBase() {
+  const data = require("../../nuclide-vcs-base");
+
+  _nuclideVcsBase = function () {
     return data;
   };
 
@@ -83,14 +99,24 @@ function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj;
  */
 const MOVE_TIMEOUT = 10000;
 
-function getHgRepositoryForNode(node) {
-  const repository = node.repo;
-
+function getHgRepositoryForAtomRepo(repository) {
   if (repository != null && repository.getType() === 'hg') {
     return repository;
   }
 
   return null;
+}
+
+function getHgRepositoryForPath(filePath) {
+  const repository = (0, _nuclideVcsBase().repositoryForPath)(filePath);
+
+  if (repository == null) {
+    return getHgRepositoryForAtomRepo(repository);
+  }
+}
+
+function getHgRepositoryForNode(node) {
+  return getHgRepositoryForAtomRepo(node.repo);
 }
 /**
  * Determines whether renaming the given node to the specified destPath is an
@@ -98,15 +124,12 @@ function getHgRepositoryForNode(node) {
  */
 
 
-function isValidRename(node, destPath_) {
+function isValidRename(uri, destPath_) {
   let destPath = destPath_;
-
-  const path = _FileTreeHelpers().default.keyToPath(node.uri);
-
-  const rootPath = _FileTreeHelpers().default.keyToPath(node.rootUri);
-
-  destPath = _FileTreeHelpers().default.keyToPath(destPath);
-  return _FileTreeHelpers().default.getEntryByKey(node.uri) != null && // This will only detect exact equalities, mostly preventing moves of a
+  const path = FileTreeHelpers().keyToPath(uri);
+  const [rootPath] = atom.project.relativizePath(uri);
+  destPath = FileTreeHelpers().keyToPath(destPath);
+  return rootPath != null && FileTreeHelpers().getEntryByKey(uri) != null && // This will only detect exact equalities, mostly preventing moves of a
   // directory into itself from causing an error. If a case-changing rename
   // should be a noop for the current OS's file system, this is handled by the
   // fs module.
@@ -121,15 +144,14 @@ function isValidRename(node, destPath_) {
 
 
 async function renameNode(node, destPath) {
-  if (!isValidRename(node, destPath)) {
+  if (!isValidRename(node.uri, destPath)) {
     return;
   }
 
-  const filePath = _FileTreeHelpers().default.keyToPath(node.uri); // Need to update the paths in editors before the rename to prevent them from closing
+  const filePath = FileTreeHelpers().keyToPath(node.uri); // Need to update the paths in editors before the rename to prevent them from closing
   // In case of an error - undo the editor paths rename
 
-
-  _FileTreeHelpers().default.updatePathInOpenedEditors(filePath, destPath);
+  FileTreeHelpers().updatePathInOpenedEditors(filePath, destPath);
 
   try {
     const service = (0, _nuclideRemoteConnection().getFileSystemServiceByNuclideUri)(filePath); // Throws if the destPath already exists.
@@ -145,8 +167,7 @@ async function renameNode(node, destPath) {
     /* after */
     );
   } catch (err) {
-    _FileTreeHelpers().default.updatePathInOpenedEditors(destPath, filePath);
-
+    FileTreeHelpers().updatePathInOpenedEditors(destPath, filePath);
     throw err;
   }
 }
@@ -168,26 +189,35 @@ function resetIsMoving() {
 
 
 async function moveNodes(nodes, destPath) {
+  return movePaths(nodes.map(node => FileTreeHelpers().keyToPath(node.uri)), destPath);
+}
+/**
+ * Moves an array of paths into the destPath, ignoring paths that cannot be moved.
+ * This wrapper prevents concurrent move operations.
+ */
+
+
+async function movePaths(paths, destPath) {
   if (isMoving) {
     return;
   }
 
   isMoving = true; // Reset isMoving to false whenever move operation completes, errors, or times out.
 
-  await (0, _promise().triggerAfterWait)(_moveNodesUnprotected(nodes, destPath), MOVE_TIMEOUT, resetIsMoving
+  await (0, _promise().triggerAfterWait)(_movePathsUnprotected(paths, destPath), MOVE_TIMEOUT, resetIsMoving
   /* timeoutFn */
   , resetIsMoving
   /* cleanupFn */
   );
 }
 
-async function _moveNodesUnprotected(nodes, destPath) {
+async function _movePathsUnprotected(sourcePaths, destPath) {
   let paths = [];
 
   try {
-    const filteredNodes = nodes.filter(node => isValidRename(node, destPath)); // Collapse paths that are in the same subtree, keeping only the subtree root.
+    const filteredPaths = sourcePaths.filter(path => isValidRename(path, destPath)); // Collapse paths that are in the same subtree, keeping only the subtree root.
 
-    paths = _nuclideUri().default.collapse(filteredNodes.map(node => _FileTreeHelpers().default.keyToPath(node.uri)));
+    paths = _nuclideUri().default.collapse(filteredPaths);
 
     if (paths.length === 0) {
       return;
@@ -198,13 +228,13 @@ async function _moveNodesUnprotected(nodes, destPath) {
     paths.forEach(path => {
       const newPath = _nuclideUri().default.join(destPath, _nuclideUri().default.basename(path));
 
-      _FileTreeHelpers().default.updatePathInOpenedEditors(path, newPath);
+      FileTreeHelpers().updatePathInOpenedEditors(path, newPath);
     });
     const service = (0, _nuclideRemoteConnection().getFileSystemServiceByNuclideUri)(paths[0]);
     await service.move(paths, destPath); // All filtered nodes should have the same rootUri, so we simply attempt to
     // retrieve the hg repository using the first node.
 
-    const hgRepository = getHgRepositoryForNode(filteredNodes[0]);
+    const hgRepository = getHgRepositoryForPath(paths[0]);
 
     if (hgRepository == null) {
       return;
@@ -218,7 +248,7 @@ async function _moveNodesUnprotected(nodes, destPath) {
     paths.forEach(path => {
       const newPath = _nuclideUri().default.join(destPath, _nuclideUri().default.basename(path));
 
-      _FileTreeHelpers().default.updatePathInOpenedEditors(newPath, path);
+      FileTreeHelpers().updatePathInOpenedEditors(newPath, path);
     });
     throw e;
   }
@@ -231,7 +261,7 @@ async function _moveNodesUnprotected(nodes, destPath) {
 async function deleteNodes(nodes) {
   // Filter out children nodes to avoid ENOENTs that happen when parents are
   // deleted before its children. Convert to List so we can use groupBy.
-  const paths = Immutable().List(_nuclideUri().default.collapse(nodes.map(node => _FileTreeHelpers().default.keyToPath(node.uri))));
+  const paths = Immutable().List(_nuclideUri().default.collapse(nodes.map(node => FileTreeHelpers().keyToPath(node.uri))));
   const localPaths = paths.filter(path => _nuclideUri().default.isLocal(path));
   const remotePaths = paths.filter(path => _nuclideUri().default.isRemote(path)); // 1) Move local nodes to trash.
 
@@ -253,19 +283,10 @@ async function deleteNodes(nodes) {
       throw new Error("Invariant violation: \"hgRepository != null\"");
     }
 
-    const hgPaths = _nuclideUri().default.collapse(repoNodes.map(node => _FileTreeHelpers().default.keyToPath(node.uri)).toArray());
+    const hgPaths = _nuclideUri().default.collapse(repoNodes.map(node => FileTreeHelpers().keyToPath(node.uri)).toArray());
 
     await hgRepository.remove(hgPaths, true
     /* after */
     );
   }));
 }
-
-var _default = {
-  getHgRepositoryForNode,
-  isValidRename,
-  renameNode,
-  moveNodes,
-  deleteNodes
-};
-exports.default = _default;

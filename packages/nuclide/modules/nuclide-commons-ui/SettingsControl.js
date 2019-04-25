@@ -67,12 +67,14 @@ function SettingsControl(props) {
     keyPath,
     value,
     onChange,
-    schema
+    schema,
+    title,
+    hideDetails
   } = props;
   const {
-    description,
-    title
+    description: settingDescription
   } = schema;
+  const description = hideDetails === true ? '' : settingDescription;
 
   if (schema) {
     if (schema.enum) {

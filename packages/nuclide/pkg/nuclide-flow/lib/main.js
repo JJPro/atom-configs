@@ -18,7 +18,7 @@ function _mouseToPosition() {
 var _RxMin = require("rxjs/bundles/Rx.min.js");
 
 function _nuclideAnalytics() {
-  const data = require("../../nuclide-analytics");
+  const data = require("../../../modules/nuclide-analytics");
 
   _nuclideAnalytics = function () {
     return data;
@@ -58,7 +58,7 @@ function _registerGrammar() {
 }
 
 function _passesGK() {
-  const data = _interopRequireWildcard(require("../../commons-node/passesGK"));
+  const data = _interopRequireWildcard(require("../../../modules/nuclide-commons/passesGK"));
 
   _passesGK = function () {
     return data;
@@ -197,7 +197,7 @@ class Activation {
   }
 
   _onGKInitialized() {
-    if (this._disposed) {
+    if (this._disposed || (0, _passesGK().isGkEnabled)('nuclide_fb_flow_vscode_ext')) {
       return;
     }
 
@@ -272,9 +272,7 @@ async function activateLsp() {
     outline: {
       version: '0.1.0',
       priority: 1,
-      analyticsEventName: 'flow.outline',
-      updateOnEdit: false // TODO(ljw): turn on once it's fast enough!
-
+      analyticsEventName: 'flow.outline'
     },
     coverage: {
       version: '0.0.0',
@@ -282,11 +280,10 @@ async function activateLsp() {
       analyticsEventName: 'flow.coverage',
       icon: 'nuclicon-flow'
     },
-    findReferences: (await shouldEnableFindRefs()) ? {
+    findReferences: {
       version: '0.1.0',
-      analyticsEventName: 'flow.find-references' // TODO(nmote): support indirect-find-refs here
-
-    } : undefined,
+      analyticsEventName: 'flow.find-references'
+    },
     status: {
       version: '0.1.0',
       priority: 99,
@@ -361,19 +358,12 @@ function getConnectionCache() {
 
 async function activateLegacy() {
   connectionCache = new (_nuclideRemoteConnection().ConnectionCache)(connectionToFlowService);
+  const lsConfig = getLanguageServiceConfig();
+  const flowLanguageService = new (_nuclideLanguageService().AtomLanguageService)(connection => getConnectionCache().get(connection), lsConfig);
+  flowLanguageService.activate();
   const disposables = new (_UniversalDisposable().default)(connectionCache, () => {
     connectionCache = null;
-  }, new (_FlowServiceWatcher().FlowServiceWatcher)(connectionCache), atom.commands.add('atom-workspace', 'nuclide-flow:restart-flow-server', allowFlowServerRestart), _RxMin.Observable.fromPromise(getLanguageServiceConfig()).subscribe(lsConfig => {
-    const flowLanguageService = new (_nuclideLanguageService().AtomLanguageService)(connection => getConnectionCache().get(connection), lsConfig);
-    flowLanguageService.activate(); // `disposables` is always disposed before it is set to null. If it has been disposed,
-    // this subscription will have been disposed as well and we will not enter this callback.
-
-    if (!(disposables != null)) {
-      throw new Error("Invariant violation: \"disposables != null\"");
-    }
-
-    disposables.add(flowLanguageService);
-  }), atom.packages.serviceHub.consume('atom-ide-busy-signal', '0.1.0', // When the package becomes available to us, it invokes this callback:
+  }, new (_FlowServiceWatcher().FlowServiceWatcher)(connectionCache), atom.commands.add('atom-workspace', 'nuclide-flow:restart-flow-server', allowFlowServerRestart), flowLanguageService, atom.packages.serviceHub.consume('atom-ide-busy-signal', '0.1.0', // When the package becomes available to us, it invokes this callback:
   service => {
     const disposableForBusyService = consumeBusySignal(service); // When the package becomes no longer available to us, it disposes this object:
 
@@ -440,19 +430,8 @@ function consumeBusySignal(service) {
 }
 
 function consumeFindReferencesView(service) {
-  const promise = registerMultiHopFindReferencesCommand(service);
-  return new (_UniversalDisposable().default)(() => {
-    promise.then(disposable => disposable.dispose());
-  });
-}
-
-async function registerMultiHopFindReferencesCommand(service) {
-  if (!(await shouldEnableFindRefs())) {
-    return new (_UniversalDisposable().default)();
-  }
-
   let lastMouseEvent = null;
-  atom.contextMenu.add({
+  return new (_UniversalDisposable().default)(atom.contextMenu.add({
     'atom-text-editor[data-grammar="source js jsx"]': [{
       label: 'Find Indirect References (slower)',
       command: 'nuclide-flow:find-indirect-references',
@@ -460,8 +439,7 @@ async function registerMultiHopFindReferencesCommand(service) {
         lastMouseEvent = event;
       }
     }]
-  });
-  return atom.commands.add('atom-text-editor', 'nuclide-flow:find-indirect-references', async () => {
+  }), atom.commands.add('atom-text-editor', 'nuclide-flow:find-indirect-references', async () => {
     const editor = atom.workspace.getActiveTextEditor();
 
     if (editor == null) {
@@ -516,7 +494,7 @@ async function registerMultiHopFindReferencesCommand(service) {
         atom.notifications.addWarning(`Flow find-indirect-references issued an error: "${result.message}"`);
       }
     });
-  });
+  }));
 }
 
 async function allowFlowServerRestart() {
@@ -527,10 +505,9 @@ async function allowFlowServerRestart() {
   }
 }
 
-async function getLanguageServiceConfig() {
+function getLanguageServiceConfig() {
   const excludeLowerPriority = Boolean(_featureConfig().default.get('nuclide-flow.excludeOtherAutocomplete'));
   const flowResultsFirst = Boolean(_featureConfig().default.get('nuclide-flow.flowAutocompleteResultsFirst'));
-  const enableFindRefs = await shouldEnableFindRefs();
   return {
     name: 'Flow',
     grammars: _constants().JS_GRAMMARS,
@@ -542,10 +519,7 @@ async function getLanguageServiceConfig() {
     outline: {
       version: '0.1.0',
       priority: 1,
-      analyticsEventName: 'flow.outline',
-      // Disabled as it's responsible for many calls/spawns that:
-      // In aggregate degrades the performance siginificantly.
-      updateOnEdit: false
+      analyticsEventName: 'flow.outline'
     },
     coverage: {
       version: '0.0.0',
@@ -584,19 +558,14 @@ async function getLanguageServiceConfig() {
       priority: 1,
       analyticsEventName: 'nuclide-flow.typeHint'
     },
-    findReferences: enableFindRefs ? {
+    findReferences: {
       version: '0.1.0',
       analyticsEventName: 'flow.find-references'
-    } : undefined
+    }
   };
 }
 
-async function shouldEnableFindRefs() {
-  return (0, _passesGK().default)('nuclide_flow_find_refs', // Wait 15 seconds for the gk check
-  15 * 1000);
-}
-
-async function shouldEnableRename() {
+function shouldEnableRename() {
   return (0, _passesGK().default)('nuclide_flow_rename', // Wait 15 seconds for the gk check
   15 * 1000);
 }

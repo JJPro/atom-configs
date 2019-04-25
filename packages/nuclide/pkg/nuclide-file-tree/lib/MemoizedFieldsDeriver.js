@@ -15,25 +15,17 @@ function _nuclideUri() {
   return data;
 }
 
-function _FileTreeHelpers() {
-  const data = _interopRequireDefault(require("./FileTreeHelpers"));
+function FileTreeHelpers() {
+  const data = _interopRequireWildcard(require("./FileTreeHelpers"));
 
-  _FileTreeHelpers = function () {
+  FileTreeHelpers = function () {
     return data;
   };
 
   return data;
 }
 
-function _hgConstants() {
-  const data = require("../../nuclide-hg-rpc/lib/hg-constants");
-
-  _hgConstants = function () {
-    return data;
-  };
-
-  return data;
-}
+function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) { var desc = Object.defineProperty && Object.getOwnPropertyDescriptor ? Object.getOwnPropertyDescriptor(obj, key) : {}; if (desc.get || desc.set) { Object.defineProperty(newObj, key, desc); } else { newObj[key] = obj[key]; } } } } newObj.default = obj; return newObj; } }
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
@@ -75,13 +67,12 @@ class MemoizedFieldsDeriver {
     this._uri = uri;
     this._rootUri = rootUri;
     this._isRoot = uri === rootUri;
-    this._name = _FileTreeHelpers().default.keyToName(uri);
-    this._isContainer = _FileTreeHelpers().default.isDirOrArchiveKey(uri);
+    this._name = FileTreeHelpers().keyToName(uri);
+    this._isContainer = FileTreeHelpers().isDirOrArchiveKey(uri);
     this._relativePath = _nuclideUri().default.relative(rootUri, uri);
-    this._localPath = _FileTreeHelpers().default.keyToPath(_nuclideUri().default.isRemote(uri) ? _nuclideUri().default.parse(uri).path : uri);
+    this._localPath = FileTreeHelpers().keyToPath(_nuclideUri().default.isRemote(uri) ? _nuclideUri().default.parse(uri).path : uri);
     this._splitPath = _nuclideUri().default.split(uri);
     this._getRepo = memoize(this._repoGetter.bind(this));
-    this._getVcsStatusCode = memoize(this._vcsStatusCodeGetter.bind(this));
     this._getIsIgnored = memoize(this._isIgnoredGetter.bind(this));
     this._getCheckedStatus = memoize(this._checkedStatusGetter.bind(this));
     this._getContainedInWorkingSet = memoize(this._containedInWorkingSetGetter.bind(this));
@@ -97,16 +88,6 @@ class MemoizedFieldsDeriver {
     }
 
     return cache.repo;
-  }
-
-  _vcsStatusCodeGetter(conf, cache) {
-    if (cache.vcsStatuses !== conf.vcsStatuses) {
-      cache.vcsStatuses = conf.vcsStatuses;
-      const rootVcsStatuses = cache.vcsStatuses.get(this._rootUri) || new Map();
-      cache.vcsStatusCode = rootVcsStatuses.get(this._uri) || _hgConstants().StatusCodeNumber.CLEAN;
-    }
-
-    return cache.vcsStatusCode;
   }
 
   _isIgnoredGetter(conf, cache) {
@@ -226,7 +207,6 @@ class MemoizedFieldsDeriver {
       relativePath: this._relativePath,
       localPath: this._localPath,
       repo: this._getRepo(conf),
-      vcsStatusCode: this._getVcsStatusCode(conf),
       isIgnored: this._getIsIgnored(conf),
       checkedStatus: this._getCheckedStatus(conf),
       shouldBeShown: this._getShouldBeShown(conf),

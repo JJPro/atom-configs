@@ -164,7 +164,6 @@ function getJavaAndroidConfig() {
     launch: {
       launch: true,
       vsAdapterType: _constants2().VsAdapterTypes.JAVA_ANDROID,
-      threads: true,
       properties: [deviceAndPackage, activity, service, intent, selectSources],
       cwdPropertyName: 'cwd',
       header: null,
@@ -178,7 +177,6 @@ function getJavaAndroidConfig() {
     attach: {
       launch: false,
       vsAdapterType: _constants2().VsAdapterTypes.JAVA_ANDROID,
-      threads: true,
       properties: [deviceAndProcess, selectSources],
       header: null,
 
@@ -232,7 +230,9 @@ function _getAdbServiceUri(unresolvedTargetUri, config) {
 
 async function _getAndroidSdkSourcePaths(targetUri, adbServiceUri, deviceSerial) {
   const sdkVersion = await (0, _nuclideAdb().getAdbServiceByNuclideUri)(adbServiceUri).getAPIVersion(deviceSerial);
-  const sdkSourcePath = sdkVersion !== '' ? await (0, _utils().getJavaDebuggerHelpersServiceByNuclideUri)(targetUri).getSdkVersionSourcePath(sdkVersion) : null;
+  const sdkSourcePath = sdkVersion !== '' ? await (0, _utils().getJavaDebuggerHelpersServiceByNuclideUri)(targetUri).getSdkVersionSourcePath(sdkVersion, {
+    useSdkManager: _nuclideUri().default.isLocal(targetUri)
+  }) : null;
 
   if (sdkSourcePath == null) {
     atom.notifications.addInfo('Unable to find Android Sdk Sources for version: ' + sdkVersion + '. Check if they are installed. Nuclide can still debug your application, but source code for frames inside Android library routines will not be available.');
@@ -263,6 +263,12 @@ async function resolveConfiguration(configuration) {
   const packageName = _getPackageName(debugMode, config);
 
   const deviceSerial = _getDeviceSerial(debugMode, config);
+
+  (0, _analytics().track)('atom-ide-debugger-java-android-configuration', {
+    packageName,
+    deviceSerial,
+    debugMode
+  });
 
   if (debugMode === 'launch') {
     const {

@@ -5,10 +5,10 @@ Object.defineProperty(exports, "__esModule", {
 });
 exports.createThriftServer = createThriftServer;
 
-function _fsServer() {
-  const data = require("../fs/fsServer");
+function _startThriftServer() {
+  const data = require("./startThriftServer");
 
-  _fsServer = function () {
+  _startThriftServer = function () {
     return data;
   };
 
@@ -27,8 +27,12 @@ function _fsServer() {
  * @format
  */
 async function createThriftServer(serverConfig) {
-  const server = new (_fsServer().RemoteFileSystemServer)(serverConfig.remotePort); // Make sure we successfully start a thrift server
-
-  await server.initialize();
-  return server;
+  const thriftServerStream = (0, _startThriftServer().startThriftServer)(serverConfig);
+  const thriftServerPromise = thriftServerStream.take(1).toPromise();
+  const subscription = thriftServerStream.connect();
+  const connectionOptions = await thriftServerPromise;
+  return {
+    getConnectionOptions: () => connectionOptions,
+    close: () => subscription.unsubscribe()
+  };
 }

@@ -87,7 +87,7 @@ function _openInNewWindow(uri) {
   newWindow.once('window:loaded', () => {
     // Needs to match sendURIMessage:
     // https://github.com/atom/atom/blob/d2d3ad9fb8a4aadb2fe0e53edf7d95bd109fc0f7/src/main-process/atom-window.js#L286
-    newWindow.send('uri-message', uri);
+    newWindow.webContents.send('uri-message', uri);
   });
 }
 

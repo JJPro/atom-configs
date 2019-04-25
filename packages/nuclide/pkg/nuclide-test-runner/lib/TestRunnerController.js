@@ -54,7 +54,7 @@ function _TestSuiteModel() {
 var _os = _interopRequireDefault(require("os"));
 
 function _nuclideAnalytics() {
-  const data = require("../../nuclide-analytics");
+  const data = require("../../../modules/nuclide-analytics");
 
   _nuclideAnalytics = function () {
     return data;

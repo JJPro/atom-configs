@@ -4,6 +4,7 @@ Object.defineProperty(exports, "__esModule", {
   value: true
 });
 exports.addProvider = addProvider;
+exports.markMessagesStale = markMessagesStale;
 exports.removeProvider = removeProvider;
 exports.setCodeActionFetcher = setCodeActionFetcher;
 exports.fetchCodeActions = fetchCodeActions;
@@ -16,7 +17,7 @@ exports.applyFix = applyFix;
 exports.applyFixesForFile = applyFixesForFile;
 exports.fixFailed = fixFailed;
 exports.fixesApplied = fixesApplied;
-exports.FIXES_APPLIED = exports.FIX_FAILED = exports.APPLY_FIXES_FOR_FILE = exports.APPLY_FIX = exports.INVALIDATE_MESSAGES = exports.UPDATE_MESSAGES = exports.SET_DESCRIPTIONS = exports.FETCH_DESCRIPTIONS = exports.SET_CODE_ACTIONS = exports.FETCH_CODE_ACTIONS = exports.SET_CODE_ACTION_FETCHER = exports.REMOVE_PROVIDER = exports.ADD_PROVIDER = void 0;
+exports.MARK_MESSAGES_STALE = exports.FIXES_APPLIED = exports.FIX_FAILED = exports.APPLY_FIXES_FOR_FILE = exports.APPLY_FIX = exports.INVALIDATE_MESSAGES = exports.UPDATE_MESSAGES = exports.SET_DESCRIPTIONS = exports.FETCH_DESCRIPTIONS = exports.SET_CODE_ACTIONS = exports.FETCH_CODE_ACTIONS = exports.SET_CODE_ACTION_FETCHER = exports.REMOVE_PROVIDER = exports.ADD_PROVIDER = void 0;
 
 /**
  * Copyright (c) 2017-present, Facebook, Inc.
@@ -55,12 +56,23 @@ const FIX_FAILED = 'FIX_FAILED';
 exports.FIX_FAILED = FIX_FAILED;
 const FIXES_APPLIED = 'FIXES_APPLIED';
 exports.FIXES_APPLIED = FIXES_APPLIED;
+const MARK_MESSAGES_STALE = 'MARK_MESSAGES_STALE';
+exports.MARK_MESSAGES_STALE = MARK_MESSAGES_STALE;
 
 function addProvider(provider) {
   return {
     type: ADD_PROVIDER,
     payload: {
       provider
+    }
+  };
+}
+
+function markMessagesStale(filePath) {
+  return {
+    type: MARK_MESSAGES_STALE,
+    payload: {
+      filePath
     }
   };
 }

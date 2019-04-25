@@ -180,7 +180,8 @@ describe('HgService', () => {
         oldStart: 150,
         oldLines: 1,
         newStart: 150,
-        newLines: 2
+        newLines: 2,
+        oldText: 'hi\n'
       }]
     };
     it('fetches the unified diff output for the given path.', async () => {

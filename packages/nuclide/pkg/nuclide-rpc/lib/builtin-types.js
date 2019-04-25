@@ -12,7 +12,7 @@ exports.namedBuiltinTypes = exports.fsStatsType = exports.bufferType = exports.r
  * This source code is licensed under the license found in the LICENSE file in
  * the root directory of this source tree.
  *
- *  strict
+ *  strict-local
  * @format
  */
 const builtinLocation = {

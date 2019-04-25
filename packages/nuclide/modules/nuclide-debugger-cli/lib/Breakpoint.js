@@ -41,6 +41,7 @@ class Breakpoint {
   // verified tracks if the breakpoint was successfully set by the adapter.
   // it may not be if the referenced code was not yet loaded
   // state: enabled, once, or disabled
+  // condition: if the breakpoint is conditional, the condition expression
   // The source file of the breakpoint (which may be undefined if we have an
   // unresolved function breakpoint.)
   // The line number of the breakpoint (which may be undefined if we have an
@@ -109,6 +110,14 @@ class Breakpoint {
     return this._state;
   }
 
+  condition() {
+    return this._condition;
+  }
+
+  setCondition(cond) {
+    this._condition = cond;
+  }
+
   isEnabled() {
     return this._state !== BreakpointState.DISABLED;
   }
@@ -148,7 +157,11 @@ class Breakpoint {
       return `${func}() [${this._path}:${this._line}]`;
     }
 
-    return `${(0, _nullthrows().default)(this._path)}:${(0, _nullthrows().default)(this._line)}`;
+    try {
+      return `${(0, _nullthrows().default)(this._path)}:${(0, _nullthrows().default)(this._line)}`;
+    } catch (_) {
+      throw new Error('Missing path or line in breakpoint description');
+    }
   }
 
 }

@@ -157,14 +157,14 @@ class ScopesComponent extends React.Component {
       viewModel
     } = this.props.service;
 
-    this._disposables.add(_RxMin.Observable.merge((0, _event().observableFromSubscribeFunction)(viewModel.onDidChangeDebuggerFocus.bind(viewModel)), (0, _event().observableFromSubscribeFunction)(viewModel.onDidChangeExpressionContext.bind(viewModel))).debounceTime(100).startWith(null).switchMap(() => this._getScopes()).subscribe(scopes => {
+    this._disposables.add(_RxMin.Observable.merge((0, _event().observableFromSubscribeFunction)(viewModel.onDidChangeDebuggerFocus.bind(viewModel)).map(() => false), (0, _event().observableFromSubscribeFunction)(viewModel.onDidChangeExpressionContext.bind(viewModel)).map(() => true)).debounceTime(100).startWith(false).switchMap(forceRefresh => this._getScopes(forceRefresh)).subscribe(scopes => {
       this.setState({
         scopes
       });
     }));
   }
 
-  _getScopes() {
+  _getScopes(forceRefresh) {
     const {
       focusedStackFrame
     } = this.props.service.viewModel;
@@ -172,7 +172,12 @@ class ScopesComponent extends React.Component {
     if (focusedStackFrame == null) {
       return _RxMin.Observable.of(_expected().Expect.value([]));
     } else {
-      return _RxMin.Observable.of(_expected().Expect.pending()).concat(_RxMin.Observable.fromPromise(focusedStackFrame.getScopes().then(scopes => _expected().Expect.value(scopes), error => _expected().Expect.error(error))));
+      // If refreshing explicitly, don't start with pending because
+      // there's no reason to show a spinner in an already-populated
+      // scopes tree.
+      const result = _RxMin.Observable.fromPromise(focusedStackFrame.getScopes(forceRefresh).then(scopes => _expected().Expect.value(scopes), error => _expected().Expect.error(error)));
+
+      return forceRefresh ? result : _RxMin.Observable.of(_expected().Expect.pending()).concat(result);
     }
   }
 

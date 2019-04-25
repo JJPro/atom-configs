@@ -95,7 +95,8 @@ class BigDigClient {
         this.sendMessage(_types().THRIFT_SERVICE_TAG, message);
       }
     }, this._tunnelManager);
-    const observable = reliableSocketTransport.onMessage();
+    const observable = reliableSocketTransport.onMessage(); // eslint-disable-next-line nuclide-internal/unused-subscription
+
     observable.subscribe({
       // Must use arrow function so that `this` is bound correctly.
       next: message => {
@@ -132,10 +133,22 @@ class BigDigClient {
   }
 
   async createTunnel(localPort, remotePort, options = {}) {
-    if (!options.isReverse) {
-      return this._tunnelManager.createTunnel(localPort, remotePort, options.useIPv4);
+    const useIPv4 = options.useIPv4 || false;
+    const tunnelConfig = {
+      local: {
+        useIPv4,
+        port: localPort
+      },
+      remote: {
+        useIPv4,
+        port: remotePort
+      }
+    };
+
+    if (options.isReverse) {
+      return this._tunnelManager.createReverseTunnel(tunnelConfig);
     } else {
-      return this._tunnelManager.createReverseTunnel(localPort, remotePort, options.useIPv4);
+      return this._tunnelManager.createTunnel(tunnelConfig);
     }
   }
 

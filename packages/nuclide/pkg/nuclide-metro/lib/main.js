@@ -50,10 +50,12 @@ class Activation {
     this._metroAtomService = new (_DefaultMetroAtomService().DefaultMetroAtomService)(this._projectRootPath);
     this._disposables = new (_UniversalDisposable().default)(this._metroAtomService, atom.commands.add('atom-workspace', {
       // Ideally based on CWD, the commands can be disabled and the UI would explain why.
-      'nuclide-metro:start': event => {
+      'nuclide-metro:start': async event => {
         const detail = event.detail || {};
 
-        this._metroAtomService.start(detail.tunnelBehavior || 'ask_about_tunnel', detail.port, detail.extraArgs);
+        try {
+          await this._metroAtomService.start(detail.tunnelBehavior || 'ask_about_tunnel', detail.port, detail.extraArgs);
+        } catch (e) {}
       },
       'nuclide-metro:stop': () => this._metroAtomService.stop(),
       'nuclide-metro:restart': () => this._metroAtomService.restart(),
@@ -75,18 +77,27 @@ class Activation {
     }));
   }
 
-  consumeOutputService(api) {
-    this._disposables.add(api.registerOutputProvider({
+  consumeConsole(consoleService) {
+    let consoleApi = consoleService({
       id: 'Metro',
-      messages: this._metroAtomService._logTailer.getMessages(),
-      observeStatus: cb => this._metroAtomService.observeStatus(cb),
+      name: 'Metro',
       start: () => {
-        this._metroAtomService.start('ask_about_tunnel');
+        this._metroAtomService.start('ask_about_tunnel').catch(() => {});
       },
-      stop: () => {
-        this._metroAtomService.stop();
+      stop: () => this._metroAtomService.stop()
+    });
+    const disposable = new (_UniversalDisposable().default)(() => {
+      consoleApi != null && consoleApi.dispose();
+      consoleApi = null;
+    }, this._metroAtomService._logTailer.getMessages().subscribe(message => consoleApi != null && consoleApi.append(message)), this._metroAtomService.observeStatus(status => {
+      if (consoleApi != null) {
+        consoleApi.setStatus(status);
       }
     }));
+
+    this._disposables.add(disposable);
+
+    return disposable;
   }
 
 }

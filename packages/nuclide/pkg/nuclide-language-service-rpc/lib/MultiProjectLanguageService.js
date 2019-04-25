@@ -143,14 +143,7 @@ class MultiProjectLanguageService {
       });
     });
 
-    this._resources.add(host, this._processes); // Observe projects as they are opened
-
-
-    const configObserver = new (_nuclideOpenFilesRpc().ConfigObserver)(fileCache, fileExtensions, filePath => this._configCache.getConfigDir(filePath));
-
-    this._resources.add(configObserver, configObserver.observeConfigs().subscribe(configs => {
-      this._ensureProcesses(configs);
-    }));
+    this._resources.add(host, this._processes);
 
     this._resources.add(() => {
       this._closeProcesses();
@@ -206,16 +199,6 @@ class MultiProjectLanguageService {
       }
     });
     return process;
-  } // Ensures that the only attached LanguageServices are those
-  // for the given configPaths.
-  // Closes all LanguageServices not in configPaths, and starts
-  // new LanguageServices for any paths in configPaths.
-
-
-  _ensureProcesses(configPaths) {
-    this._logger.info(`MultiProjectLanguageService ensureProcesses. ${Array.from(configPaths).join(', ')}`);
-
-    this._processes.setKeys(configPaths);
   } // Closes all LanguageServices for this fileCache.
 
 
@@ -414,8 +397,9 @@ class MultiProjectLanguageService {
     return (await this._getLanguageServiceForFile(filePath)).sendLspRequest(filePath, method, params);
   }
 
-  async sendLspNotification(filePath, method, params) {
-    return (await this._getLanguageServiceForFile(filePath)).sendLspNotification(filePath, method, params);
+  async sendLspNotification(method, params) {
+    const languageServices = await this.getAllLanguageServices();
+    languageServices.forEach(service => service.sendLspNotification(method, params));
   }
 
   observeLspNotifications(notificationMethod) {

@@ -6,20 +6,10 @@ Object.defineProperty(exports, "__esModule", {
 exports.default = _default;
 exports.DEFAULT_CONF = void 0;
 
-function _FileTreeDispatcher() {
-  const data = require("../FileTreeDispatcher");
+function FileTreeHelpers() {
+  const data = _interopRequireWildcard(require("../FileTreeHelpers"));
 
-  _FileTreeDispatcher = function () {
-    return data;
-  };
-
-  return data;
-}
-
-function _FileTreeHelpers() {
-  const data = _interopRequireDefault(require("../FileTreeHelpers"));
-
-  _FileTreeHelpers = function () {
+  FileTreeHelpers = function () {
     return data;
   };
 
@@ -117,7 +107,7 @@ function _nuclideWorkingSetsCommon() {
 }
 
 function _nuclideAnalytics() {
-  const data = require("../../../nuclide-analytics");
+  const data = require("../../../../modules/nuclide-analytics");
 
   _nuclideAnalytics = function () {
     return data;
@@ -156,19 +146,19 @@ function _FileTreeSelectionRange() {
   return data;
 }
 
-function SelectionActions() {
-  const data = _interopRequireWildcard(require("../redux/SelectionActions"));
+function Actions() {
+  const data = _interopRequireWildcard(require("../redux/Actions"));
 
-  SelectionActions = function () {
+  Actions = function () {
     return data;
   };
 
   return data;
 }
 
-function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) { var desc = Object.defineProperty && Object.getOwnPropertyDescriptor ? Object.getOwnPropertyDescriptor(obj, key) : {}; if (desc.get || desc.set) { Object.defineProperty(newObj, key, desc); } else { newObj[key] = obj[key]; } } } } newObj.default = obj; return newObj; } }
-
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) { var desc = Object.defineProperty && Object.getOwnPropertyDescriptor ? Object.getOwnPropertyDescriptor(obj, key) : {}; if (desc.get || desc.set) { Object.defineProperty(newObj, key, desc); } else { newObj[key] = obj[key]; } } } } newObj.default = obj; return newObj; } }
 
 /**
  * Copyright (c) 2015-present, Facebook, Inc.
@@ -182,19 +172,15 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  */
 // $FlowFixMe(>=0.53.0) Flow suppress
 const DEFAULT_CONF = {
-  vcsStatuses: Immutable().Map(),
   workingSet: new (_nuclideWorkingSetsCommon().WorkingSet)(),
   editedWorkingSet: new (_nuclideWorkingSetsCommon().WorkingSet)(),
   hideIgnoredNames: true,
   excludeVcsIgnoredPaths: true,
   hideVcsIgnoredPaths: true,
   ignoredPatterns: Immutable().Set(),
-  usePreviewTabs: false,
-  focusEditorOnFileSelection: true,
   isEditingWorkingSet: false,
   openFilesWorkingSet: new (_nuclideWorkingSetsCommon().WorkingSet)(),
-  reposByRoot: {},
-  fileChanges: Immutable().Map()
+  reposByRoot: {}
 };
 exports.DEFAULT_CONF = DEFAULT_CONF;
 const actionTrackers = new Map(); // TODO: Don't `export default` an object.
@@ -202,8 +188,7 @@ const actionTrackers = new Map(); // TODO: Don't `export default` an object.
 const {
   updateNodeAtRoot,
   updateNodeAtAllRoots
-} = _FileTreeHelpers().default;
-
+} = FileTreeHelpers();
 const logger = (0, _log4js().getLogger)('nuclide-file-tree');
 const DEFAULT_STATE = {
   // Used to ensure the version we serialized is the same version we are deserializing.
@@ -232,173 +217,177 @@ const DEFAULT_STATE = {
   _cwdApi: null,
   _cwdKey: null,
   _trackedRootKey: null,
-  _trackedNodeKey: null
+  _trackedNodeKey: null,
+  remoteTransferService: null,
+  vcsStatuses: Immutable().Map(),
+  usePreviewTabs: false,
+  focusEditorOnFileSelection: true
 };
 
 function reduceState(state_, action) {
   const state = state_ || DEFAULT_STATE;
 
   switch (action.type) {
-    case _FileTreeDispatcher().ActionTypes.SET_INITIAL_DATA:
+    case Actions().SET_INITIAL_DATA:
       return setInitialData(state, action.data);
 
-    case _FileTreeDispatcher().ActionTypes.CLEAR_SELECTION_RANGE:
+    case Actions().CLEAR_SELECTION_RANGE:
       return clearSelectionRange(state);
 
-    case _FileTreeDispatcher().ActionTypes.CLEAR_DRAG_HOVER:
+    case Actions().CLEAR_DRAG_HOVER:
       return clearDragHover(state);
 
-    case _FileTreeDispatcher().ActionTypes.CLEAR_SELECTION:
+    case Actions().CLEAR_SELECTION:
       return clearSelection(state);
 
-    case _FileTreeDispatcher().ActionTypes.SET_CWD:
+    case Actions().SET_CWD:
       return setCwdKey(state, action.rootKey);
 
-    case _FileTreeDispatcher().ActionTypes.SET_CWD_API:
+    case Actions().SET_CWD_API:
       return setCwdApi(state, action.cwdApi);
 
-    case _FileTreeDispatcher().ActionTypes.SET_TRACKED_NODE:
+    case Actions().SET_TRACKED_NODE:
       return setTrackedNode(state, action.rootKey, action.nodeKey);
 
-    case _FileTreeDispatcher().ActionTypes.CLEAR_TRACKED_NODE:
+    case Actions().CLEAR_TRACKED_NODE:
       return clearTrackedNode(state);
 
-    case _FileTreeDispatcher().ActionTypes.CLEAR_TRACKED_NODE_IF_NOT_LOADING:
+    case Actions().CLEAR_TRACKED_NODE_IF_NOT_LOADING:
       return clearTrackedNodeIfNotLoading(state);
 
-    case _FileTreeDispatcher().ActionTypes.START_REORDER_DRAG:
+    case Actions().START_REORDER_DRAG:
       return startReorderDrag(state, action.draggedRootKey);
 
-    case _FileTreeDispatcher().ActionTypes.END_REORDER_DRAG:
+    case Actions().END_REORDER_DRAG:
       return endReorderDrag(state);
 
-    case _FileTreeDispatcher().ActionTypes.REORDER_DRAG_INTO:
+    case Actions().REORDER_DRAG_INTO:
       return reorderDragInto(state, action.dragTargetNodeKey);
 
-    case _FileTreeDispatcher().ActionTypes.COLLAPSE_NODE:
+    case Actions().COLLAPSE_NODE:
       return collapseNode(state, action.rootKey, action.nodeKey);
 
-    case _FileTreeDispatcher().ActionTypes.SET_EXCLUDE_VCS_IGNORED_PATHS:
+    case Actions().SET_EXCLUDE_VCS_IGNORED_PATHS:
       return setExcludeVcsIgnoredPaths(state, action.excludeVcsIgnoredPaths);
 
-    case _FileTreeDispatcher().ActionTypes.SET_HIDE_VCS_IGNORED_PATHS:
+    case Actions().SET_HIDE_VCS_IGNORED_PATHS:
       return setHideVcsIgnoredPaths(state, action.hideVcsIgnoredPaths);
 
-    case _FileTreeDispatcher().ActionTypes.SET_USE_PREVIEW_TABS:
+    case Actions().SET_USE_PREVIEW_TABS:
       return setUsePreviewTabs(state, action.usePreviewTabs);
 
-    case _FileTreeDispatcher().ActionTypes.SET_FOCUS_EDITOR_ON_FILE_SELECTION:
+    case Actions().SET_FOCUS_EDITOR_ON_FILE_SELECTION:
       return setFocusEditorOnFileSelection(state, action.focusEditorOnFileSelection);
 
-    case _FileTreeDispatcher().ActionTypes.SET_USE_PREFIX_NAV:
+    case Actions().SET_USE_PREFIX_NAV:
       return setUsePrefixNav(state, action.usePrefixNav);
 
-    case _FileTreeDispatcher().ActionTypes.SET_AUTO_EXPAND_SINGLE_CHILD:
+    case Actions().SET_AUTO_EXPAND_SINGLE_CHILD:
       return setAutoExpandSingleChild(state, action.autoExpandSingleChild);
 
-    case _FileTreeDispatcher().ActionTypes.COLLAPSE_NODE_DEEP:
+    case Actions().COLLAPSE_NODE_DEEP:
       return collapseNodeDeep(state, action.rootKey, action.nodeKey);
 
-    case _FileTreeDispatcher().ActionTypes.SET_HIDE_IGNORED_NAMES:
+    case Actions().SET_HIDE_IGNORED_NAMES:
       return setHideIgnoredNames(state, action.hideIgnoredNames);
 
-    case _FileTreeDispatcher().ActionTypes.SET_IS_CALCULATING_CHANGES:
+    case Actions().SET_IS_CALCULATING_CHANGES:
       return setIsCalculatingChanges(state, action.isCalculatingChanges);
 
-    case _FileTreeDispatcher().ActionTypes.SET_IGNORED_NAMES:
+    case Actions().SET_IGNORED_NAMES:
       return setIgnoredNames(state, action.ignoredNames);
 
-    case _FileTreeDispatcher().ActionTypes.SET_VCS_STATUSES:
+    case Actions().SET_VCS_STATUSES:
       return setVcsStatuses(state, action.rootKey, action.vcsStatuses);
 
-    case _FileTreeDispatcher().ActionTypes.SET_REPOSITORIES:
+    case Actions().SET_REPOSITORIES:
       return setRepositories(state, action.repositories);
 
-    case _FileTreeDispatcher().ActionTypes.SET_WORKING_SET:
+    case Actions().SET_WORKING_SET:
       return setWorkingSet(state, action.workingSet);
 
-    case _FileTreeDispatcher().ActionTypes.SET_OPEN_FILES_WORKING_SET:
+    case Actions().SET_OPEN_FILES_WORKING_SET:
       return setOpenFilesWorkingSet(state, action.openFilesWorkingSet);
 
-    case _FileTreeDispatcher().ActionTypes.SET_WORKING_SETS_STORE:
+    case Actions().SET_WORKING_SETS_STORE:
       return setWorkingSetsStore(state, action.workingSetsStore);
 
-    case _FileTreeDispatcher().ActionTypes.START_EDITING_WORKING_SET:
+    case Actions().START_EDITING_WORKING_SET:
       return startEditingWorkingSet(state, action.editedWorkingSet);
 
-    case _FileTreeDispatcher().ActionTypes.FINISH_EDITING_WORKING_SET:
+    case Actions().FINISH_EDITING_WORKING_SET:
       return finishEditingWorkingSet(state);
 
-    case _FileTreeDispatcher().ActionTypes.CHECK_NODE:
+    case Actions().CHECK_NODE:
       return checkNode(state, action.rootKey, action.nodeKey);
 
-    case _FileTreeDispatcher().ActionTypes.UNCHECK_NODE:
+    case Actions().UNCHECK_NODE:
       return uncheckNode(state, action.rootKey, action.nodeKey);
 
-    case _FileTreeDispatcher().ActionTypes.SET_DRAG_HOVERED_NODE:
+    case Actions().SET_DRAG_HOVERED_NODE:
       return setDragHoveredNode(state, action.rootKey, action.nodeKey);
 
-    case _FileTreeDispatcher().ActionTypes.UNHOVER_NODE:
+    case Actions().UNHOVER_NODE:
       return unhoverNode(state, action.rootKey, action.nodeKey);
 
-    case _FileTreeDispatcher().ActionTypes.SET_SELECTED_NODE:
+    case Actions().SET_SELECTED_NODE:
       return setSelectedNode(state, action.rootKey, action.nodeKey);
 
-    case _FileTreeDispatcher().ActionTypes.SET_FOCUSED_NODE:
+    case Actions().SET_FOCUSED_NODE:
       return setFocusedNode(state, action.rootKey, action.nodeKey);
 
-    case _FileTreeDispatcher().ActionTypes.ADD_SELECTED_NODE:
+    case Actions().ADD_SELECTED_NODE:
       return addSelectedNode(state, action.rootKey, action.nodeKey);
 
-    case _FileTreeDispatcher().ActionTypes.UNSELECT_NODE:
+    case Actions().UNSELECT_NODE:
       return unselectNode(state, action.rootKey, action.nodeKey);
 
-    case _FileTreeDispatcher().ActionTypes.MOVE_SELECTION_UP:
+    case Actions().MOVE_SELECTION_UP:
       return moveSelectionUp(state);
 
-    case _FileTreeDispatcher().ActionTypes.RANGE_SELECT_TO_NODE:
+    case Actions().RANGE_SELECT_TO_NODE:
       return rangeSelectToNode(state, action.rootKey, action.nodeKey);
 
-    case _FileTreeDispatcher().ActionTypes.RANGE_SELECT_UP:
+    case Actions().RANGE_SELECT_UP:
       return rangeSelectMove(state, 'up');
 
-    case _FileTreeDispatcher().ActionTypes.RANGE_SELECT_DOWN:
+    case Actions().RANGE_SELECT_DOWN:
       return rangeSelectMove(state, 'down');
 
-    case _FileTreeDispatcher().ActionTypes.MOVE_SELECTION_DOWN:
+    case Actions().MOVE_SELECTION_DOWN:
       return moveSelectionDown(state);
 
-    case _FileTreeDispatcher().ActionTypes.MOVE_SELECTION_TO_TOP:
+    case Actions().MOVE_SELECTION_TO_TOP:
       return moveSelectionToTop(state);
 
-    case _FileTreeDispatcher().ActionTypes.MOVE_SELECTION_TO_BOTTOM:
+    case Actions().MOVE_SELECTION_TO_BOTTOM:
       return moveSelectionToBottom(state);
 
-    case _FileTreeDispatcher().ActionTypes.CLEAR_FILTER:
+    case Actions().CLEAR_FILTER:
       return clearFilter(state);
 
-    case _FileTreeDispatcher().ActionTypes.ADD_EXTRA_PROJECT_SELECTION_CONTENT:
+    case Actions().ADD_EXTRA_PROJECT_SELECTION_CONTENT:
       return addExtraProjectSelectionContent(state, action.content);
 
-    case _FileTreeDispatcher().ActionTypes.REMOVE_EXTRA_PROJECT_SELECTION_CONTENT:
+    case Actions().REMOVE_EXTRA_PROJECT_SELECTION_CONTENT:
       return removeExtraProjectSelectionContent(state, action.content);
 
-    case _FileTreeDispatcher().ActionTypes.SET_OPEN_FILES_EXPANDED:
+    case Actions().SET_OPEN_FILES_EXPANDED:
       return setOpenFilesExpanded(state, action.openFilesExpanded);
 
-    case _FileTreeDispatcher().ActionTypes.SET_UNCOMMITTED_CHANGES_EXPANDED:
+    case Actions().SET_UNCOMMITTED_CHANGES_EXPANDED:
       return setUncommittedChangesExpanded(state, action.uncommittedChangesExpanded);
 
-    case _FileTreeDispatcher().ActionTypes.SET_FOLDERS_EXPANDED:
+    case Actions().SET_FOLDERS_EXPANDED:
       return setFoldersExpanded(state, action.foldersExpanded);
 
-    case _FileTreeDispatcher().ActionTypes.INVALIDATE_REMOVED_FOLDER:
+    case Actions().INVALIDATE_REMOVED_FOLDER:
       return invalidateRemovedFolder(state);
 
-    case _FileTreeDispatcher().ActionTypes.SET_TARGET_NODE:
+    case Actions().SET_TARGET_NODE:
       return setTargetNode(state, action.rootKey, action.nodeKey);
 
-    case _FileTreeDispatcher().ActionTypes.UPDATE_GENERATED_STATUSES:
+    case Actions().UPDATE_GENERATED_STATUSES:
       const {
         generatedFileTypes
       } = action;
@@ -407,49 +396,54 @@ function reduceState(state_, action) {
         .filter(value => value !== 'manual')
       });
 
-    case _FileTreeDispatcher().ActionTypes.ADD_FILTER_LETTER:
+    case Actions().ADD_FILTER_LETTER:
       return addFilterLetter(state, action.letter);
 
-    case _FileTreeDispatcher().ActionTypes.REMOVE_FILTER_LETTER:
+    case Actions().REMOVE_FILTER_LETTER:
       return removeFilterLetter(state);
 
-    case _FileTreeDispatcher().ActionTypes.SET_ROOTS:
+    case Actions().SET_ROOTS:
       return setRoots(state, action.roots);
 
-    case _FileTreeDispatcher().ActionTypes.CLEAR_LOADING:
+    case Actions().CLEAR_LOADING:
       return Object.assign({}, state, {
         _isLoadingMap: state._isLoadingMap.delete(action.nodeKey)
       });
 
-    case _FileTreeDispatcher().ActionTypes.SET_LOADING:
+    case Actions().SET_LOADING:
       return Object.assign({}, state, {
         _isLoadingMap: state._isLoadingMap.set(action.nodeKey, action.promise)
       });
 
-    case SelectionActions().SELECT:
+    case Actions().GOT_REMOTE_TRANSFER_SERVICE:
+      return Object.assign({}, state, {
+        remoteTransferService: action.remoteTransferService
+      });
+
+    case Actions().SELECT:
       return Object.assign({}, state, {
         _selectedUris: addNodes(state._selectedUris, [action.node])
       });
 
-    case SelectionActions().UNSELECT:
+    case Actions().UNSELECT:
       return Object.assign({}, state, {
         _selectedUris: deleteNodes(state._selectedUris, [action.node])
       });
 
-    case SelectionActions().CLEAR_SELECTED:
+    case Actions().CLEAR_SELECTED:
       return clearSelected(state);
 
-    case SelectionActions().FOCUS:
+    case Actions().FOCUS:
       return Object.assign({}, state, {
         _focusedUris: addNodes(state._focusedUris, [action.node])
       });
 
-    case SelectionActions().UNFOCUS:
+    case Actions().UNFOCUS:
       return Object.assign({}, state, {
         _focusedUris: deleteNodes(state._focusedUris, [action.node])
       });
 
-    case SelectionActions().CLEAR_FOCUSED:
+    case Actions().CLEAR_FOCUSED:
       return clearFocused(state);
 
     default:
@@ -767,14 +761,14 @@ function setHideVcsIgnoredPaths(state, hideVcsIgnoredPaths) {
 }
 
 function setUsePreviewTabs(state, usePreviewTabs) {
-  return updateConf(state, conf => {
-    conf.usePreviewTabs = usePreviewTabs;
+  return Object.assign({}, state, {
+    usePreviewTabs
   });
 }
 
 function setFocusEditorOnFileSelection(state, focusEditorOnFileSelection) {
-  return updateConf(state, conf => {
-    conf.focusEditorOnFileSelection = focusEditorOnFileSelection;
+  return Object.assign({}, state, {
+    focusEditorOnFileSelection
   });
 }
 
@@ -860,13 +854,12 @@ function setIgnoredNames(state, ignoredNames) {
 }
 
 function setVcsStatuses(state, rootKey, vcsStatuses) {
-  let nextState = Object.assign({}, state); // We use file changes for populating the uncommitted list, this is different as compared
+  // We use file changes for populating the uncommitted list, this is different as compared
   // to what is computed in the vcsStatuses in that it does not need the exact path but just
   // the root folder present in atom and the file name and its status. Another difference is
   // in the terms used for status change, while uncommitted changes needs the HgStatusChange
   // codes the file tree doesn't.
-
-  nextState = setFileChanges(nextState, rootKey, vcsStatuses); // We can't build on the child-derived properties to maintain vcs statuses in the entire
+  const nextState = setFileChanges(state, rootKey, vcsStatuses); // We can't build on the child-derived properties to maintain vcs statuses in the entire
   // tree, since the reported VCS status may be for a node that is not yet present in the
   // fetched tree, and so it it can't affect its parents statuses. To have the roots colored
   // consistently we manually add all parents of all of the modified nodes up till the root
@@ -881,7 +874,7 @@ function setVcsStatuses(state, rootKey, vcsStatuses) {
     let current = uri;
 
     while (current !== rootKey) {
-      current = _FileTreeHelpers().default.getParentKey(current);
+      current = FileTreeHelpers().getParentKey(current);
 
       if (enrichedVcsStatuses.has(current)) {
         return;
@@ -901,8 +894,8 @@ function setVcsStatuses(state, rootKey, vcsStatuses) {
       }
     }
   });
-  return updateConf(nextState, conf => {
-    conf.vcsStatuses = conf.vcsStatuses.set(rootKey, enrichedVcsStatuses);
+  return Object.assign({}, nextState, {
+    vcsStatuses: nextState.vcsStatuses.set(rootKey, enrichedVcsStatuses)
   });
 }
 

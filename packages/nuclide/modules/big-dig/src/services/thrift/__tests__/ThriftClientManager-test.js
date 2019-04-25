@@ -98,7 +98,11 @@ jest.mock(require.resolve("../../tunnel/TunnelManager"), () => {
   class MockTunnelManager {
     constructor() {
       this.createTunnel = jest.fn().mockReturnValue({
-        getLocalPort: jest.fn().mockReturnValue(1),
+        getConfig: jest.fn().mockReturnValue({
+          local: {
+            port: 1
+          }
+        }),
         close: jest.fn()
       });
     }
@@ -159,7 +163,10 @@ describe('ThriftClientManager', () => {
     remoteUri: '',
     remoteCommand: '',
     remoteCommandArgs: [],
-    remotePort: 0,
+    remoteConnection: {
+      type: 'tcp',
+      port: 0
+    },
     thriftTransport: 'buffered',
     thriftProtocol: 'binary',
     thriftService: {},
@@ -334,7 +341,10 @@ describe('ThriftClientManager', () => {
       remoteUri: '',
       remoteCommand: '',
       remoteCommandArgs: [],
-      remotePort: 0,
+      remoteConnection: {
+        type: 'tcp',
+        port: 0
+      },
       thriftTransport: 'buffered',
       thriftProtocol: 'binary',
       thriftService: {},

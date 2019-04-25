@@ -108,7 +108,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 class Activation {
   constructor() {
     this._disposables = new (_UniversalDisposable().default)(this.registerOpenerAndCommand());
-    this._editorService = new (_ActiveEditorRegistry().default)((provider, editor) => provider.getOutline(editor), {}, getActiveEditorRegistryEventSources());
+    this._editorService = new (_ActiveEditorRegistry().default)((provider, editor) => provider.getOutline(editor), getActiveEditorRegistryEventSources());
   }
 
   dispose() {

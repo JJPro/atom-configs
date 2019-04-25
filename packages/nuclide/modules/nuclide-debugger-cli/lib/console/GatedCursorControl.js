@@ -56,6 +56,18 @@ class GatedCursorControl {
     }
   }
 
+  boldVideo() {
+    if (this._inner) {
+      this._inner.boldVideo();
+    }
+  }
+
+  normalVideo() {
+    if (this._inner) {
+      this._inner.normalVideo();
+    }
+  }
+
 }
 
 exports.default = GatedCursorControl;

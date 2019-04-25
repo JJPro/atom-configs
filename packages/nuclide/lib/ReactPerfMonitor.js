@@ -5,8 +5,18 @@ Object.defineProperty(exports, "__esModule", {
 });
 exports.default = void 0;
 
+function _UniversalDisposable() {
+  const data = _interopRequireDefault(require("../modules/nuclide-commons/UniversalDisposable"));
+
+  _UniversalDisposable = function () {
+    return data;
+  };
+
+  return data;
+}
+
 function _nuclideAnalytics() {
-  const data = require("../pkg/nuclide-analytics");
+  const data = require("../modules/nuclide-analytics");
 
   _nuclideAnalytics = function () {
     return data;
@@ -14,6 +24,18 @@ function _nuclideAnalytics() {
 
   return data;
 }
+
+function _observableDom() {
+  const data = require("../modules/nuclide-commons-ui/observable-dom");
+
+  _observableDom = function () {
+    return data;
+  };
+
+  return data;
+}
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 /**
  * Copyright (c) 2015-present, Facebook, Inc.
@@ -47,43 +69,37 @@ const METHOD_RE = new RegExp(`(${REACT_EMOJI}|${WARNING_EMOJI}) (\\S+)\\.(\\S+)$
 
 class ReactPerfMonitor {
   constructor() {
-    this._disposed = false;
-    const oldMeasure = performance.measure.bind(performance); // $FlowFixMe Patching intentionally :)
+    this._disposable = new (_UniversalDisposable().default)(new (_observableDom().PerformanceObservable)({
+      entryTypes: ['measure']
+    }).mergeMap(list => list.getEntries()).filter(entry => entry.duration >= DURATION_REPORTING_THRESHOLD_MS).filter(entry => (entry.name.startsWith(REACT_EMOJI) || entry.name.startsWith(WARNING_EMOJI)) && entry.name[2] !== '(' // high-level react processes aren't interesting
+    ).map(entry => {
+      let component;
+      let lifecycle;
+      let method;
+      const lifecycleResult = entry.name.match(LIFECYCLE_RE);
+      const methodResult = entry.name.match(METHOD_RE);
 
-    performance.measure = function measure(name, startMark, endMark) {
-      oldMeasure(name, startMark, endMark);
+      if (lifecycleResult) {
+        [component, lifecycle] = lifecycleResult.slice(2);
+      } else if (methodResult) {
+        [component, method] = methodResult.slice(2);
+      }
 
-      if (!this._disposed && (name.startsWith(REACT_EMOJI) || name.startsWith(WARNING_EMOJI)) && name[2] !== '(' // high-level react processes aren't interesting
-      ) {
-          const [entry] = performance.getEntriesByName(name, 'measure');
-          let component;
-          let lifecycle;
-          let method;
-          const lifecycleResult = name.match(LIFECYCLE_RE);
-          const methodResult = name.match(METHOD_RE);
-
-          if (lifecycleResult) {
-            [component, lifecycle] = lifecycleResult.slice(2);
-          } else if (methodResult) {
-            [component, method] = methodResult.slice(2);
-          }
-
-          if (entry && entry.duration >= DURATION_REPORTING_THRESHOLD_MS) {
-            (0, _nuclideAnalytics().track)('react-performance', {
-              duration: entry.duration.toString(),
-              eventName: name.slice(2),
-              // remove the emoji
-              component,
-              lifecycle,
-              method
-            });
-          }
-        }
-    };
+      return {
+        duration: entry.duration.toString(),
+        eventName: entry.name.slice(2),
+        // remove the emoji
+        component,
+        lifecycle,
+        method
+      };
+    }).subscribe(trackEntry => {
+      (0, _nuclideAnalytics().track)('react-performance', trackEntry);
+    }));
   }
 
   dispose() {
-    this._disposed = true;
+    this._disposable.dispose();
   }
 
 }

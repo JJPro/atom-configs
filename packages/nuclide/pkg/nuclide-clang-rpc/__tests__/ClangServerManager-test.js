@@ -140,7 +140,8 @@ describe('ClangServerManager', () => {
 
     jest.spyOn(processModule, 'runCommand').mockImplementation((command, ...args) => {
       if (command === 'ps') {
-        return _RxMin.Observable.of(serverManager._servers.values().map(server => server.getPID()).filter(Boolean).map(pid => `${pid}\t1000`).join('\n'));
+        return _RxMin.Observable.of(serverManager._servers // $FlowFixMe Missing in typings
+        .values().map(server => server.getPID()).filter(Boolean).map(pid => `${pid}\t1000`).join('\n'));
       }
 
       return runCommand(command, ...args);

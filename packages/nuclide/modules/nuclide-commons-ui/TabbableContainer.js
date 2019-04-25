@@ -49,7 +49,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  * LICENSE file in the root directory of this source tree. An additional grant
  * of patent rights can be found in the PATENTS file in the same directory.
  *
- * 
+ *  strict-local
  * @format
  */
 
@@ -74,7 +74,7 @@ class TabbableContainer extends _react.default.Component {
       const tabbableElements = (0, _tabbable().default)(rootNode);
       const firstTabbableElement = tabbableElements[0];
 
-      if (firstTabbableElement != null) {
+      if (firstTabbableElement instanceof HTMLElement) {
         firstTabbableElement.focus();
       }
     }
@@ -233,7 +233,7 @@ function eachTabIndexedElement(currentElement, reverse, updateNextCandidate, con
     const element = elements[index];
 
     if ( // $FlowFixMe(>=0.68.0) Flow suppress (T27187857)
-    element.disabled === true || element.tabIndex == null || element.tabIndex === -1) {
+    element.disabled === true || element.tabIndex == null || element.tabIndex < 0) {
       continue;
     }
 
@@ -244,17 +244,7 @@ function eachTabIndexedElement(currentElement, reverse, updateNextCandidate, con
 }
 
 function getFocusedElement() {
-  // Some inputs have a hidden-input with tabindex = -1 that gets focused, so
-  // activeElement is actually not what we want. In these cases, we must find
-  // the parent tag that has the actual tabindex to use. An example is the
-  // atom-text-editor.
-  let currentElement = document.activeElement;
-
-  if (currentElement && currentElement.classList.contains('hidden-input')) {
-    currentElement = findParentElement(currentElement.parentElement, element => element instanceof HTMLElement && element.tabIndex >= 0);
-  }
-
-  return currentElement;
+  return document.activeElement;
 }
 /**
  * Finds a parent of currentElement that satisfies the condition.

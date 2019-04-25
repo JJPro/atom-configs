@@ -26,7 +26,7 @@ function _nuclideOpenFiles() {
 }
 
 function _nuclideAnalytics() {
-  const data = require("../../nuclide-analytics");
+  const data = require("../../../modules/nuclide-analytics");
 
   _nuclideAnalytics = function () {
     return data;
@@ -46,17 +46,16 @@ function _nuclideAnalytics() {
  * @format
  */
 class OutlineViewProvider {
-  constructor(name, grammarScopes, priority, analyticsEventName, updateOnEdit, connectionToLanguageService) {
+  constructor(name, grammarScopes, priority, analyticsEventName, connectionToLanguageService) {
     this.name = name;
     this.grammarScopes = grammarScopes;
     this.priority = priority;
-    this.updateOnEdit = updateOnEdit == null ? undefined : updateOnEdit;
     this._analyticsEventName = analyticsEventName;
     this._connectionToLanguageService = connectionToLanguageService;
   }
 
   static register(name, grammarScopes, config, connectionToLanguageService) {
-    return atom.packages.serviceHub.provide('outline-view', config.version, new OutlineViewProvider(name, grammarScopes, config.priority, config.analyticsEventName, config.updateOnEdit, connectionToLanguageService));
+    return atom.packages.serviceHub.provide('outline-view', config.version, new OutlineViewProvider(name, grammarScopes, config.priority, config.analyticsEventName, connectionToLanguageService));
   }
 
   getOutline(editor) {

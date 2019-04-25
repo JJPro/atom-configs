@@ -3,7 +3,7 @@
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-exports.default = void 0;
+exports.default = exports.VENDOR_PYTHONPATH = void 0;
 
 function _nuclideUri() {
   const data = _interopRequireDefault(require("../../../modules/nuclide-commons/nuclideUri"));
@@ -37,6 +37,9 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
  * 
  * @format
  */
+const VENDOR_PYTHONPATH = _nuclideUri().default.join(__dirname, '../VendorLib');
+
+exports.VENDOR_PYTHONPATH = VENDOR_PYTHONPATH;
 let fbFindClangServerArgs;
 
 var findClangServerArgs = async function findClangServerArgs(src, libclangPath = null, configLibclangPath) {
@@ -72,7 +75,7 @@ var findClangServerArgs = async function findClangServerArgs(src, libclangPath =
   let clangServerArgs = {
     libClangLibraryFile,
     pythonExecutable: 'python2.7',
-    pythonPathEnv: _nuclideUri().default.join(__dirname, '../VendorLib')
+    pythonPathEnv: VENDOR_PYTHONPATH
   };
 
   if (typeof fbFindClangServerArgs === 'function') {

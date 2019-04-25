@@ -12,10 +12,10 @@ function _nuclideWorkingSetsCommon() {
   return data;
 }
 
-function _FileTreeHelpers() {
-  const data = _interopRequireDefault(require("../lib/FileTreeHelpers"));
+function FileTreeHelpers() {
+  const data = _interopRequireWildcard(require("../lib/FileTreeHelpers"));
 
-  _FileTreeHelpers = function () {
+  FileTreeHelpers = function () {
     return data;
   };
 
@@ -126,9 +126,9 @@ function _temp() {
   return data;
 }
 
-function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) { var desc = Object.defineProperty && Object.getOwnPropertyDescriptor ? Object.getOwnPropertyDescriptor(obj, key) : {}; if (desc.get || desc.set) { Object.defineProperty(newObj, key, desc); } else { newObj[key] = obj[key]; } } } } newObj.default = obj; return newObj; } }
-
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) { var desc = Object.defineProperty && Object.getOwnPropertyDescriptor ? Object.getOwnPropertyDescriptor(obj, key) : {}; if (desc.get || desc.set) { Object.defineProperty(newObj, key, desc); } else { newObj[key] = obj[key]; } } } } newObj.default = obj; return newObj; } }
 
 /**
  * Copyright (c) 2015-present, Facebook, Inc.
@@ -345,7 +345,7 @@ describe('trackedNode', () => {
 });
 describe('getChildKeys', () => {
   it("clears loading and expanded states when there's an error fetching children", async () => {
-    jest.spyOn(_FileTreeHelpers().default, 'fetchChildren').mockImplementation(() => {
+    jest.spyOn(FileTreeHelpers(), 'fetchChildren').mockImplementation(() => {
       return Promise.reject(new Error('This error **should** be thrown.'));
     });
     EpicHelpers().setRootKeys(store, [dir1]);
@@ -359,7 +359,7 @@ describe('getChildKeys', () => {
       // effects after this try/catch capture the purpose of this test.
     } finally {
       // $FlowFixMe
-      _FileTreeHelpers().default.fetchChildren.mockRestore();
+      FileTreeHelpers().fetchChildren.mockRestore();
     }
 
     node = getNode(dir1, dir1);
@@ -454,7 +454,7 @@ describe('recovering from failed subscriptions', () => {
       throw new Error('This error **should** be thrown.');
     }); // Return the always-fail directory when it is expanded.
 
-    jest.spyOn(_FileTreeHelpers().default, 'getDirectoryByKey').mockReturnValue(unsubscribeableDir);
+    jest.spyOn(FileTreeHelpers(), 'getDirectoryByKey').mockReturnValue(unsubscribeableDir);
     EpicHelpers().setRootKeys(store, [dir1]);
     store.dispatch(Actions().expandNode(dir1, dir1));
     await loadChildKeys(dir1, dir1); // Children should load but the subscription should fail.
@@ -477,7 +477,7 @@ describe('recovering from failed subscriptions', () => {
 
     expect(shownChildren(dir1, dir1).map(n => n.uri)).toEqual([barBaz, fooTxt]); // $FlowFixMe
 
-    _FileTreeHelpers().default.getDirectoryByKey.mockRestore();
+    FileTreeHelpers().getDirectoryByKey.mockRestore();
   });
 });
 it('omits vcs-excluded paths', async () => {
@@ -804,7 +804,7 @@ describe('selection', () => {
         // yet. Don't use `actions.expandNode` because it causes a re-render, which queues a real
         // fetch and might populate the children of `dir1`. We don't want that.
 
-        store.dispatch(Actions().setRoots(_FileTreeHelpers().default.updateNodeAtRoot(Selectors().getRoots(store.getState()), rootKey, dir1Key, node => node.set({
+        store.dispatch(Actions().setRoots(FileTreeHelpers().updateNodeAtRoot(Selectors().getRoots(store.getState()), rootKey, dir1Key, node => node.set({
           isLoading: true,
           isExpanded: true
         }))));

@@ -270,6 +270,11 @@ describe('nuclide-uri', () => {
     expect(_nuclideUri().default.isAbsolute('abc/def')).toBe(false);
     expect(_nuclideUri().default.isAbsolute('abc\\def')).toBe(false);
   });
+  it('isHomeRelative', () => {
+    expect(_nuclideUri().default.isHomeRelative('~/a/b/c')).toBe(true);
+    expect(_nuclideUri().default.isHomeRelative('/a/b/c')).toBe(false);
+    expect(_nuclideUri().default.isHomeRelative('nuclide://host/a/b/c')).toBe(false);
+  });
   it('resolve', () => {
     expect(_nuclideUri().default.resolve('/abc')).toBe('/abc');
     expect(_nuclideUri().default.resolve('/abc', '..')).toBe('/');
@@ -335,10 +340,13 @@ describe('nuclide-uri', () => {
   });
   it('properly converts file URIs to local paths', () => {
     expect(_nuclideUri().default.uriToNuclideUri('\\abc\\def')).toEqual(null);
-    expect(_nuclideUri().default.uriToNuclideUri('file://somehost/file/path')).toEqual('/file/path');
+    expect(_nuclideUri().default.uriToNuclideUri('file:///file/path')).toEqual('/file/path');
     expect(_nuclideUri().default.uriToNuclideUri('file:///foo/bar/buck-out/flavor%231%232%233%2Cabc')).toEqual('/foo/bar/buck-out/flavor#1#2#3,abc');
     expect(_nuclideUri().default.uriToNuclideUri('file:///file/path/file_%25.ext')).toEqual('/file/path/file_%.ext');
-    expect(_nuclideUri().default.uriToNuclideUri('file://C:\\some\\file\\path')).toEqual('C:\\some\\file\\path');
+    expect(_nuclideUri().default.uriToNuclideUri('file://C:\\some\\file\\path')).toEqual('C:\\some\\file\\path'); // Make sure that this is treated as a Windows drive.
+    // (The slashes don't change unless this runs on Windows, though.)
+
+    expect(_nuclideUri().default.uriToNuclideUri('file:///c:/path')).toMatch(/^c:/);
   });
   it('properly converts local paths to file URIs', () => {
     expect(_nuclideUri().default.nuclideUriToUri('/foo/bar/file.ext')).toEqual('file:///foo/bar/file.ext');

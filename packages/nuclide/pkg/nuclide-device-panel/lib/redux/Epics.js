@@ -46,7 +46,7 @@ function _SimpleCache() {
 var _RxMin = require("rxjs/bundles/Rx.min.js");
 
 function _nuclideAnalytics() {
-  const data = require("../../../nuclide-analytics");
+  const data = require("../../../../modules/nuclide-analytics");
 
   _nuclideAnalytics = function () {
     return data;

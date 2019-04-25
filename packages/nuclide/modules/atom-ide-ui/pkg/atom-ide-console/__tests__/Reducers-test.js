@@ -35,6 +35,16 @@ function Immutable() {
   return data;
 }
 
+function _uuid() {
+  const data = _interopRequireDefault(require("uuid"));
+
+  _uuid = function () {
+    return data;
+  };
+
+  return data;
+}
+
 var _RxMin = require("rxjs/bundles/Rx.min.js");
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
@@ -60,7 +70,6 @@ const emptyAppState = {
   executors: new Map(),
   providers: new Map(),
   providerStatuses: new Map(),
-  providerSubscriptions: new Map(),
   records: Immutable().List(),
   incompleteRecords: Immutable().List(),
   history: []
@@ -107,7 +116,9 @@ describe('createStateStream', () => {
   describe('RECORD_UPDATED', () => {
     let finalState;
     let initialRecords;
+    let messageIds = [];
     beforeEach(() => {
+      messageIds = [];
       initialRecords = Immutable().List();
       const initialState = Object.assign({}, emptyAppState, {
         maxMessageCount: 2,
@@ -116,6 +127,7 @@ describe('createStateStream', () => {
       const actions = [];
 
       for (let i = 0; i < 2; i++) {
+        messageIds[i] = _uuid().default.v4();
         actions.push({
           type: Actions().RECORD_RECEIVED,
           payload: {
@@ -123,7 +135,7 @@ describe('createStateStream', () => {
               level: 'info',
               text: i.toString(),
               incomplete: true,
-              messageId: i
+              messageId: messageIds[i]
             }
           }
         });
@@ -134,7 +146,7 @@ describe('createStateStream', () => {
       actions.push({
         type: Actions().RECORD_UPDATED,
         payload: {
-          messageId: 0,
+          messageId: messageIds[0],
           appendText: '!',
           overrideLevel: 'warning',
           setComplete: false
@@ -144,7 +156,7 @@ describe('createStateStream', () => {
       actions.push({
         type: Actions().RECORD_UPDATED,
         payload: {
-          messageId: 0,
+          messageId: messageIds[0],
           appendText: '!',
           overrideLevel: 'warning',
           setComplete: false
@@ -161,7 +173,7 @@ describe('createStateStream', () => {
         throw new Error("Invariant violation: \"message0 != null\"");
       }
 
-      expect(message0.messageId).toBe(0);
+      expect(message0.messageId).toBe(messageIds[0]);
       expect(message0.text).toBe('0!!');
       expect(message0.level).toBe('warning');
       expect(message0.incomplete).toBe(true); // Message 1 was not mutated.
@@ -172,7 +184,7 @@ describe('createStateStream', () => {
         throw new Error("Invariant violation: \"message1 != null\"");
       }
 
-      expect(message1.messageId).toBe(1);
+      expect(message1.messageId).toBe(messageIds[1]);
       expect(message1.text).toBe('1');
       expect(message1.level).toBe('info');
       expect(message1.incomplete).toBe(true);
@@ -181,7 +193,7 @@ describe('createStateStream', () => {
       let newState = [{
         type: Actions().RECORD_UPDATED,
         payload: {
-          messageId: 0,
+          messageId: messageIds[0],
           appendText: null,
           overrideLevel: null,
           setComplete: true
@@ -198,7 +210,7 @@ describe('createStateStream', () => {
           throw new Error("Invariant violation: \"message0 != null\"");
         }
 
-        expect(message0.messageId).toBe(0);
+        expect(message0.messageId).toBe(messageIds[0]);
         expect(message0.text).toBe('0!!');
         expect(message0.level).toBe('warning');
         expect(message0.incomplete).toBe(false);
@@ -207,7 +219,7 @@ describe('createStateStream', () => {
           throw new Error("Invariant violation: \"message1 != null\"");
         }
 
-        expect(message1.messageId).toBe(1);
+        expect(message1.messageId).toBe(messageIds[1]);
         expect(message1.text).toBe('1');
         expect(message1.level).toBe('info');
         expect(message1.incomplete).toBe(true);
@@ -222,7 +234,7 @@ describe('createStateStream', () => {
         newState = [{
           type: Actions().RECORD_UPDATED,
           payload: {
-            messageId: 0,
+            messageId: messageIds[0],
             appendText: '!',
             overrideLevel: null,
             setComplete: true
@@ -270,7 +282,8 @@ describe('createStateStream', () => {
     beforeEach(() => {
       initialRecords = Immutable().List([{
         kind: 'message',
-        sourceId: 'Test',
+        sourceId: 'test-source',
+        sourceName: 'Test',
         level: 'info',
         text: 'test',
         scopeName: null,

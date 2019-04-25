@@ -24,6 +24,16 @@ var React = _interopRequireWildcard(require("react"));
 
 var _reactDom = _interopRequireDefault(require("react-dom"));
 
+function _nullthrows() {
+  const data = _interopRequireDefault(require("nullthrows"));
+
+  _nullthrows = function () {
+    return data;
+  };
+
+  return data;
+}
+
 function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) { var desc = Object.defineProperty && Object.getOwnPropertyDescriptor ? Object.getOwnPropertyDescriptor(obj, key) : {}; if (desc.get || desc.set) { Object.defineProperty(newObj, key, desc); } else { newObj[key] = obj[key]; } } } } newObj.default = obj; return newObj; } }
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
@@ -76,7 +86,7 @@ describe('TabbedContainer', () => {
 
     expect(containerNode.getElementsByClassName('hidden').length).toBe(1); // switch to second tab
 
-    _testUtils().default.Simulate.click(renderedTabs.item(1));
+    _testUtils().default.Simulate.click((0, _nullthrows().default)(renderedTabs.item(1)));
 
     expect(tabbedContainer.state.activeTabName).toBe('tab2'); // now the second tab's content becomes null
 

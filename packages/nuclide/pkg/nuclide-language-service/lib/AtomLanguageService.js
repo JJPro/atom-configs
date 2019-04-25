@@ -16,7 +16,7 @@ function _nuclideOpenFiles() {
 }
 
 function _FileEventHandlers() {
-  const data = require("./FileEventHandlers");
+  const data = require("../../../modules/nuclide-commons-atom/FileEventHandlers");
 
   _FileEventHandlers = function () {
     return data;
@@ -231,10 +231,6 @@ class AtomLanguageService {
     this._subscriptions.add(this._connectionToLanguageService);
   }
 
-  _selector() {
-    return this._config.grammars.join(', ');
-  }
-
   activate() {
     let busySignalService = null;
     const busySignalProvider = {
@@ -274,7 +270,7 @@ class AtomLanguageService {
     const coverageConfig = this._config.coverage;
 
     if (coverageConfig != null) {
-      this._subscriptions.add(_TypeCoverageProvider().TypeCoverageProvider.register(this._config.name, this._selector(), coverageConfig, this._connectionToLanguageService));
+      this._subscriptions.add(_TypeCoverageProvider().TypeCoverageProvider.register(this._config.name, this._config.grammars, coverageConfig, this._connectionToLanguageService));
     }
 
     const definitionConfig = this._config.definition;
@@ -286,7 +282,7 @@ class AtomLanguageService {
     const typeHintConfig = this._config.typeHint;
 
     if (typeHintConfig != null) {
-      this._subscriptions.add(_TypeHintProvider().TypeHintProvider.register(this._config.name, this._selector(), typeHintConfig, this._connectionToLanguageService));
+      this._subscriptions.add(_TypeHintProvider().TypeHintProvider.register(this._config.name, this._config.grammars, typeHintConfig, this._connectionToLanguageService));
     }
 
     const codeFormatConfig = this._config.codeFormat;

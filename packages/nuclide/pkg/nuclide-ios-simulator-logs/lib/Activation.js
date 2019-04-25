@@ -107,18 +107,25 @@ class Activation {
     }));
   }
 
-  consumeOutputService(api) {
-    this._disposables.add(api.registerOutputProvider({
+  consumeConsole(consoleService) {
+    let consoleApi = consoleService({
       id: 'iOS Simulator Logs',
-      messages: this._iosLogTailer.getMessages(),
-      observeStatus: cb => this._iosLogTailer.observeStatus(cb),
-      start: () => {
-        this._iosLogTailer.start();
-      },
-      stop: () => {
-        this._iosLogTailer.stop();
+      name: 'iOS Simulator Logs',
+      start: () => this._iosLogTailer.start(),
+      stop: () => this._iosLogTailer.stop()
+    });
+    const disposable = new (_UniversalDisposable().default)(() => {
+      consoleApi != null && consoleApi.dispose();
+      consoleApi = null;
+    }, this._iosLogTailer.getMessages().subscribe(message => consoleApi != null && consoleApi.append(message)), this._iosLogTailer.observeStatus(status => {
+      if (consoleApi != null) {
+        consoleApi.setStatus(status);
       }
     }));
+
+    this._disposables.add(disposable);
+
+    return disposable;
   }
 
   dispose() {

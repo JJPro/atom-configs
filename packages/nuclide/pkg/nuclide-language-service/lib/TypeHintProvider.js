@@ -26,7 +26,7 @@ function _nuclideOpenFiles() {
 }
 
 function _nuclideAnalytics() {
-  const data = require("../../nuclide-analytics");
+  const data = require("../../../modules/nuclide-analytics");
 
   _nuclideAnalytics = function () {
     return data;
@@ -46,16 +46,16 @@ function _nuclideAnalytics() {
  * @format
  */
 class TypeHintProvider {
-  constructor(name, selector, priority, analyticsEventName, connectionToLanguageService) {
+  constructor(name, grammarScopes, priority, analyticsEventName, connectionToLanguageService) {
     this.providerName = name;
-    this.selector = selector;
-    this.inclusionPriority = priority;
+    this.grammarScopes = grammarScopes;
+    this.priority = priority;
     this._analyticsEventName = analyticsEventName;
     this._connectionToLanguageService = connectionToLanguageService;
   }
 
-  static register(name, selector, config, connectionToLanguageService) {
-    return atom.packages.serviceHub.provide('nuclide-type-hint.provider', config.version, new TypeHintProvider(name, selector, config.priority, config.analyticsEventName, connectionToLanguageService));
+  static register(name, grammarScopes, config, connectionToLanguageService) {
+    return atom.packages.serviceHub.provide('nuclide-type-hint.provider', config.version, new TypeHintProvider(name, grammarScopes, config.priority, config.analyticsEventName, connectionToLanguageService));
   }
 
   async typeHint(editor, position) {

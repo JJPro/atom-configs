@@ -32,6 +32,8 @@ function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj;
  *  strict-local
  * @format
  */
+const MAX_MESSAGE_COUNT_PER_PROVIDER_PER_FILE = 1000;
+
 function messages(state = new Map(), action) {
   switch (action.type) {
     case Actions().UPDATE_MESSAGES:
@@ -42,12 +44,12 @@ function messages(state = new Map(), action) {
         } = action.payload;
         const nextState = new Map(state); // Override the messages we already have for each path.
 
-        const prevMessages = nextState.get(provider) || new Map(); // This O(n) map copying means that a series of streaming updates will be O(n^2). However,
+        const prevMessages = nextState.get(provider) || new Map(); // This O(nlogn) copying + sorting is potentially expensive. However,
         // we'd like to keep this immutable and we're also accumulating the messages, (and therefore
         // already O(n^2)). So, for now, we'll accept that and revisit if it proves to be a
         // bottleneck.
 
-        const nextMessages = new Map([...prevMessages, ...update]);
+        const nextMessages = new Map([...prevMessages, ...sortUpdateMessages(update)]);
         nextState.set(provider, nextMessages);
         return nextState;
       }
@@ -150,6 +152,14 @@ function messages(state = new Map(), action) {
       {
         return mapDelete(state, action.payload.provider);
       }
+
+    case Actions().MARK_MESSAGES_STALE:
+      {
+        const {
+          filePath
+        } = action.payload;
+        return markStaleMessages(state, filePath);
+      }
   }
 
   return state;
@@ -219,4 +229,53 @@ function mapDelete(map, key) {
   }
 
   return map;
+}
+/**
+ * Mark all messages on the provided filepath stale
+ */
+
+
+function markStaleMessages(state, filePath) {
+  const nextState = new Map(state);
+  nextState.forEach((fileToMessages, provider) => {
+    const newFileToMessages = new Map(fileToMessages);
+    const messagesOnCurrentFile = newFileToMessages.get(filePath);
+
+    if (messagesOnCurrentFile) {
+      const staleMessagesOnCurrentFile = messagesOnCurrentFile.map(msg => {
+        // Mark message stale
+        return Object.assign({}, msg, {
+          stale: true
+        });
+      });
+      newFileToMessages.set(filePath, staleMessagesOnCurrentFile);
+    }
+
+    nextState.set(provider, newFileToMessages);
+  });
+  return nextState;
+}
+
+function sortUpdateMessages(update) {
+  const newUpdate = new Map();
+
+  for (const [filePath, updateMessages] of update) {
+    newUpdate.set(filePath, updateMessages.slice(0, MAX_MESSAGE_COUNT_PER_PROVIDER_PER_FILE).sort((a, b) => {
+      const aRange = a.range;
+
+      if (aRange == null) {
+        return -1;
+      }
+
+      const bRange = b.range;
+
+      if (bRange == null) {
+        return 1;
+      }
+
+      return aRange.compare(bRange);
+    }));
+  }
+
+  return newUpdate;
 }
